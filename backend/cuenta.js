@@ -1,5 +1,5 @@
 // Racha · cuenta en la nube: login con Google y datos de cada usuario en D1 (plan gratis).
-// Flujo (plan de DeepSeek): la app abre Google con PKCE y redirect a su servidor local (127.0.0.1); recibe el `code`
+// Flujo: la app abre Google con PKCE y redirect a su servidor local (127.0.0.1); recibe el `code`
 // y lo manda aquí con el `verifier`. El Worker lo cambia por el id_token directo con Google (el secreto del cliente
 // vive solo aquí) y, si el correo está en GOOGLE_EMAILS, emite una sesión propia de 90 días.
 
