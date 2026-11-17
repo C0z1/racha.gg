@@ -2,7 +2,7 @@
 Lo usa companion_web.py (la app); no se corre solo."""
 import contextlib, importlib, io, json, os, pathlib, runpy, sys, threading, time, traceback
 # PyInstaller solo empaqueta lo que ve importado: estos los usan los scripts que el .exe carga del disco
-import argparse, base64, collections, datetime, math, random, ssl, statistics, subprocess, webbrowser  # noqa: F401
+import argparse, base64, collections, datetime, math, random, sqlite3, ssl, statistics, subprocess, webbrowser  # noqa: F401
 import urllib.error, urllib.parse, urllib.request  # noqa: F401
 try: import winreg  # noqa: F401
 except ImportError: winreg = None
@@ -102,8 +102,10 @@ def ultima_partida(archivo=None):
     (los id de partida crecen con el tiempo) o de `archivo` («LA1_123», la que elegiste en Partidas)."""
     try:
         puuid = json.loads((RAW / "perfil.json").read_text())["account"]["puuid"]
-        f = RAW / f"{archivo}.json" if archivo else max(RAW.glob("*_*.json"), key=lambda p: int(p.stem.split("_")[1]))
-        import score; info = (score.cargar_partida(f) or {})["info"]; ps = info["participants"]  # sin partida legible: KeyError → {}
+        import score
+        f = RAW / f"{archivo}.json" if archivo else next((p for p in sorted(RAW.glob("*_*.json"), key=lambda p: int(p.stem.split("_")[1]), reverse=True)
+                                                           if score.cargar_partida(p)), RAW / "-.json")  # la más nueva que se pueda leer
+        info = (score.cargar_partida(f) or {})["info"]; ps = info["participants"]  # sin partida legible: KeyError → {}
         me = next(p for p in ps if p["puuid"] == puuid)
         opp = next((p for p in ps if p["teamPosition"] == me["teamPosition"] and p["teamId"] != me["teamId"]), None)
         out = dict(kda=f"{me['kills']}/{me['deaths']}/{me['assists']}", min=info["gameDuration"] // 60,

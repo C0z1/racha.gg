@@ -32,36 +32,48 @@ def wilson(k, n, z=1.96):
 assert [round(v, 3) for v in wilson(5, 10)] == [0.237, 0.763]
 
 
-games = []
-for f in RAW.glob("*_*.json"):
-    if not (m := score.cargar_partida(f)): print(f"(saltada {f.stem}: archivo dañado)", file=sys.stderr); continue
+def _juego(f):
+    """Lo de una partida para la revisión (dict), {"saltada": motivo} o None (remake). Pasa por el índice (indice.py)."""
+    if not (m := score.cargar_partida(f)): return {"saltada": "archivo dañado"}
     m = m["info"]
-    if m["gameDuration"] < 300 or m.get("gameEndedInEarlySurrender"): continue
+    if m["gameDuration"] < 300 or m.get("gameEndedInEarlySurrender"): return None
     ps = m["participants"]
     zs = score.z_partida(m)
     me = next((p for p in ps if p["puuid"] == puuid), None)
-    if not me: print(f"(saltada {f.stem}: no está tu puuid)", file=sys.stderr); continue  # una partida rara no tumba la revisión
+    if not me: return {"saltada": "no está tu puuid"}  # una partida rara no tumba la revisión
     opp = next((p for p in ps if p["teamPosition"] == me["teamPosition"] and p["teamId"] != me["teamId"]), None)
     g = dict(win=me["win"], champ=me["championName"], t=m["gameCreation"], cw=me.get("visionWardsBoughtInGame", 0),
              zs=zs, sc=None, gd14=None, cd14=None, xd14=None, lv6=None, d14=None, d25=None, rio14=None,
              lm10=me.get("challenges", {}).get("laneMinionsFirst10Minutes") if M10 and me["championName"] == M10["campeon"] else None)
     tf = RAW / "timeline" / f.name
     if tf.exists():
-        fr = json.loads(tf.read_text())["info"]["frames"]; pid = me["participantId"]
-        if opp and len(fr) > 14:
-            a, b = fr[14]["participantFrames"][str(pid)], fr[14]["participantFrames"][str(opp["participantId"])]
-            g["gd14"] = a["totalGold"] - b["totalGold"]
-            g["cd14"] = a["minionsKilled"] + a["jungleMinionsKilled"] - b["minionsKilled"] - b["jungleMinionsKilled"]
-            g["xd14"] = a["xp"] - b["xp"]
-            a6, b6 = fr[6]["participantFrames"][str(pid)], fr[6]["participantFrames"][str(opp["participantId"])]
-            g["lv6"] = a6["level"] - b6["level"]  # foto del minuto 6, como el aviso en vivo de companion.py
-        mins = [e["timestamp"] / 60000 for x in fr for e in x["events"] if e["type"] == "CHAMPION_KILL" and e["victimId"] == pid]
-        g["d14"] = sum(t < 14 for t in mins); g["d25"] = sum(14 <= t < 25 for t in mins)
-        if me["teamPosition"] in NOMBRE:  # sin jungla: no tiene "tu línea"
-            g["rio14"] = sum(pasado(zone(e["position"]["x"], e["position"]["y"], me["teamId"]), NOMBRE[me["teamPosition"]])
-                             for x in fr for e in x["events"]
-                             if e["type"] == "CHAMPION_KILL" and e["victimId"] == pid and e["timestamp"] < 14 * 60000)
-    games.append(g)
+        base = dict(g)
+        try:
+            fr = json.loads(tf.read_text())["info"]["frames"]; pid = me["participantId"]
+            if opp and len(fr) > 14:
+                a, b = fr[14]["participantFrames"][str(pid)], fr[14]["participantFrames"][str(opp["participantId"])]
+                g["gd14"] = a["totalGold"] - b["totalGold"]
+                g["cd14"] = a["minionsKilled"] + a["jungleMinionsKilled"] - b["minionsKilled"] - b["jungleMinionsKilled"]
+                g["xd14"] = a["xp"] - b["xp"]
+                a6, b6 = fr[6]["participantFrames"][str(pid)], fr[6]["participantFrames"][str(opp["participantId"])]
+                g["lv6"] = a6["level"] - b6["level"]  # foto del minuto 6, como el aviso en vivo de companion.py
+            mins = [e["timestamp"] / 60000 for x in fr for e in x["events"] if e["type"] == "CHAMPION_KILL" and e["victimId"] == pid]
+            g["d14"] = sum(t < 14 for t in mins); g["d25"] = sum(14 <= t < 25 for t in mins)
+            if me["teamPosition"] in NOMBRE:  # sin jungla: no tiene "tu línea"
+                g["rio14"] = sum(pasado(zone(e["position"]["x"], e["position"]["y"], me["teamId"]), NOMBRE[me["teamPosition"]])
+                                 for x in fr for e in x["events"]
+                                 if e["type"] == "CHAMPION_KILL" and e["victimId"] == pid and e["timestamp"] < 14 * 60000)
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError): g = base  # timeline roto: la partida sin sus datos de minuto
+    return g
+
+
+import indice, postpartida  # noqa: E402
+VER = indice.version(pathlib.Path(__file__), pathlib.Path(score.__file__), pathlib.Path(postpartida.__file__), puuid, json.dumps(M10))
+games = []
+for f in RAW.glob("*_*.json"):
+    g = indice.derivado(f, "revision", VER, lambda f=f: _juego(f))
+    if g and "saltada" in g: print(f"(saltada {f.stem}: {g['saltada']})", file=sys.stderr)
+    elif g: games.append(g)
 games.sort(key=lambda g: g["t"])
 assert games, "sin partidas"
 MED = score.medias_rol((g["zs"] for g in games), puuid)

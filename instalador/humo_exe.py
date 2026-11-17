@@ -3,6 +3,8 @@
 import json, pathlib, re, subprocess, sys, time, urllib.request
 
 exe = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parent.parent / "dist" / "HTC" / "HTC.exe")
+faltan = [m for m in ("_sqlite3.pyd", "_tkinter.pyd") if not list(exe.parent.rglob(m))]  # los scripts del disco los importan (indice.py, overlay)
+if faltan: print("falta en la build:", ", ".join(faltan)); sys.exit(1)
 LISTEN = r"127\.0\.0\.1:(\d+)\s+\S+\s+LISTENING\s+(\d+)"
 netstat = lambda: subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True, text=True).stdout
 antes = {port for port, _ in re.findall(LISTEN, netstat())}  # puertos de un Companion.exe ya abierto no cuentan
