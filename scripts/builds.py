@@ -19,6 +19,7 @@ se maximizan Q/W/E (el que llega antes a 3 puntos va primero). Cada posición se
 (la de los mejores; si no hay, por ejemplo con la key caducada, la tuya)."""
 import json, math, os, pathlib, re, sys, time, urllib.error, urllib.request
 from collections import Counter
+import score  # cargar_partida: la lectura común de datos/raw
 from datetime import datetime
 
 if __name__ == "__main__": sys.stdout.reconfigure(encoding="utf-8")
@@ -302,7 +303,7 @@ def tuyas(nombre, pos=None):
     yo = json.loads((RAW / "perfil.json").read_text())["account"]["puuid"]
     out = []
     for f in sorted(RAW.glob("*_*.json")):
-        m = json.loads(f.read_text())
+        if not (m := score.cargar_partida(f)): continue
         p = next((x for x in m["info"]["participants"] if x["puuid"] == yo), None)
         tf = RAW / "timeline" / f.name
         if p and p["championName"] == nombre and (not pos or p["teamPosition"] == pos) and m["info"]["gameDuration"] >= 300 and tf.exists():
@@ -385,7 +386,7 @@ def pool(minimo=10):
     yo = json.loads((RAW / "perfil.json").read_text())["account"]["puuid"]
     c = Counter()
     for f in RAW.glob("*_*.json"):
-        p = next((x for x in json.loads(f.read_text())["info"]["participants"] if x["puuid"] == yo), None)
+        p = next((x for x in (score.cargar_partida(f) or {"info": {"participants": []}})["info"]["participants"] if x["puuid"] == yo), None)
         if p: c[(p["championName"], p["teamPosition"])] += 1
     tot = Counter()
     for (ch, _), v in c.items(): tot[ch] += v

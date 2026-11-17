@@ -5,6 +5,7 @@ Uso:
 Rol: top, jungla, mid, bot, support (por defecto mid)."""
 import json, os, math, pathlib, random, statistics as st, sys
 from collections import defaultdict
+import score  # cargar_partida: la lectura común de datos/raw
 
 sys.stdout.reconfigure(encoding="utf-8")
 RAW = pathlib.Path(os.environ.get("DATOS_DIR") or pathlib.Path(__file__).resolve().parent.parent / "datos" / "raw")
@@ -40,7 +41,8 @@ def gd(rs):
 
 games = []
 for f in RAW.glob("*_*.json"):
-    m = json.loads(f.read_text())["info"]
+    if not (m := score.cargar_partida(f)): continue  # cortada o dañada: se salta, no tumba el champ select
+    m = m["info"]
     if m["gameDuration"] < 300: continue  # remakes
     ps = m["participants"]
     me = next((p for p in ps if p["puuid"] == puuid), None)

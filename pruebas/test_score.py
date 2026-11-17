@@ -89,5 +89,18 @@ class Score(unittest.TestCase):
         self.assertEqual(companion_gui.parsear_revision(SALIDA)["score"], "-")
 
 
+class CargarPartida(unittest.TestCase):  # la lectura común de datos/raw: una partida o None, nunca una excepción
+    def test_valida_y_dañadas(self):
+        import tempfile
+        m = score.cargar_partida(AQUI / "fixtures" / "datos" / "XX_1.json")
+        self.assertIsInstance(m["info"]["participants"], list)
+        with tempfile.TemporaryDirectory() as d:
+            d = pathlib.Path(d)
+            for nombre, texto in (("cortada", '{"info": {"partic'), ("lista", "[]"), ("sin_info", '{"metadata": {}}'), ("info_rara", '{"info": {"participants": 3}}')):
+                (d / nombre).write_text(texto, encoding="utf-8")
+                self.assertIsNone(score.cargar_partida(d / nombre), nombre)
+            self.assertIsNone(score.cargar_partida(d / "no_existe.json"))
+
+
 if __name__ == "__main__":
     unittest.main()

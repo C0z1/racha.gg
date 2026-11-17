@@ -251,7 +251,8 @@ def main(argv=None):
     puuid = ((_cargar(raw / "perfil.json") or {}).get("account") or {}).get("puuid")
     fs = list(raw.glob("*_*.json"))
     if argv: fs = [f for f in fs if f.stem == argv[0] or f.stem.endswith("_" + argv[0])]
-    ms = [(m, f) for f in fs if isinstance(m := _cargar(f), dict) and (m.get("info") or {}).get("gameCreation")]
+    import score
+    ms = [(m, f) for f in fs if (m := score.cargar_partida(f)) and m["info"].get("gameCreation")]
     if not puuid or not ms:
         print("Sin partida que revisar."); return 1
     m, f = max(ms, key=lambda x: x[0]["info"]["gameCreation"])

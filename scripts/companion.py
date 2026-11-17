@@ -646,7 +646,8 @@ def nombres():
     """championId -> championName sacado de tus partidas en datos/raw (sin red)."""
     m = {}
     for f in (pathlib.Path(os.environ.get("DATOS_DIR") or DIR.parent / "datos" / "raw")).glob("*_*.json"):
-        for p in json.loads(f.read_text())["info"]["participants"]: m[p["championId"]] = p["championName"]
+        import score  # hoja: solo stdlib
+        for p in (score.cargar_partida(f) or {"info": {"participants": []}})["info"]["participants"]: m[p["championId"]] = p["championName"]
     return m
 
 
