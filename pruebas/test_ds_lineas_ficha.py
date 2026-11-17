@@ -6,6 +6,9 @@ import pathlib, sys, unittest
 
 AQUI = pathlib.Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(AQUI))
+import os
+if not (pathlib.Path(os.environ.get("DATOS_DIR") or AQUI.parent / "datos" / "raw") / "perfil.json").exists():
+    os.environ["DATOS_DIR"] = str(AQUI / "fixtures" / "datos")  # clon nuevo o CI, como test_flujo
 import companion_gui as g
 import draft
 

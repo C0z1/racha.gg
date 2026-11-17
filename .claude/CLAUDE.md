@@ -19,7 +19,7 @@ Dos sesiones de Claude Code trabajan en esta carpeta. Cada una es dueña de sus 
 - `pruebas/`: todas las `test_*.py`; cada una agrega `scripts/` al path en su primera línea. Correr: `python -m unittest discover pruebas`.
 - `herramientas/`: utilidades de desarrollo que no van en la app (replay, salud, dev_*).
 - `instalador/`: `build.ps1`, `htc.iss`, `humo_exe.py`. Si un archivo sale de `scripts/`, agrégalo al `[InstallDelete]` de `htc.iss`.
-- `.equipo/`: notas vivas; cuando un plan se termina, va a `.equipo/archivo/`. Es local: está en `.gitignore` y no se sube a GitHub (nada de la app ni del build la lee).
+- `.equipo/`: notas vivas; cuando un plan se termina, va a `.equipo/archivo/`. Es local: está en `.gitignore` y no se sube a GitHub (nada de la app ni del build la lee). En otra PC con un clon viejo, el pull la borra del disco; se recupera con `git checkout bdcf694~1 -- .equipo && git rm -r -q --cached .equipo` (lo editado después en esta PC se copia a mano).
 
 ## Commits y versiones
 - Título del commit de 72 caracteres o menos; el detalle va en el cuerpo.
