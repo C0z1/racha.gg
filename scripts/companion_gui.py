@@ -1,6 +1,6 @@
 """El trabajador de fondo de Racha: sondea el cliente de LoL (solo lectura), baja partidas y arma el perfil.
-Lo usa companion_web.py (la app); no se corre solo. La vieja ventana tkinter se quitó en la reorganización del repo."""
-import contextlib, importlib, io, json, os, pathlib, queue, runpy, sys, threading, time, traceback
+Lo usa companion_web.py (la app); no se corre solo."""
+import contextlib, importlib, io, json, os, pathlib, runpy, sys, threading, time, traceback
 # PyInstaller solo empaqueta lo que ve importado: estos los usan los scripts que el .exe carga del disco
 import argparse, base64, collections, datetime, math, random, ssl, statistics, subprocess, webbrowser  # noqa: F401
 import urllib.error, urllib.parse, urllib.request  # noqa: F401
@@ -55,11 +55,7 @@ FIN = ("PreEndOfGame", "EndOfGame")
 FASES = {None: "Cliente cerrado", "None": "Sin actividad", "Lobby": "En lobby", "Matchmaking": "Buscando partida",
          "ReadyCheck": "Partida encontrada", "ChampSelect": "Champ select", "InProgress": "En partida",
          "PreEndOfGame": "Fin de partida", "EndOfGame": "Fin de partida"}
-REGLAS = ["Oro ≥ 0 contra tu rival al minuto 14.", "Ganks: minuto 3 y del 8 al 13 (pico en el 10).",
-          "Con poca vida y su flash + ignite arriba: base."]  # TARJETA.md, las 3 que más pesan en línea
 
-
-# ---------- lógica (sin tkinter) ----------
 
 def script(nombre, *args):
     """Corre scripts/<nombre> en este proceso (el .exe no tiene python.exe para un subproceso): (código, salida)."""
@@ -126,13 +122,13 @@ def ultima_partida(archivo=None):
 
 AJUSTES_F = REPO / "datos" / "cache" / "ajustes.json"
 AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "aviso_muertes": True, "aviso_regreso": True, "aviso_pico": True,  # Ajustes_Vino
-               "metricas": False,  # métricas anónimas: solo si el amigo las prende (v0.8)
+               "metricas": False,  # métricas anónimas: solo si el amigo las prende
                "grupo": False,  # aparecer en la tabla del grupo (Riot ID y win rate a los demás): solo si lo prende
-               "franja_linea": True, "franja_regla": True,  # piezas de la franja en partida (A4)
+               "franja_linea": True, "franja_regla": True,  # piezas de la franja en partida
                "voz": False,
-               "franja_plan": True,  # la franja muestra el match, tu regla y tu nota los primeros 90 s (0.20)
-               "franja_muerto": True,  # al morir la franja se expande con el marcador de objetivos y tu regla (0.21)
-               "franja_build": True,  # la franja muestra tu próximo ítem al morir o al comprar (0.20)
+               "franja_plan": True,  # la franja muestra el match, tu regla y tu nota los primeros 90 s
+               "franja_muerto": True,  # al morir la franja se expande con el marcador de objetivos y tu regla
+               "franja_build": True,  # la franja muestra tu próximo ítem al morir o al comprar
                "franja_pos": "arriba", "franja_x": 0.22, "franja_y": 0.0}  # esquina de la franja: único ajuste que no es booleano
 OPCIONES = {"franja_pos": ("arriba", "abajo", "libre")}  # lista blanca de los ajustes de texto
 FRACCIONES = ("franja_x", "franja_y")  # posición libre de la franja: fracción del juego (0–1), la eligió el usuario arrastrándola
@@ -314,7 +310,7 @@ def registrar_franja(txt):
 
 
 def plan_partida(campeon, rival, pos):
-    """Lo de la franja al empezar (PLAN-OVERLAY-2, fase 2), una vez por partida y con tu historial: tu récord y WR contra
+    """Lo de la franja al empezar, una vez por partida y con tu historial: tu récord y WR contra
     ese rival con ese campeón, tu regla con su meta y tu dato, y tu nota del matchup. None si no hay datos o cuenta ajena."""
     if ajeno(CUENTA[0]) or not campeon or not rival: return None
     try: import draft
@@ -342,7 +338,7 @@ SONDEO_VIVO = 10  # s entre fotos en vivo: < 1 ms de cálculo por foto (medido);
 
 
 def aviso(texto, tipo="error", minuto=None):
-    """Evento de aviso para la cola: {texto, tipo: consejo (en partida) | error, minuto de juego o None} (pedido del Diseñador)."""
+    """Evento de aviso para la cola: {texto, tipo: consejo (en partida) | error, minuto de juego o None}."""
     return ("aviso", {"texto": str(texto), "tipo": tipo, "minuto": minuto, "corto": getattr(texto, "corto", None)})  # corto: para la franja (F1)
 
 
@@ -357,8 +353,8 @@ CLIENTE_ESPERA, CLIENTE_INTENTOS = 20, 9  # s entre intentos y cuántos (3 min):
 
 def guardar_del_cliente(q, espera=None, intentos=None, dormir=None):
     """Guarda la partida recién jugada desde tu propio cliente (sin key): cliente_v5 la baja a la carpeta de la cuenta
-    activa con su timeline. True si entró alguna partida nueva (pedido del usuario, 2026-11-12: al salir de la partida
-    se guarda sola, también sin key y con otra cuenta)."""
+    activa con su timeline. True si entró alguna partida nueva. Al salir de la partida
+    se guarda sola, también sin key y con otra cuenta."""
     import cliente_v5
     q.put(("post_espera", "Guardando tu partida desde el cliente…"))
     for _ in range(CLIENTE_INTENTOS if intentos is None else intentos):
@@ -371,7 +367,7 @@ def guardar_del_cliente(q, espera=None, intentos=None, dormir=None):
 
 
 def _post_partida(q):
-    # 0.30: la partida recién jugada llega primero desde tu cliente (al instante y sin gastar la key, aunque la cola esté
+    # la partida recién jugada llega primero desde tu cliente (al instante y sin gastar la key, aunque la cola esté
     # bajando tu historial); si el cliente no la da, la cola de descargas la pide a Riot con prioridad.
     if not guardar_del_cliente(q):
         if puede_descargar(): q.put(("bajar", 5))
@@ -407,7 +403,7 @@ def _dif(m, ref, k, nombre, fmt):
 
 
 def lineas_ficha(fi):
-    """(cuidado, counters): renglones de texto de draft.ficha() para la ventana (pedidos 3 y 4 del Diseñador).
+    """(cuidado, counters): renglones de texto de draft.ficha() para la ventana.
     Solo lo medido; [] si no hay nada que decir."""
     if not fi: return [], []
     c, ref = fi["cuidado"], fi["cuidado"]["ref"]
@@ -465,7 +461,7 @@ def trabajador(q):
                 d = companion.unir_eventos(companion.vivo(), foto if archivo else None); ult = time.time(); foto = d or foto  # Reconnect reinicia los eventos; sin archivo es otra partida (revisión del asistente, 12)
                 if ult - ult_disco >= 30: archivo, ult_disco = companion.capturar(archivo, d), ult
                 mf, avs = companion.paso_vivo(d, estado, ajustes())  # Ajustes_Vino: cada aviso se puede apagar
-                if mf and mf.get("modo") != "ARAM" and ajustes().get("franja_build", True) is not False:  # tu próximo ítem (franja 0.20)
+                if mf and mf.get("modo") != "ARAM" and ajustes().get("franja_build", True) is not False:  # tu próximo ítem en la franja
                     if estado.get("build") is None and time.time() - estado.get("build_t", 0) > 30:  # falló: se reintenta cada 30 s (False = no hay)
                         estado["build"], estado["build_t"] = companion.build_partida(mf.get("campeon"), mf.get("pos")), time.time()
                     try: import builds; mf["proximo"] = companion.proximo(estado["build"], mf.get("items"), mf.get("oro_actual"), builds.ddragon()[0])
@@ -477,7 +473,7 @@ def trabajador(q):
                     mf["dato"] = (estado.get("plan") or {}).get("dato")  # la frase top del matchup, para la expandida al morir
                 if mf: q.put(("meta", mf))
                 for _, txt, minuto in avs: q.put(aviso(txt, "consejo", minuto))
-            elif not jugando and fase != "Reconnect": archivo = None; estado["avisado"] = set(); [estado.pop(k, None) for k in ("build", "build_t", "plan", "plan_t")]  # al reconectar es la misma partida (D10)
+            elif not jugando and fase != "Reconnect": archivo = None; estado["avisado"] = set(); [estado.pop(k, None) for k in ("build", "build_t", "plan", "plan_t")]  # al reconectar es la misma partida
             if fase in FIN and real not in FIN:
                 if r := companion.resumen_fin(foto):  # sin key, esto es lo que hay al terminar
                     try: import postpartida; r = {**r, "momentos": [m["texto"] for m in postpartida.momentos_vivo(foto)], "estela": postpartida.estela_vivo(foto)}  # F11: al instante

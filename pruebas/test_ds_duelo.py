@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para score.py (turno 5, iteración 5). Sin red: el duelo de línea (`de` → `linea`) y
+"""Pruebas de DeepSeek para score.py. Sin red: el duelo de línea (`de` → `linea`) y
 `score.resumen` con cero partidas.
 
 Cubre los 3 bordes que pidió Opus: empate exacto de score con el rival (lo pierdes), dos `teamPosition`

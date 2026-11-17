@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para builds.por_primer() (turno 5, iteración 11). Sin red ni key.
+"""Pruebas de DeepSeek para builds.por_primer(). Sin red ni key.
 
 Cubre los bordes que pidió Opus: empate en n entre dos ítems (orden estable y ambos salen), un id
 que no está en `items` (sale el id como nombre) e `informe` con 4 partidas tuyas (no sale la línea

@@ -1,4 +1,4 @@
-"""Chequeo de salud de Racha (plan En vivo, .equipo/archivo/PLAN-ENVIVO.md): mide, registra y nunca arregla solo.
+"""Chequeo de salud de Racha (definición de S1–S10: .equipo/archivo/PLAN-ENVIVO.md): mide, registra y nunca arregla solo.
   python herramientas/salud.py                 una pasada; sale con 1 si hay FALLA
   python herramientas/salud.py --cada 60       en bucle (60 s en partida; fuera de partida, cada 300 s)
   python herramientas/salud.py --vistas        además abre las 9 vistas en Edge sin ventana (S10)
@@ -67,7 +67,7 @@ def evaluar(d, ahora):
             pc, False, "LoL en pantalla completa: la franja no se ve" if pc else "")
     if (c := d.get("cpu")) is not None:
         viejo = lambda k: (10 ** 6 if d.get(k) is None else d[k]) >= ARRANQUE  # al arrancar precalcula: esperado; sin dato cuenta como viejo
-        alto = c > 1.0 and (d.get("cpu_antes") or 0) > 1.0 and viejo("edad_proceso") and viejo("edad_antes")  # hallazgo 19: la anterior también, pasado el arranque
+        alto = c > 1.0 and (d.get("cpu_antes") or 0) > 1.0 and viejo("edad_proceso") and viejo("edad_antes")  # la anterior también, pasado el arranque
         res("S8", "FALLA" if alto or (d.get("rss_mb") or 0) > 200 else "AVISO" if c > 1.0 else "OK", {"cpu": round(c, 2), "rss_mb": d.get("rss_mb")}, {"cpu": 1.0, "rss_mb": 200})
     if jugando and v and v[0] and v[0] > 60 and (g := d.get("grabacion")) is not None:  # S9: [edad del .jsonl más nuevo, archivos nuevos en esta partida]
         res("S9", "FALLA" if g[0] is None or g[0] > 45 or g[1] > 1 else "OK", g, [45, 1], "" if g[0] is not None and g[0] <= 45 and g[1] <= 1 else "la grabación se atrasó o se partió")

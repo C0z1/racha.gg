@@ -74,7 +74,7 @@ class SinObjetivo(unittest.TestCase):  # 0.28: «sin objetivo» = tu equipo no l
 
 
 class Clasificar(unittest.TestCase):
-    """La causa probable de cada muerte, para enseñar sin culpar (pedido del usuario)."""
+    """La causa probable de cada muerte, para enseñar sin culpar."""
     def m(self):
         ps = [dict(puuid="yo", participantId=1, teamId=100, teamPosition="MIDDLE", championName="Ahri"),
               dict(puuid="j", participantId=2, teamId=100, teamPosition="JUNGLE", championName="Vi"),

@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek del humo del companion (turno 4, iteración 5): dodge y key caducada.
+"""Pruebas de DeepSeek del humo del companion: dodge y key caducada.
 Mismo patrón que test_flujo.py: solo se simulan urlopen, el lockfile, sleep, el reloj y descargar.py."""
 import contextlib, io, json, os, pathlib, subprocess, sys, tempfile, unittest
 
@@ -7,7 +7,7 @@ sys.path.insert(0, str(AQUI))
 FIX = AQUI / "fixtures"
 if not (pathlib.Path(os.environ.get("DATOS_DIR") or AQUI.parent / "datos" / "raw") / "perfil.json").exists():
     os.environ["DATOS_DIR"] = str(FIX / "datos")  # CI o clon nuevo, como test_flujo
-import companion, draft  # draft reconfigura stdout al importarse: antes de redirigirlo
+import companion, draft  # noqa: F401 (draft reconfigura stdout al importarse: antes de redirigirlo)
 
 
 class FlujoBordes(unittest.TestCase):

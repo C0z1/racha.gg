@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek de En vivo (turno 9 iter 10): tarea de Opus — rival_items sin displayName, borde del timer y
+"""Pruebas de DeepSeek de En vivo: rival_items sin displayName, borde del timer y
 que rival_items solo se lea como pares [id, nombre]. Sin red ni ventanas."""
 import json, pathlib, sys, unittest
 

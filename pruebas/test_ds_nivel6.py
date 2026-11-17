@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para companion.aviso_nivel (turno 4). Sin red ni cliente."""
+"""Pruebas de DeepSeek para companion.aviso_nivel. Sin red ni cliente."""
 import json, pathlib, sys, unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "scripts"))

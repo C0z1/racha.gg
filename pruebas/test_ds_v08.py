@@ -5,7 +5,7 @@
 - POST /api/reporte y /api/invitar: sin X-HTC → 403; cuerpo vacío o JSON roto → 400.
 """
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
-import http.client, http.server, json, pathlib, tempfile, threading, unittest, urllib.request
+import http.client, http.server, json, pathlib, tempfile, threading, unittest
 from unittest import mock
 
 import builds, companion_web as w, postpartida as P
@@ -31,7 +31,7 @@ class Builds(unittest.TestCase):
 
     def test_bajar_servidor_que_devuelve_none(self):
         p = self.meta(None)
-        with mock.patch.object(builds, "_backend", return_value=None) as b:
+        with mock.patch.object(builds, "_backend", return_value=None):
             self.assertEqual(builds.bajar(), 0)
         self.assertFalse(p.exists())
 

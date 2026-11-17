@@ -8,7 +8,7 @@ import overlay
 META = {"nivel": 11, "nivel_rival": 12, "rival": "Ahri", "campeon": "Ekko", "cs": 71, "rival_cs": 140, "recibido": 1000.0, "t": 300, "kda": "1/0/2"}
 
 
-class TestEstado(unittest.TestCase):  # la pastilla 380×72 (plan del overlay de Fable con la revisión de DeepSeek)
+class TestEstado(unittest.TestCase):  # la pastilla 380×72
     def e(self, **kw): return overlay.estado({**META, **kw}, 1000.0)
 
     def test_linea_bordes(self):
@@ -54,7 +54,7 @@ class TestEstado(unittest.TestCase):  # la pastilla 380×72 (plan del overlay de
                 self.assertLessEqual(len(txt), 12)
 
 
-class TestFase2(unittest.TestCase):  # «Igualaste» y la moneda del 14 (PLAN-OVERLAY.md, fase 2)
+class TestFase2(unittest.TestCase):  # «Igualaste» y la moneda del 14
     def test_igualaste_3_s(self):
         m = {}
         overlay.marcar(m, {**META, "t": 400, "nivel": 5, "nivel_rival": 6}, 100.0)
@@ -162,12 +162,12 @@ class TestVisible(unittest.TestCase):  # D2 + D3 del plan En vivo
             self.assertFalse(overlay.visible(s, 1000), s)
 
 
-class TestColocar(unittest.TestCase):  # D4: la franja sigue a la ventana del juego
+class TestColocar(unittest.TestCase):  # la franja sigue a la ventana del juego
     def test_juego_en_el_segundo_monitor(self):
         self.assertEqual(overlay.colocar((1920, 0, 4480, 1440), (1920, 1080), 30), (1920 + int(2560 * 0.22), 6))
         self.assertEqual(overlay.colocar((1920, 0, 4480, 1440), (1920, 1080), 30, pos="abajo"), (1920 + int(2560 * 0.30), int(1440 * 0.85) - 30 - 6))  # encima del HUD
 
-    def test_no_pisa_el_marcador(self):  # D9: 719 px (peor caso medido a 1920) en un juego de 1366 se corre a la izquierda
+    def test_no_pisa_el_marcador(self):  # 719 px (peor caso medido a 1920) en un juego de 1366 se corre a la izquierda
         x, _ = overlay.colocar((0, 0, 1366, 768), (1366, 768), 34, ancho_franja=719)
         self.assertLessEqual(x + 719, int(1366 * overlay.TOPE_DERECHO)); self.assertGreaterEqual(x, 6)
         self.assertEqual(overlay.colocar((0, 0, 1920, 1080), (1920, 1080), 34, ancho_franja=719)[0], int(1920 * 0.22))  # a 1920 cabe: no se mueve

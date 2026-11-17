@@ -177,7 +177,7 @@ class Grupo(unittest.TestCase):  # la tabla del grupo llega con la consulta hora
 
 
 
-class OroLineas(unittest.TestCase):  # A1: costo TOTAL de Data Dragon, no el «price» de la Live Client Data
+class OroLineas(unittest.TestCase):  # costo TOTAL de Data Dragon, no el «price» de la Live Client Data
     def test_suma_con_precios_totales(self):
         import companion
         pr = {"3057": 900, "1055": 450, "2003": 50}
@@ -192,7 +192,7 @@ class OroLineas(unittest.TestCase):  # A1: costo TOTAL de Data Dragon, no el «p
 
 
 
-class PicoRival(unittest.TestCase):  # A2: un aviso por ítem completo del rival, solo si te saca ventaja en ítems
+class PicoRival(unittest.TestCase):  # un aviso por ítem completo del rival, solo si te saca ventaja en ítems
     def foto(self, mios, suyos, t=720):
         it = lambda ids: [{"itemID": i, "displayName": f"Item{i}"} for i in ids]
         return {"activePlayer": {"riotId": "yo#1"}, "gameData": {"gameTime": t},
@@ -212,7 +212,7 @@ class PicoRival(unittest.TestCase):  # A2: un aviso por ítem completo del rival
 
 
 
-class ImportarRunas(unittest.TestCase):  # A5: solo en selección, solo la página de runas, reemplaza la activa si es editable
+class ImportarRunas(unittest.TestCase):  # solo en selección, solo la página de runas, reemplaza la activa si es editable
     PAG = {"primaryStyleId": 8000, "subStyleId": 8400, "selectedPerkIds": [8008, 9111, 9104, 8299, 8444, 8453, 5005, 5008, 5011]}
 
     def cliente(self, fase="ChampSelect", actual=None, paginas=None, espacio=True):
@@ -252,7 +252,7 @@ class ImportarRunas(unittest.TestCase):  # A5: solo en selección, solo la pági
             ok, msg = companion.importar_runas("Yone", self.PAG, leer, lambda *a: False, respaldo=d)
         self.assertFalse(ok); self.assertIn("no se borró nada", msg)
 
-    def test_nunca_borra_una_pagina_tuya(self):  # revisión de DeepSeek: una página editable del jugador no se toca
+    def test_nunca_borra_una_pagina_tuya(self):  # una página editable del jugador no se toca
         import companion
         leer, escribir, ll = self.cliente(actual={"id": 5, "isDeletable": True, "name": "Mi página de Yone"})
         self.assertTrue(companion.importar_runas("Yone", self.PAG, leer, escribir)[0])
@@ -373,7 +373,7 @@ class CuentaPorRiotId(unittest.TestCase):  # sin el cliente abierto: tu Riot ID 
         with mock.patch.object(w.companion, "backend", no_existe):
             ok, msg = w.buscar_cuenta("nadie#000", "euw1")
         self.assertFalse(ok); self.assertIn("No existe", msg)
-        self.assertEqual(w.gui.cuenta_guardada()["riot_id"], "cozi#1134")  # revisión de DeepSeek: un TAG mal escrito no borra la cuenta buena
+        self.assertEqual(w.gui.cuenta_guardada()["riot_id"], "cozi#1134")  # un TAG mal escrito no borra la cuenta buena
         def caido(*a, **k): raise urllib.error.URLError("sin red")
         with mock.patch.object(w.companion, "backend", caido):
             ok, msg = w.buscar_cuenta("cozi#1134", "kr")
@@ -472,7 +472,7 @@ class Coach(unittest.TestCase):  # F12 (prototipo): la regla del coach manda en 
 
 
 
-class RevisionV013(unittest.TestCase):  # arreglos de la revisión de DeepSeek a la v0.13
+class RevisionV013(unittest.TestCase):  # arreglos a la v0.13
     def test_codigo_coach_bordes(self):
         import base64, json
         g = w.gui

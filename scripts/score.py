@@ -181,7 +181,7 @@ def racha_oro14(difs, k=5):
 
 
 def resumen(n=10, raw=None):
-    """Para la GUI (pedido del Diseñador): dict con tus últimas n partidas (la más reciente primero) y la tendencia.
+    """Para la GUI: dict con tus últimas n partidas (la más reciente primero) y la tendencia.
     {partidas: [{fecha, campeon, win, kda, score, puesto, puesto_eq, linea, comp, clave}], media, ultimas20, anteriores,
      tendencia [score medio por bloque de 20, el más viejo primero], por_campeon {campeón: {n, wr, score}} (más jugado primero),
      ref: 50, unidades {componente: {tu, rol}} (media de tus últimas n y lo típico de tu rol en esas partidas)}. clave = (componente, z) que más te bajó en una derrota o más te subió en una victoria: lo que más pesó
@@ -233,7 +233,7 @@ SESION = 90 * 60 * 1000  # ms entre inicios de partida; más que esto = otra ses
 
 
 def tilt(raw=None, hoy=None):
-    """Para la ventana 2 (pedido 7 del Diseñador): dict {hoy: [{fecha, campeon, win, score}] (en orden),
+    """Para la ventana 2: dict {hoy: [{fecha, campeon, win, score}] (en orden),
     racha: derrotas seguidas al final de tu última sesión si fue hoy (si no, 0), desde: fin de esa última derrota (ms) con racha ≥ 2, tras2: {n, v, wr, ic} = la partida que sigue a 2+ derrotas
     seguidas en la misma sesión (partidas a menos de 90 min), llegas: veces que llegaste a 2 seguidas, base: {n, v, wr} = todas, pocas: tras2 n < 20}.
     hoy = date local (por defecto la de hoy)."""

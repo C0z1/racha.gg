@@ -6,7 +6,7 @@ No se duplica la revisión semanal vieja (revision.py): el foco de la semana sal
 y el oro al 14, el WR y el tilt salen de los campos que ya calcula score.resumen()."""
 import sys
 from collections import defaultdict
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, time, timedelta
 
 import score  # SESION y los campos de resumen; importar score no lee datos/raw
 

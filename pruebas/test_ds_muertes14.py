@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para companion.muertes14()/aviso_muertes() (turno 6, iteración 2). Sin red ni key.
+"""Pruebas de DeepSeek para companion.muertes14()/aviso_muertes(). Sin red ni key.
 
 Cubre los bordes que pidió Opus: eventos sin EventTime o VictimName, un jugador con el mismo
 nombre de juego en el otro equipo (desde 0e8f464 ya no cuenta como tuya) y el borde 24:59/25:00."""
