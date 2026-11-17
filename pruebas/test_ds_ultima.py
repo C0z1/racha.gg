@@ -1,4 +1,4 @@
-"""Pruebas del hallazgo 24 (DeepSeek, ronda 4): al salir de InProgress/Reconnect, evento(('fase', X)) lanza un hilo
+"""Pruebas: al salir de InProgress/Reconnect, evento(('fase', X)) lanza un hilo
 con vistas_previas(ESTADO['rendimiento']) para que «Tu última partida» sea la que acaba de terminar.
 Sin red, sin cliente de LoL ni key: vistas_previas y threading.Thread van mockeados (el hilo corre síncrono)."""
 import os, pathlib, sys, unittest

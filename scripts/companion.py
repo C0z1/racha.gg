@@ -95,7 +95,7 @@ RESPALDO_RUNAS = DIR.parent / "datos" / "cache" / "runas-respaldo"  # tu página
 def importar_runas(nombre, pagina, leer=None, escribir=None, respaldo=None):
     """Pone en el cliente la página de runas `pagina` ({primaryStyleId, subStyleId, selectedPerkIds[9]}) y la deja activa,
     como «racha.gg <campeón>». Solo en selección de campeón y solo cuando el jugador pulsa el botón: Racha nunca elige,
-    banea ni acepta por ti. Orden (pedido del usuario, «como Blitz»): 1) reescribe la página de Racha si ya existe («racha.gg …»
+    banea ni acepta por ti. Orden («como Blitz»): 1) reescribe la página de Racha si ya existe («racha.gg …»
     o «Racha: …» de antes); 2) si hay espacio, crea una; 3) si está lleno, usa tu página seleccionada (editable), guardando
     antes una copia en datos/cache/runas-respaldo. Nunca borra páginas ni toca las no editables. Devuelve (ok, mensaje)."""
     leer, escribir = leer or lcu, escribir or lcu_escribir
@@ -207,14 +207,21 @@ def historial(h, nombres):
 
 
 VIVO = DIR.parent / "datos" / "vivo"
-TEMBLOR = 1  # s: tras reconectar el gameTime tiembla un paso de float32 (7,6e-6 s a los 2 min; 4,9e-4 s a los 100 min) — hallazgo 21
+TEMBLOR = 1  # s: tras reconectar el gameTime tiembla un paso de float32 (7,6e-6 s a los 2 min; 4,9e-4 s a los 100 min)
 
 
 def vivo():
     """Foto de /liveclientdata/allgamedata (sin auth, solo durante la partida); None si no responde."""
     try:
-        with urllib.request.urlopen("https://127.0.0.1:2999/liveclientdata/allgamedata", context=SSL, timeout=5) as r: return json.load(r)
+        with urllib.request.urlopen("https://127.0.0.1:2999/liveclientdata/allgamedata", context=SSL, timeout=5) as r: return limpia(json.load(r))
     except FALLAS: return None
+
+
+def limpia(d):
+    """En la Herramienta de práctica los muñecos traen "items": {"error": ...} en vez de una lista: se deja vacía."""
+    for p in (d or {}).get("allPlayers") or []:
+        if isinstance(p, dict) and not isinstance(p.get("items"), list): p["items"] = []
+    return d
 
 
 def capturar(archivo, d):
@@ -338,7 +345,7 @@ def build_partida(campeon, pos):
         b = builds.guardado_dict(campeon, pos)
         if not (b and b.get("core")):  # sin build guardada (campeón fuera de tu pool): la tuya con ese campeón, de tus partidas
             items, runas, _ = builds.ddragon()
-            grieta = lambda ps: [x for x in ps if (x[0].get("info") or {}).get("gameMode", "CLASSIC") == "CLASSIC"]  # sin ARAM (DeepSeek)
+            grieta = lambda ps: [x for x in ps if (x[0].get("info") or {}).get("gameMode", "CLASSIC") == "CLASSIC"]  # sin ARAM
             ps = grieta(builds.tuyas(campeon, pos))
             if len(ps) < 2: ps = grieta(builds.tuyas(campeon))  # pocas en tu rol: todas las del campeón en la Grieta
             bs = [builds.build_de(m, t, u, items) for m, t, u in ps]
@@ -367,7 +374,7 @@ def proximo(build, mios, oro, items):
     for n, (nombre, iid) in enumerate(core, 1):
         if tengo.get(iid): tengo[iid] -= 1; continue
         c = costo_falta(iid, Counter(tengo), items)
-        if c is None: continue  # fuera de Data Dragon (p. ej. mejoras de Ornn): se salta y sigue el core (DeepSeek)
+        if c is None: continue  # fuera de Data Dragon (p. ej. mejoras de Ornn): se salta y sigue el core
         return {"id": iid, "nombre": nombre, "i": n, "de": len(core), "falta": max(0, round((c - (oro or 0)) / 50) * 50), "fuente": build["fuente"]}
     return None
 
@@ -380,7 +387,7 @@ def completos(p, leg=None):
 
 class Texto(str):
     """Un aviso: el texto largo (En vivo, después de la partida) y `corto` (≤ 48 caracteres, para la franja). Hecho + tu regla,
-    sin órdenes: Riot no quiere «drawing conclusions for you during gameplay» (textos de DeepSeek, avisos-v011.md)."""
+    sin órdenes: Riot no quiere «drawing conclusions for you during gameplay»."""
     def __new__(cls, largo, corto):
         t = super().__new__(cls, largo); t.corto = corto[:48]; return t
 
@@ -396,7 +403,7 @@ def aviso_pico(d, leg=None):
     t = ((d or {}).get("gameData") or {}).get("gameTime") or 0
     n = len(suyos)
     r, m = rival.get('championName', 'tu rival'), len(mios)
-    lista = ", ".join(suyos)  # todos sus completos: la casilla no dice cuál terminó último (revisión de DeepSeek)
+    lista = ", ".join(suyos)  # todos sus completos: la casilla no dice cuál terminó último
     return (f"pico:{n}:{'|'.join(sorted(suyos))}", Texto(f"Min {int(t // 60)}: {r} ya tiene {n} ítem{'s' if n > 1 else ''} completo{'s' if n > 1 else ''} ({lista}) contra {m} "
                                           f"tuyo{'s' if m != 1 else ''}. Tu regla: no pelear sin ventaja hasta tener el tuyo.",
                                           f"{r} {n} ítem{'s' if n > 1 else ''} vs {m} tuyo{'s' if m != 1 else ''}"))
@@ -435,7 +442,7 @@ def objetivos(d, me):
             r[l][tipo[n]] += 1
             if n in ult: ult[n] = e.get("EventTime") or 0
     t = ((d or {}).get("gameData") or {}).get("gameTime") or 0
-    # parche 26.21 (verificado por DeepSeek, timers-v012.md): dragón 5:00 y cada 5 min, Anciano 6 min tras el alma, barón 20:00 y cada 6; revisar si un parche los cambia
+    # parche 26.21: dragón 5:00 y cada 5 min, Anciano 6 min tras el alma, barón 20:00 y cada 6; revisar si un parche los cambia
     def falta(u, primero, cada):  # segundos hasta que sale; None si ya está vivo
         s = (primero if u is None else u + cada) - t
         return round(s) if s > 0 else None
@@ -445,7 +452,7 @@ def objetivos(d, me):
 
 def aviso_nivel(d):
     """Del minuto 5 al 7, si vas abajo de nivel contra tu rival de línea (misma position, otro equipo): el aviso; si no, None.
-    Sin position (normales, ARAM) no hay rival claro y no avisa. Abajo al 6 → 44% de WR en cozi (.equipo/PLAN.md, nivel6.py/muertes6.py)."""
+    Sin position (normales, ARAM) no hay rival claro y no avisa. Abajo al 6 → 44% de WR en cozi (.equipo/PLAN.md)."""
     t = ((d or {}).get("gameData") or {}).get("gameTime") or 0  # null mientras carga la partida
     if not 300 <= t <= 420: return None
     me, rival = yo_rival(d)

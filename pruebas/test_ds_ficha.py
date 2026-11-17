@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para draft.ficha() (turno 6, iteración 1). Sin red ni key.
+"""Pruebas de DeepSeek para draft.ficha(). Sin red ni key.
 
 Cubre los bordes que pidió Opus: rival con alias o apóstrofo en las notas y en `rival`,
 un `champ` fuera del pool del rol (cae al recomendado) y partidas sin timeline mezcladas

@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para las ventanas nuevas de HTC (turno 8, v0.3.0): vistas.errores, vistas.cumple y evento(pos).
+"""Pruebas de DeepSeek para las ventanas: vistas.errores, vistas.cumple y evento(pos).
 Sin red ni ventanas; solo librería estándar. Los timelines de errores son sintéticos (chicos, sin nombres ni PUUID reales)."""
 import json, os, pathlib, sys, tempfile, unittest
 
@@ -13,7 +13,7 @@ import vistas  # noqa: E402
 
 class Cumple(unittest.TestCase):
     def test_cumple_con_none_y_regla_sin_campo(self):
-        # turno 8 (b): una regla sin campo queda {ok: None, n: 0} (no truena) y un dato None se descarta del conteo
+        # una regla sin campo queda {ok: None, n: 0} (no truena) y un dato None se descarta del conteo
         r_ok = {"texto": "x", "numero": "n", "minuto": "6", "metrica": "nivel", "campo": "nivel6", "ok": lambda x: x >= 0}
         r_sin = {"texto": "y", "numero": "n", "minuto": "14", "metrica": "vision"}  # sin campo ni ok
         gs = [{"nivel6": -1}, {"nivel6": 1}, {"nivel6": None}, {}]
@@ -26,7 +26,7 @@ class Cumple(unittest.TestCase):
 
 class Evento(unittest.TestCase):
     def test_pos_se_guarda_y_champselect_la_resetea(self):
-        # turno 8 (c): pos llega a ESTADO y la fase ChampSelect la borra (y borra draft/meta/fin)
+        # pos llega a ESTADO y la fase ChampSelect la borra (y borra draft/meta/fin)
         viejo = dict(web.ESTADO)
         try:
             web.evento(("pos", "TOP"))
@@ -40,7 +40,7 @@ class Evento(unittest.TestCase):
 
 
 class Errores(unittest.TestCase):
-    """turno 8 (a): la definición de sin_objetivo usa killerTeamId (épico) y teamId (torre dueña) como asume Opus."""
+    """La definición de sin_objetivo usa killerTeamId (épico) y teamId (torre dueña) como asume Opus."""
 
     def _juego(self, d, eventos):
         raw = pathlib.Path(d); (raw / "timeline").mkdir()
@@ -66,7 +66,7 @@ class Errores(unittest.TestCase):
         self.assertEqual(self._sin_objetivo([muerte, torre_tuya]), 1)   # perder tu propia torre no es objetivo tuyo
 
     def test_sin_objetivo_borde_60s_exactos(self):
-        # turno 9 iter 3 (b): la ventana es inclusiva, así que a exactamente 60 s (antes o después) no es error
+        # la ventana es inclusiva, así que a exactamente 60 s (antes o después) no es error
         muerte = {"type": "CHAMPION_KILL", "timestamp": 900000, "victimId": 1, "killerId": 2}
         drag = lambda t: {"type": "ELITE_MONSTER_KILL", "timestamp": t, "killerTeamId": 100}
         self.assertEqual(self._sin_objetivo([muerte, drag(900000 + 60000)]), 0)  # 60 s después: no es error
@@ -74,7 +74,7 @@ class Errores(unittest.TestCase):
         self.assertEqual(self._sin_objetivo([muerte, drag(900000 + 61000)]), 1)  # 61 s: ya es error
 
     def test_sin_objetivo_objetivo_antes_del_14_cuenta(self):
-        # turno 9 iter 3 (c): un objetivo de tu equipo antes del 14:00 anula igual la muerte de las 14:30
+        # un objetivo de tu equipo antes del 14:00 anula igual la muerte de las 14:30
         muerte = {"type": "CHAMPION_KILL", "timestamp": 870000, "victimId": 1, "killerId": 2}   # 14:30
         drag_antes = {"type": "ELITE_MONSTER_KILL", "timestamp": 820000, "killerTeamId": 100}    # 13:40
         self.assertEqual(self._sin_objetivo([muerte, drag_antes]), 0)

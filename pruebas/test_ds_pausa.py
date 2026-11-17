@@ -1,4 +1,4 @@
-"""DS-5 (ronda 4): la pausa del juego (gameTime que no avanza entre fotos) sale de evento(('meta', …)) en companion_web
+"""DS-5: la pausa del juego (gameTime que no avanza entre fotos) sale de evento(('meta', …)) en companion_web
 y congela overlay.partes. Sin red ni ventana. Los t ya vienen int(gameTime), como los manda companion.meta_fase."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import unittest

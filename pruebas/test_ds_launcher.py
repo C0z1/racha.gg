@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek del launcher (otro_htc y main): tarea de Opus, turno 9 iter 8."""
+"""Pruebas de DeepSeek del launcher (otro_htc y main)."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import pathlib, socket, tempfile, unittest
 from unittest import mock

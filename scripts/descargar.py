@@ -1,4 +1,4 @@
-"""Descarga tus clasificatorias Solo/Duo de la temporada actual de Riot API a datos/raw/ (pedido del usuario, 0.31: es lo que
+"""Descarga tus clasificatorias Solo/Duo de la temporada actual de Riot API a datos/raw/ (es lo que
 importa para mejorar; menos llamadas a la key que comparte el grupo).
 Uso: RIOT_KEY=... [RIOT_ID="Nombre#TAG"] [RIOT_REGION=la1] python scripts/descargar.py [N | todo]
 («todo»: toda la temporada, de lo más nuevo a lo más viejo; reanudable. Ya completa una vez, las siguientes corridas solo

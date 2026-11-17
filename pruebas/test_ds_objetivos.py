@@ -1,4 +1,4 @@
-"""Pruebas de companion.objetivos (turno 9 iter 5): eventos rotos y homónimos, sin red ni cliente."""
+"""Pruebas de companion.objetivos: eventos rotos y homónimos, sin red ni cliente."""
 import pathlib, sys, unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))

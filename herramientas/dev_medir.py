@@ -1,5 +1,5 @@
-"""Solo desarrollo (no va en el .exe): capturas de cada vista con Edge headless y el tiempo del primer pintado de Inicio
-(plan de reinvención, 0.18). Levanta un Racha propio sin ventana ni franja (--no-abrir) sobre tus datos.
+"""Solo desarrollo (no va en el .exe): capturas de cada vista con Edge headless y el tiempo del primer pintado de Inicio.
+Levanta un Racha propio sin ventana ni franja (--no-abrir) sobre tus datos.
   python herramientas/dev_medir.py [carpeta]   (por defecto datos/salud/estela)"""
 import json, pathlib, re, subprocess, sys, time, urllib.request
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/

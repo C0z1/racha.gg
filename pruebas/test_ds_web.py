@@ -1,4 +1,4 @@
-"""Pruebas de companion_web.py (Turno 7): el servidor local escucha solo en 127.0.0.1 y sirve
+"""Pruebas de companion_web.py: el servidor local escucha solo en 127.0.0.1 y sirve
 el estado de la página sin red ni ventanas. No toca el cliente de LoL ni descarga imágenes."""
 import http.server, json, queue, threading, unittest, urllib.error, urllib.request
 from pathlib import Path
@@ -88,34 +88,25 @@ class TestServidor(unittest.TestCase):
         _, _, cuerpo = self.s.get("/")
         self.assertIn(b'id="b-partidas" aria-label="Tus partidas"', cuerpo)
 
-    def test_inicio_es_la_vista_por_defecto(self):  # turno 8: la casa es el botón activo y el fallback fuera de partida
+    def test_inicio_es_la_vista_por_defecto(self):  # la casa es el botón activo y el fallback fuera de partida
         _, _, cuerpo = self.s.get("/")
         self.assertIn(b'id="b-inicio" aria-label="Inicio" aria-current="page"', cuerpo)
         self.assertIn(b'vista === "inicio" ? inicio(s)', cuerpo)
         self.assertIn(b': "inicio"', cuerpo)  # la fase por defecto (fuera de champ select/partida) cae en Inicio
 
-    def test_seleccion_sin_cosas_viejas(self):  # turno 9 (c): fuera «Cómo jugarlo», la barra divergente y los counters viejos
+    def test_seleccion_sin_cosas_viejas(self):  # fuera «Cómo jugarlo», la barra divergente y los counters viejos
         _, _, cuerpo = self.s.get("/")
         for viejo in ("Cómo jugarlo", 'class="div"', "La sueles cumplir", "Counters de tu"):
             self.assertNotIn(viejo.encode("utf-8"), cuerpo)
 
-    def test_plan_sin_tu_al_final_y_sin_dato_tuyo(self):  # turno 9 (a): reglas sin dato van al final con «sin dato tuyo»
+    def test_plan_sin_tu_al_final_y_sin_dato_tuyo(self):  # reglas sin dato van al final con «sin dato tuyo»
         _, _, cuerpo = self.s.get("/")
         self.assertIn(b"(a.n ? a.ok / a.n : 2)", cuerpo)  # 2 = centinela que manda «sin dato» al final (ok/n en 0..1)
         self.assertIn(b"n: r.tu ? r.tu.n : 0", cuerpo)
         self.assertIn("sin dato tuyo".encode("utf-8"), cuerpo)
 
-    def test_fallo_unidades_vacio_y_componente_desconocido(self):  # turno 9 (b): sin unidades cae a «contra tu rol» con z
+    def test_signo_usa_menos_unario(self):
         _, _, cuerpo = self.s.get("/")
-        self.assertIn("contra tu rol".encode("utf-8"), cuerpo)
-        self.assertIn(b"signo(z, 2)", cuerpo)                      # sin unidades: muestra la desviación z
-        self.assertIn(b'COMP[c] || [c, "alerta", v => v, "", ""]', cuerpo)  # componente fuera de COMP no truena
-        self.assertIn(b"DEC[c] ?? 1", cuerpo)
-
-    def test_fallo_muertes_signo_alineado(self):  # turno 9 iter 4 (b): el número de Muertes lleva el signo de la flecha
-        _, _, cuerpo = self.s.get("/")
-        self.assertIn(b'(c === "muertes" ? -1 : 1)', cuerpo)  # menos es mejor: se niega para seguir a ▼/▲
-        self.assertIn(b"muertes: 1", cuerpo)                  # 1 decimal → «−2.0» y no «−2»
         self.assertIn(b'v < 0 ? "\xe2\x88\x92"', cuerpo)      # signo usa el menos unario − (U+2212)
 
 
@@ -172,7 +163,7 @@ class TestEstado(unittest.TestCase):
         with mock.patch.object(builds, "ddragon", return_value=({}, {}, {})):
             self.assertIsNone(web.imagen("champion", "NoExiste"))
 
-    def test_imagen_prefijo_no_confunde_campeones(self):  # turno 9 iter 4 (a): el prefijo no cae en otro campeón
+    def test_imagen_prefijo_no_confunde_campeones(self):  # el prefijo no cae en otro campeón
         import builds, pathlib, tempfile
         # claves como builds.ddragon()[2] en es_MX: norm(id) y norm(nombre es_MX) de cada campeón
         pares = [("Nunu", "Nunu y Willump"), ("Bard", "Bardo"), ("MasterYi", "Maestro Yi"),

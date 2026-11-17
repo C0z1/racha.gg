@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para draft.reglas()/ficha()["reglas"] (turno 6, iteración 11). Sin red ni key.
+"""Pruebas de DeepSeek para draft.reglas()/ficha()["reglas"]. Sin red ni key.
 
 Tras corte6.py, la regla del 6 dejó de subir al frente con «contra este rival…» (era ruido):
 reglas(champ, pos) ya no recibe nivel6 y ninguna regla trae «contra»."""

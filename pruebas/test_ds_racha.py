@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para revision.racha (turno 4). Proceso sobre un DATOS_DIR temporal; sin red ni cliente."""
+"""Pruebas de DeepSeek para revision.racha. Proceso sobre un DATOS_DIR temporal; sin red ni cliente."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import json, os, pathlib, subprocess, sys, unittest
 

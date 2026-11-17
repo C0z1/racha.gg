@@ -1,4 +1,4 @@
-"""Datos de las ventanas nuevas de HTC (artboards *_Vino del Diseñador): Campeones, Draft, reglas «Cumples N/20» y Errores.
+"""Datos de las ventanas: Campeones, Draft, reglas «Cumples N/20» y Errores.
 Todo sale de datos/raw (sin red) y va en la caché de rendimiento de companion_web.
   python scripts/vistas.py   imprime el JSON (para revisar)"""
 import json, statistics as st, sys, time

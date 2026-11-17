@@ -1,4 +1,4 @@
-"""Pruebas de lo nuevo del canvas→app (DeepSeek, 2026-11-10): meta_fase/meta_aram/grieta/historial/nombres_lcu,
+"""Pruebas de lo nuevo del canvas→app: meta_fase/meta_aram/grieta/historial/nombres_lcu,
 rutas de companion_web (rango/minion/fuentes), eventos (cuenta/region), vistas._build e index.html.
 Sin red, sin cliente de LoL ni key."""
 import http.client, http.server, io, json, os, pathlib, sys, tempfile, threading, unittest

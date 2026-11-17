@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para score.tilt() (turno 6, iteración 4). Sin red ni key.
+"""Pruebas de DeepSeek para score.tilt(). Sin red ni key.
 
 Cubre los bordes que pidió Opus: 0 partidas, dos partidas a exactamente 90 min (el corte de sesión es `>`)
 y una sesión que cruza la medianoche (hoy solo trae las de hoy, pero la racha cuenta la misma sesión)."""

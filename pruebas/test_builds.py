@@ -46,7 +46,7 @@ class Build(unittest.TestCase):
         self.assertIsNone(builds.resumir([], ITEMS, {}))
 
 
-class PaginaIds(unittest.TestCase):  # A5: la página completa (estilos, 6 runas y 3 fragmentos) para importarla al cliente
+class PaginaIds(unittest.TestCase):  # la página completa (estilos, 6 runas y 3 fragmentos) para importarla al cliente
     def test_pagina_ids(self):
         m, t = partida()
         for x in m["info"]["participants"]: x["perks"] = dict(PERKS, statPerks=dict(offense=5005, flex=5008, defense=5011))
@@ -107,7 +107,7 @@ class Riot(unittest.TestCase):
             builds.mejores(777, "Yone")
         self.assertFalse(list(pathlib.Path(self.tmp.name).rglob("*.json")))  # un 401 no queda en caché
 
-    def test_429_sostenido_no_cachea(self):  # antes: UnboundLocalError al escribir la caché (revisión de DeepSeek)
+    def test_429_sostenido_no_cachea(self):  # antes: UnboundLocalError al escribir la caché
         def urlopen(req, timeout=None): raise urllib.error.HTTPError(req.full_url, 429, "lento", {"Retry-After": "1"}, None)
         with mock.patch.dict(os.environ, RIOT_KEY="falsa"), mock.patch.object(builds.urllib.request, "urlopen", urlopen), \
                 self.assertRaises(urllib.error.HTTPError):

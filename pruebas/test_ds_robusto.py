@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para companion_gui.trabajador (turno 4, iteración 3). Sin red, cliente ni ventana."""
+"""Pruebas de DeepSeek para companion_gui.trabajador. Sin red, cliente ni ventana."""
 import pathlib, queue, sys, unittest
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent / "scripts"

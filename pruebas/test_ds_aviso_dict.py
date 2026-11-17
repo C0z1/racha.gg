@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para los avisos como dict {texto, tipo, minuto} (turno 5, iteración 6). Sin red ni ventana.
+"""Pruebas de DeepSeek para los avisos como dict {texto, tipo, minuto}. Sin red ni ventana.
 
 Cubre los 3 bordes que pidió Opus: `_post_partida` con key caducada → aviso `error` con «RIOT_KEY»,
 `aviso_minions` disparado en el trabajador a 630 s → `minuto == 10` y `tipo == "consejo"`, y

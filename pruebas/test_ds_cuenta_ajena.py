@@ -1,4 +1,4 @@
-"""Pruebas del hallazgo 20 (DeepSeek, 2026-11-12): refrescar decide si la cuenta es ajena ANTES de
+"""Pruebas: refrescar decide si la cuenta es ajena ANTES de
 calcular rendimiento_rapido(); si la cuenta del cliente llega mientras calcula, el historial ajeno
 queda en ESTADO[rendimiento] y ESTADO[previa] con el rival frecuente de esa otra cuenta.
 Sin red, sin cliente de LoL ni key."""
@@ -61,7 +61,7 @@ class CuentaAjena(unittest.TestCase):
             w.refrescar()
         self.assertIsNone(w.ESTADO["rendimiento"])
         self.assertIsNone(w.ESTADO["previa"])
-        vp.assert_called_once_with(None)  # «ultima» sí se calcula aunque la cuenta sea ajena (ronda 4)
+        vp.assert_called_once_with(None)  # «ultima» sí se calcula aunque la cuenta sea ajena
 
     def _r(self):
         return {"vistas": {"pos": "MIDDLE", "draft": {"MIDDLE": {"frecuentes": [{"rival": "Zed"}]}}}}
