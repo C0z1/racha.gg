@@ -1,5 +1,5 @@
 """python -m unittest discover pruebas  (sin red, sin cliente y sin abrir ventana)"""
-import json, os, pathlib, sys, unittest
+import json, pathlib, sys, unittest
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(AQUI))

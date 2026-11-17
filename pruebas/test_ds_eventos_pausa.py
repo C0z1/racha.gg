@@ -5,7 +5,7 @@ Se asume que `previos` es una foto completa (dict con events.Events); si Opus el
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import copy, json, unittest
 
-import companion, overlay
+import companion
 
 YO, RIVAL = "Yo#LAN", "Rival#EUW"
 

@@ -6,7 +6,7 @@ El caso «descargar.py con una RIOT_KEY que responde 401 cae sola al backend» n
 de redirigir *.api.riotgames.com a un servidor falso. En su lugar se prueba companion.acceso(), que es lo que
 descargar.py consulta en ese 401 (companion.py:68)."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
-import http.client, http.server, json, os, pathlib, tempfile, threading, time, unittest
+import http.client, http.server, json, os, pathlib, tempfile, threading, unittest
 from unittest import mock
 
 import companion_web as w

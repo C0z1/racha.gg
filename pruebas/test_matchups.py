@@ -1,6 +1,6 @@
 """Matchups de muchas partidas (PLAN-MATCHUPS.md): filas, agregado, frases y lectura. Partidas sintéticas, sin red."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
-import json, pathlib, re, tempfile, unittest
+import json, pathlib, tempfile, unittest
 
 import matchups as M
 

@@ -7,7 +7,7 @@ sys.path.insert(0, str(AQUI))
 FIX = AQUI / "fixtures"
 if not (pathlib.Path(os.environ.get("DATOS_DIR") or AQUI.parent / "datos" / "raw") / "perfil.json").exists():
     os.environ["DATOS_DIR"] = str(FIX / "datos")  # CI o clon nuevo, como test_flujo
-import companion, draft  # draft reconfigura stdout al importarse: antes de redirigirlo
+import companion, draft  # noqa: F401 (draft reconfigura stdout al importarse: antes de redirigirlo)
 
 
 class FlujoBordes(unittest.TestCase):
