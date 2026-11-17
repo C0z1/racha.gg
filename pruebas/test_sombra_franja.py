@@ -116,3 +116,26 @@ class Etapa2(unittest.TestCase):
                 w.quizas_guion("Sylas", None, "MIDDLE"); T.assert_not_called()  # nada nuevo
                 w.quizas_guion("Sylas", "Zed", "MIDDLE"); T.assert_called_once()  # llegó el rival
         finally: w.ESTADO.clear(); w.ESTADO.update(viejo); w.GUION[0] = False
+
+
+class PorResolucion(unittest.TestCase):
+    def test_cada_resolucion_recuerda_su_lugar(self):
+        import overlay
+        self.assertTrue(gui.valido("franja_por_res", {"1920x1080": [0.3, 0.1], "2560x1440": [0, 1]}))
+        for malo in ({"1920": [0.3, 0.1]}, {"1920x1080": [1.5, 0]}, {"1920x1080": [0.1]}, [], {f"{1000 + i}x900": [0, 0] for i in range(9)}):
+            self.assertFalse(gui.valido("franja_por_res", malo))
+        self.assertEqual(overlay.resolucion((100, 0, 2020, 1080), None), "1920x1080")
+        self.assertEqual(overlay.resolucion(None, (1280, 720)), "1280x720")
+
+
+class AhorroYLatido(unittest.TestCase):
+    def test_ahorro_lee_cada_3_s(self):
+        self.assertEqual(gui.sondeo({"franja_estilo": "sombra", "sondeo_ahorro": True}), gui.SONDEO_AHORRO)
+        self.assertEqual(gui.sondeo({"franja_estilo": "clasica", "sondeo_ahorro": True}), gui.SONDEO_VIVO)
+
+    def test_la_proxima_marca_late_en_su_ultimo_minuto(self):
+        g = {"marcas": {}, "regla": {"tope": 2}, "sombra": {}}
+        late = lambda t, ahora: [m for m in momentos.paso(None, {"t": t}, g, ahora)[1]["marcas"] if m["late"]]
+        self.assertEqual([m["min"] for m in late(330, 100.2)], [6])  # 5:30, en el latido
+        self.assertEqual(late(330, 105.0), [])  # entre latidos
+        self.assertEqual(late(200, 100.2), [])  # falta más de un minuto

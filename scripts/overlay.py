@@ -378,6 +378,15 @@ def libre(juego, pantalla, fx, fy, ancho, alto):
     return (int(max(x0, min(x1 - ancho, x0 + (x1 - x0) * fx))), int(max(y0, min(y1 - alto, y0 + (y1 - y0) * fy))))
 
 
+POR_RES = 8  # resoluciones recordadas
+
+
+def resolucion(juego, pantalla):
+    """«1920x1080» del juego (o de la pantalla sin juego): la llave de la posición guardada por resolución."""
+    x0, y0, x1, y1 = juego if juego else (0, 0, *pantalla)
+    return f"{x1 - x0}x{y1 - y0}"
+
+
 def fraccion(juego, pantalla, x, y):
     """La inversa de libre(): (fx, fy) de una posición en pantalla, en [0, 1] y con 3 decimales (libre() la mantiene adentro)."""
     x0, y0, x1, y1 = juego if juego else (0, 0, *pantalla)
@@ -545,6 +554,9 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         elif mov["agarre"] is not None:  # soltó: se guarda como fracción del juego (sirve en cualquier resolución)
             mov["agarre"] = None
             fx, fy = fraccion(rect_juego(), (root.winfo_screenwidth(), root.winfo_screenheight()), *mov["pos"])
+            res = resolucion(rect_juego(), (root.winfo_screenwidth(), root.winfo_screenheight()))
+            por = dict((((leer() or {}).get("ajustes") or {}).get("franja_por_res")) or {}); por.pop(res, None); por[res] = [fx, fy]
+            guardar("franja_por_res", dict(list(por.items())[-POR_RES:]))  # una posición por resolución (las más recientes)
             guardar("franja_x", fx); guardar("franja_y", fy); guardar("franja_pos", "libre")
             ultimo[0] = None  # que el próximo tick la recoloque con lo guardado
         root.after(16, arrastrar)
@@ -585,7 +597,8 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
             if e and e.get("brillo") is not None and e["brillo"] != sonado[0]:  # una marca recién sellada
                 sonado[0] = e["brillo"]
                 if aj.get("sonido_sello"): tic()
-            if e and e.get("brillo") is not None and not animar(): e = {**e, "brillo": None}  # Windows sin animaciones: sin brillo
+            if e and not animar() and (e.get("brillo") is not None or any(m.get("late") for m in e.get("marcas") or [])):  # Windows sin animaciones: quieta
+                e = {**e, "brillo": None, "marcas": [{**m, "late": False} for m in e["marcas"]]}
         else:
             e = estado(meta, ahora, aj, regla, s.get("aviso"), marcas, oro) if meta else None
             if mov["on"] and not e: e = EJEMPLO  # en modo mover se ve aunque no estés en partida
@@ -604,7 +617,9 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         ancho = round((lienzo.ANCHO if sombra else 380) * esc)
         alto = round((lienzo.ALTO if sombra else ALTO_X if e.get("extra") else ALTO) * esc)  # Sombra: la barra no se mueve; renglón y panel cuelgan debajo
         pant = (root.winfo_screenwidth(), root.winfo_screenheight())
-        if aj.get("franja_pos") == "libre": px, py = libre(juego, pant, aj.get("franja_x", x), aj.get("franja_y", 0), ancho, alto)
+        if aj.get("franja_pos") == "libre":
+            fx, fy = (aj.get("franja_por_res") or {}).get(resolucion(juego, pant)) or (aj.get("franja_x", x), aj.get("franja_y", 0))
+            px, py = libre(juego, pant, fx, fy, ancho, alto)
         else:
             if time.time() - hud[1] > 30: hud[:] = [escala_hud(), time.time()]  # el archivo cambia solo si tocas la escala en el juego
             px, py = colocar(juego, pant, alto, x, aj.get("franja_pos"), y, fraccion_util(), ancho, hud[0])

@@ -9,6 +9,7 @@ import copy
 MARCAS = (6, 10, 14, 25)
 ARRANQUE, LINEA, PELEAS = 90, 840, 1500  # s de juego: arranque, línea (0–14), peleas (14–25), tarde
 SELLO_S, COMPRA_S, INTERRUPCION_S = 4, 8, 6  # cuánto dura cada renglón
+LATIDO_CADA, LATIDO_S = 10, 0.5  # la próxima marca late una vez cada 10 s en su último minuto
 BRILLO_S = 0.6  # sellar una marca: un brillo de 600 ms en su punto (nada parpadea más de una vez)
 MAX_INTERRUPCIONES, ENTRE_INTERRUPCIONES = 3, 120  # contrato de atención: por partida y s entre una y otra
 CAIDA_VIDA, CAIDA_S, KILL_S = 0.08, 3, 8  # pelea: tu vida bajó 8 % en 3 s, o hubo un ChampionKill hace menos de 8 s
@@ -198,7 +199,8 @@ def paso(estado, foto, guion, ahora, aj=None):
     proxima = next((m for m in MARCAS if str(m) not in e["marcas"]), None)
     escena = {"regla": _zona_regla(foto, g), "sombra": _zona_sombra(e, foto, g, t),
               "marcas": [{"min": m, "estado": ("sin" if e["marcas"][str(m)] is None else e["marcas"][str(m)]) if str(m) in e["marcas"] else None,
-                          "proxima": m == proxima and m * 60 - 60 <= t < m * 60} for m in MARCAS],
+                          "proxima": m == proxima and m * 60 - 60 <= t < m * 60,
+                          "late": m == proxima and m * 60 - 60 <= t < m * 60 and ahora % LATIDO_CADA < LATIDO_S} for m in MARCAS],
               "renglon": renglon, "panel": panel, "brillo": b[0] if (b := e.get("brillo")) and ahora < b[1] else None, "opacidad": OPACIDAD_TARDE if t >= TARDE_S else 1.0}
     return e, escena, notas
 

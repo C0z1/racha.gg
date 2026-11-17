@@ -134,14 +134,20 @@ AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "avi
                "franja_estilo": "sombra",  # Sombra (3 zonas: regla, sombra, marcas) o la pastilla clásica, una versión más
                "solo_marcas": False,  # Sombra sin interrupciones: solo las marcas y el panel al morir
                "momento_nivel": True, "momento_regreso": True, "momento_pico": True,  # Sombra: cada interrupción se apaga sola
-               "sonido_sello": False,  # Sombra: un «tic» de 120 ms al sellar una marca (apagado por defecto)
+               "sonido_sello": False,
+               "sondeo_ahorro": False,  # Sombra en PCs modestas: la partida se lee cada 3 s en vez de cada 1 s  # Sombra: un «tic» de 120 ms al sellar una marca (apagado por defecto)
                "franja_poco": False,  # Sombra: 1 interrupción por partida (se prende sola tras dos «no» a «¿Te sirvieron?»)
+               "franja_por_res": {},  # posición libre por resolución: {"1920x1080": [fx, fy]}
                "franja_pos": "arriba", "franja_x": 0.22, "franja_y": 0.0}  # esquina de la franja: único ajuste que no es booleano
 OPCIONES = {"franja_pos": ("arriba", "abajo", "libre"), "franja_estilo": ("sombra", "clasica")}  # lista blanca de los ajustes de texto
 FRACCIONES = ("franja_x", "franja_y")  # posición libre de la franja: fracción del juego (0–1), la eligió el usuario arrastrándola
 
 
 def valido(clave, v):
+    if clave == "franja_por_res":
+        import re
+        frac = lambda x: isinstance(x, (int, float)) and not isinstance(x, bool) and 0 <= x <= 1
+        return isinstance(v, dict) and len(v) <= 8 and all(isinstance(k, str) and re.fullmatch(r"\d{3,5}x\d{3,5}", k) and isinstance(p, list) and len(p) == 2 and all(map(frac, p)) for k, p in v.items())
     if clave in FRACCIONES: return isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1
     return v in OPCIONES[clave] if clave in OPCIONES else isinstance(v, bool)
 
@@ -373,13 +379,15 @@ POST = []  # el hilo post-partida vivo, si hay
 
 SONDEO_VIVO = 10  # s entre fotos en vivo con la franja clásica: < 1 ms de cálculo por foto (medido)
 SONDEO_SOMBRA = 1  # con Sombra: una muerte o una compra en pantalla en ≤ 1,5 s, y la vida propia para no hablar en una pelea
+SONDEO_AHORRO = 3  # Sombra con «Ahorro»: menos peticiones al juego; la pelea se detecta sobre todo por las kills (la vida se ve menos)
 
 
 FRANJA_CAIDA = [False]  # el proceso de la franja cayó dos veces: sin franja, sin prisa
 
 
 def sondeo(aj):
-    return SONDEO_SOMBRA if aj.get("overlay", True) is not False and aj.get("franja_estilo") == "sombra" and not FRANJA_CAIDA[0] else SONDEO_VIVO
+    if aj.get("overlay", True) is False or aj.get("franja_estilo") != "sombra" or FRANJA_CAIDA[0]: return SONDEO_VIVO
+    return SONDEO_AHORRO if aj.get("sondeo_ahorro") else SONDEO_SOMBRA
 
 
 def aviso(texto, tipo="error", minuto=None):
@@ -533,4 +541,4 @@ def trabajador(q):
             if txt != error: q.put(aviso(txt)); error = txt  # el mismo error cada 3 s no inunda la ventana
         # fuera del try (como companion.main): una excepción no deja la fase vieja ni repite el evento de fase cada 3 s
         fase_ant, real, fallos = fase, fase or real, 0 if fase else fallos + 1
-        time.sleep(1 if fase == "ChampSelect" or (jugando and sondeo(ajustes()) == SONDEO_SOMBRA) else companion.espera(fallos))  # en selección, el tablero sigue los hovers al segundo
+        time.sleep(1 if fase == "ChampSelect" or (jugando and sondeo(ajustes()) < SONDEO_VIVO) else companion.espera(fallos))  # en selección, el tablero sigue los hovers al segundo

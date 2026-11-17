@@ -47,6 +47,8 @@ def pintar(escena, esc=1.0):
     for i, m in enumerate(escena["marcas"]):
         cx, cy, rr = k(Z2 + 13 + i * 19), k(21), k(6)
         caja = (cx - rr, cy - rr, cx + rr, cy + rr)
+        if m.get("late"):  # tu próxima marca, en su último minuto: un latido suave
+            h = rr * 1.7; d.ellipse((cx - h, cy - h, cx + h, cy + h), fill=ORO + (45,))
         if escena.get("brillo") == m["min"]:  # recién sellada: un halo que se va a los 600 ms
             h = rr * 2; d.ellipse((cx - h, cy - h, cx + h, cy + h), fill=(SALVIA if m["estado"] is True else ORO) + (70,))
         if m["estado"] is True: d.ellipse(caja, fill=SALVIA + (255,))

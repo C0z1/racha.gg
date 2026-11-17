@@ -124,6 +124,19 @@ class Escena(unittest.TestCase):
         e, _ = correr([foto(400)]); e2, _, _ = M.paso(e, foto(10), G, 1000)
         self.assertEqual(e2["marcas"], {})
 
+    def test_compra_da_el_dato_nunca_la_orden(self):
+        p = {"nombre": "Sheen", "falta": 350}
+        e, _, _ = M.paso(None, foto(600, items=[[1, "a"]]), G, 600)
+        e["regreso"] = True  # el primer regreso ya pasó
+        e, esc, n = M.paso(e, foto(601, items=[[1, "a"], [2, "b"]], proximo=p), G, 601)
+        self.assertEqual(esc["renglon"], "Sheen · faltan 350"); self.assertEqual(n[0]["clase"], "compra")
+        e, esc, n = M.paso(e, foto(700, items=[[1, "a"], [2, "b"], [3, "c"]], proximo=p), G, 700, {"franja_build": False})
+        self.assertEqual(n, [])  # apagado en Ajustes
+
+    def test_carta_con_marcas_de_distinto_n(self):
+        g = {**G, "marcas": {"6": {"ok": 3, "n": 4}, "10": {"ok": 5, "n": 10}}}
+        self.assertEqual(M.carta_carga(g)[2], "marca 6: 3 de 4 · marca 10: 5 de 10 · racha 3")
+
     def test_cartas(self):
         c = M.carta_carga(G)
         self.assertEqual(c[0], "Sylas vs Zed · 4 de 7 tuyas"); self.assertIn("la cumples 6 de 10", c[1]); self.assertIn("racha 3", c[2])
