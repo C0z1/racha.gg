@@ -1,5 +1,5 @@
 """Pruebas de DeepSeek para la caché de rendimiento, las rutas del .exe congelado y la
-primera vez instalado (turno 8). Sin red ni ventanas; solo librería estándar."""
+primera vez instalado. Sin red ni ventanas; solo librería estándar."""
 import importlib, json, os, pathlib, sys, tempfile, unittest
 from unittest import mock
 
@@ -18,7 +18,7 @@ def _raw(d, n):
 
 class Cache(unittest.TestCase):
     def test_borrar_partida_invalida(self):
-        # turno 8 (a): borrar una partida cambia la firma (n) y recalcula, no sirve la caché vieja
+        # borrar una partida cambia la firma (n) y recalcula, no sirve la caché vieja
         with tempfile.TemporaryDirectory() as d:
             raw, cache = _raw(d, 2), pathlib.Path(d, "c.json")
             with mock.patch.object(web, "rendimiento", return_value={"x": 1}) as r:
@@ -28,7 +28,7 @@ class Cache(unittest.TestCase):
             self.assertEqual(r.call_count, 2)
 
     def test_cache_json_corrupto_recalcula(self):
-        # turno 8 (a): un JSON corrupto en la caché no truena: se ignora, recalcula y se reescribe
+        # un JSON corrupto en la caché no truena: se ignora, recalcula y se reescribe
         with tempfile.TemporaryDirectory() as d:
             raw, cache = _raw(d, 1), pathlib.Path(d, "c.json")
             cache.write_text("{no es json", encoding="utf-8")
@@ -38,7 +38,7 @@ class Cache(unittest.TestCase):
             self.assertEqual(json.loads(cache.read_text(encoding="utf-8"))["datos"], {"x": 1})
 
     def test_cambiar_score_py_invalida_la_cache(self):
-        # turno 8 (a): un arreglo de score.py sin subir VERSION debe invalidar la caché (el mtime de score.py va en la firma)
+        # un arreglo de score.py sin subir VERSION debe invalidar la caché (el mtime de score.py va en la firma)
         import score as score_mod
         with tempfile.TemporaryDirectory() as d:
             raw, cache = _raw(d, 1), pathlib.Path(d, "c.json")
@@ -54,7 +54,7 @@ class Cache(unittest.TestCase):
 
 
 class RepoCongelado(unittest.TestCase):
-    """turno 8 (b): companion_gui.REPO cuando el .exe está congelado (sys.frozen)."""
+    """companion_gui.REPO cuando el .exe está congelado (sys.frozen)."""
 
     def tearDown(self):
         importlib.reload(gui)  # devolver REPO/RAW reales para no contaminar el resto de la suite
@@ -83,7 +83,7 @@ class RepoCongelado(unittest.TestCase):
 
 class PrimeraVez(unittest.TestCase):
     def test_datos_dir_vacio_no_tumba(self):
-        # turno 8 (e): instalación nueva (DATOS_DIR vacío): perfil, rendimiento_rapido y /api/estado no truenan
+        # instalación nueva (DATOS_DIR vacío): perfil, rendimiento_rapido y /api/estado no truenan
         with tempfile.TemporaryDirectory() as d:
             with mock.patch.object(gui, "RAW", pathlib.Path(d)):  # perfil() lee RAW/perfil.json
                 self.assertEqual(gui.perfil(), "sin historial todavía")

@@ -1,18 +1,18 @@
-"""Matchups de muchas partidas (PLAN-MATCHUPS.md, Fable + DeepSeek): de partidas Master+ de mains de un campeón, quién
+"""Matchups de muchas partidas: de partidas Master+ de mains de un campeón, quién
 gana cada ventana de nivel en la línea, el oro por minuto, el WR del matchup y las runas y el primer ítem que más ganan.
   python scripts/matchups.py --pool                 rastrea tu pool (necesita RIOT_KEY; reanudable)
   python scripts/matchups.py --campeon Zeri --pos BOTTOM --jugadores 60
   python scripts/matchups.py --agregar              rehace datos/meta/matchups.json desde las filas
 Solo se guardan filas de ~1 KB por partida (sin crudos ni nombres de jugadores). Las frases son datos históricos, nunca
 órdenes (Riot: no dictar decisiones)."""
-import argparse, collections, json, math, os, pathlib, statistics as st, sys, time
+import argparse, collections, json, math, os, pathlib, statistics as st, sys
 
 DIR = pathlib.Path(__file__).resolve().parent
 META = pathlib.Path(os.environ.get("META_DIR") or DIR.parent / "datos" / "meta")
 FILAS, SALIDA = META / "matchups-filas.jsonl", META / "matchups.json"
 VENTANAS = (("1-3", 1, 3), ("4-5", 4, 5), ("6-8", 6, 8), ("9-10", 9, 10), ("11+", 11, 18))
 LINEA_MS = 14 * 60000  # muertes de línea: antes del minuto 14
-MIN_PARTIDAS, MIN_MUERTES = 100, 50  # DeepSeek: con menos, no hay frase (cae a lo de siempre)
+MIN_PARTIDAS, MIN_MUERTES = 100, 50  # con menos, no hay frase (cae a lo de siempre)
 Z_VENTANAS = 2.576  # Wilson al 99 %: Bonferroni por las 5 ventanas (0,05 / 5)
 REMAKE_S = 300
 
@@ -57,7 +57,7 @@ def fila(match, timeline, puuid):
             nivel = lambda pid: _nivel_en(ups[pid], t) if ups[pid] else ((fr[min(len(fr) - 1, t // 60000)]["participantFrames"].get(str(pid)) or {}).get("level") or 1)  # sin LEVEL_UP (timeline del cliente): el del fotograma
             muertes.append({"t": t // 1000, "gana": gana, "na": nivel(a["participantId"]), "nb": nivel(b["participantId"]),
                             "solo": not e.get("assistingParticipantIds")})
-        pf = lambda m, pid, k: ((fr[m].get("participantFrames") or {}).get(str(pid)) or {}).get(k) if len(fr) > m else None  # fotograma a medias: None (DeepSeek)
+        pf = lambda m, pid, k: ((fr[m].get("participantFrames") or {}).get(str(pid)) or {}).get(k) if len(fr) > m else None  # fotograma a medias: None
         def dif(m, f):
             x, y = (f(m, a["participantId"]), f(m, b["participantId"])) if len(fr) > m else (None, None)
             return None if x is None or y is None else x - y
@@ -68,7 +68,7 @@ def fila(match, timeline, puuid):
         st_ = a.get("perks", {}).get("styles") or [{}, {}]
         return {"parche": ".".join(str(info.get("gameVersion", "")).split(".")[:2]), "A": a["championName"], "B": b["championName"], "pos": pos,
                 "win": bool(a.get("win")), "gd": {m: dif(m, oro) for m in (5, 10, 14)}, "xpd14": dif(14, xp), "csd10": dif(10, cs),
-                "primero6": None if None in s6 or s6[0] == s6[1] else s6[0] < s6[1], "muertes": muertes,  # empate: no cuenta (DeepSeek)
+                "primero6": None if None in s6 or s6[0] == s6[1] else s6[0] < s6[1], "muertes": muertes,  # empate: no cuenta
                 "runa": (st_[0].get("selections") or [{}])[0].get("perk"),
                 "pagina": [st_[0].get("style"), st_[1].get("style")] + [s.get("perk") for x in st_[:2] for s in x.get("selections") or []]
                           + [a.get("perks", {}).get("statPerks", {}).get(k) for k in ("offense", "flex", "defense")],

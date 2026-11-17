@@ -192,13 +192,13 @@ class Http(unittest.TestCase):
         for f in ("function aro(", "Tus campeones ahora", "Tilt hoy", "Win rate de temporada", "function cuentaCab(", 'vista === "perfil" ? perfil(s)'):
             self.assertIn(f, t)
 
-    def test_iconos_y_filas_nuevas(self):  # pedido del usuario: íconos por métrica, sin emoji, y filas con tu dato
+    def test_iconos_y_filas_nuevas(self):  # íconos por métrica, sin emoji, y filas con tu dato
         st, b = self.get("/"); t = b.decode()
         for k in ("nivel", "cs", "muertes", "kp", "vision", "oro", "dano", "objetivos", "linea", "tilt", "champselect", "perfil"):
             self.assertRegex(t, rf"\n  {k}: '<")
         for f in ("Tu plan con", "Cumples", "Hasta el nivel 6", "Si te toca contra", "típico", 'aria-hidden="true"', 'role="img"'):
             self.assertIn(f, t)
-        for f in ("Cómo jugarlo", "La sueles cumplir", 'class="div"', "Counters de tu"):  # pedido del usuario: fuera lo viejo
+        for f in ("Cómo jugarlo", "La sueles cumplir", 'class="div"', "Counters de tu"):  # fuera lo viejo
             self.assertNotIn(f, t)
         self.assertNotRegex(t, "[\U0001F300-\U0001FAFF]")  # nada de emoji
 
@@ -207,12 +207,12 @@ class Http(unittest.TestCase):
         for f in ('id="b-partidas"', "\n  partidas: '<", "function partidas(s)", "Tus partidas", '"partidas", "campeones"'):
             self.assertIn(f, t)
 
-    def test_integracion_de_vistas(self):  # auditoría turno 9 it. 6: Selección en partida, En vivo con cliente, error de vista visible
+    def test_integracion_de_vistas(self):  # Selección en partida, En vivo con cliente, error de vista visible
         st, b = self.get("/"); t = b.decode()
         self.assertIn('vista === "companion" && !s.draft ? (s.previa ? champSelect({...s, draft: s.previa}) : draftV(s))', t)  # Selección ya no cae en Draft; self.assertIn("s.draft ? champSelect(s)", t)
         self.assertNotIn('s.fase === "ChampSelect" && s.draft ? champSelect', t)
         for f in ("Aún no estás en partida", "Esta vista falló", "console.error(e)"): self.assertIn(f, t)
-        # pantalla de carga, reconexión y espera de stats también son «en partida» (turno 9 it. 7)
+        # pantalla de carga, reconexión y espera de stats también son «en partida»
         for f in ('"GameStart"', '"Reconnect"', '"WaitingForStats"', "EN_PARTIDA.includes(s.fase)"): self.assertIn(f, t)
         self.assertNotIn("FASES_CLIENTE", t)
 

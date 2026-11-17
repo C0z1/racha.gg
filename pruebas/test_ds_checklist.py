@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek del checklist de prueba en partida (turno 9 iter 9): coteja cada texto citado entre «» contra la página,
+"""Pruebas de DeepSeek del checklist de prueba en partida: coteja cada texto citado entre «» contra la página,
 y verifica el estado de EndOfGame sin key y la primera meta en partida. Sin red ni ventanas."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import pathlib, queue, unittest

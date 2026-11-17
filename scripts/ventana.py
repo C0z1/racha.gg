@@ -1,5 +1,5 @@
-"""Ventana de Racha: una ventana normal de Edge --app con perfil propio (datos/edge). Reescrita desde cero el 2026-11-12
-(plan de Fable): sin quitarle el marco ni recortarla, que fallaba en PCs ajenas (doble barra, franjas, ventanas huérfanas).
+"""Ventana de Racha: una ventana normal de Edge --app con perfil propio (datos/edge).
+Sin quitarle el marco ni recortarla, que fallaba en PCs ajenas (doble barra, franjas, ventanas huérfanas).
 - La barra es la de Windows, oscura con --force-dark-mode (probado en la PC del usuario).
 - El proceso de Edge es nuestro: lo encontramos por PID (no por título) y vive en un Job Object que lo mata cuando
   Racha termina por cualquier motivo (salida, taskkill del instalador, actualización): nunca queda una ventana huérfana.

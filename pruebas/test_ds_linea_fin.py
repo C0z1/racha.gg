@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para companion.resumen_fin()/linea_fin() (turno 6, iteración 6). Sin red ni key.
+"""Pruebas de DeepSeek para companion.resumen_fin()/linea_fin(). Sin red ni key.
 
 Cubre los bordes que pidió Opus: (a) muerte a 25:00 exacto no cuenta en 14–25 (y 14:00 sí),
 (b) reinicio del cliente en EndOfGame no repite la línea, (c) sin foto no hay línea y no truena,

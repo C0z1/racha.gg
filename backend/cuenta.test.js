@@ -111,7 +111,7 @@ test("config pública con el client_id", async () => {
   assert.equal((await (await worker.fetch(req("/v1/config"), env, ctx)).json()).google_client_id, "cliente-racha");
 });
 
-// v0.8: builds compartidas, invitados, reportes y métricas (extra.js)
+// builds compartidas, invitados, reportes y métricas (extra.js)
 const conCodigo = (path, codigo, opt = {}) => { const r = req(path, opt); r.headers.set("x-racha-token", codigo); return r; };
 
 test("admin sube builds y un invitado las lee; un no-admin no puede subir", async () => {

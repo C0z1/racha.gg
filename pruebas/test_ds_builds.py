@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para builds.py (turno 5, iteración 2). Sin red: casos borde de build_de, resumir y mejores.
+"""Pruebas de DeepSeek para builds.py. Sin red: casos borde de build_de, resumir y mejores.
 
 Cubre los bordes que pidió Opus: dos ITEM_UNDO seguidos del mismo ítem, una partida sin ningún
 legendario (core vacío), una región con la liga vacía, un legendario vendido (ITEM_SOLD, ya arreglado),
@@ -75,7 +75,7 @@ class Borde(unittest.TestCase):
         self.assertEqual([(m["metadata"]["matchId"], q) for m, _, _, q in top],
                          [("KR_M1", "Uno#KR1 (kr, 1000 LP)")])
 
-    def test_onetrick_del_top_con_su_puesto(self):  # pedido del usuario: Challenger del top cuyo campeón más jugado es este
+    def test_onetrick_del_top_con_su_puesto(self):  # Challenger del top cuyo campeón más jugado es este
         ahora = time.time()
         _, tl = mk(); match = {"metadata": {"matchId": "KR_9"}, "info": {"participants": [{"puuid": "rank1", "championName": "Yone", "teamPosition": "MIDDLE"}]}}
         def fake_get(url, ttl=None, riot=False):

@@ -1,6 +1,6 @@
-"""Matchups de muchas partidas (PLAN-MATCHUPS.md): filas, agregado, frases y lectura. Partidas sintéticas, sin red."""
+"""Matchups de muchas partidas: filas, agregado, frases y lectura. Partidas sintéticas, sin red."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
-import json, pathlib, re, tempfile, unittest
+import json, pathlib, tempfile, unittest
 
 import matchups as M
 
@@ -52,7 +52,7 @@ class Fila(unittest.TestCase):
     def test_no_aplica(self):
         self.assertIsNone(M.fila(partida(dur=200), timeline([]), "yo"))  # remake
         self.assertIsNone(M.fila(partida(modo="ARAM"), timeline([]), "yo"))
-        self.assertIsNone(M.fila(partida(pos_a=""), timeline([]), "yo"))  # sin posición (DeepSeek)
+        self.assertIsNone(M.fila(partida(pos_a=""), timeline([]), "yo"))  # sin posición
         self.assertIsNone(M.fila(partida(pos_b="TOP"), timeline([]), "yo"))  # sin rival de línea
         self.assertIsNone(M.fila(partida(), {}, "yo"))
 

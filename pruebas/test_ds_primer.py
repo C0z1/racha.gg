@@ -1,9 +1,9 @@
-"""Pruebas de DeepSeek para builds.py y draft.py (turno 5, iteración 7). Sin red ni key.
+"""Pruebas de DeepSeek para builds.py y draft.py. Sin red ni key.
 
 Cubre los bordes que pidió Opus: informe con los mejores sin ningún legendario (core vacío → sin `primer`),
 guardado_dict con builds.json vacío (0 bytes) o con BOM (→ None, no truena) y datos_draft sin builds.json
 (→ build_dict None y build [])."""
-import json, os, pathlib, sys, tempfile, unittest
+import os, pathlib, sys, tempfile, unittest
 from unittest import mock
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent / "scripts"

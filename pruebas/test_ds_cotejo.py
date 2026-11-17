@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para companion.muertes_en()/cotejo (turno 6, iteración 8). Sin red ni key.
+"""Pruebas de DeepSeek para companion.muertes_en()/cotejo. Sin red ni key.
 
 Cubre las tareas que dejó Opus: (a) homónimo cuando tu game name es el summonerName de otro,
 (b) muerte por torre/minion, (c) scores.deaths 0 con eventos tuyos → cotejo None, (d) un solo

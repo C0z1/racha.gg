@@ -2,7 +2,6 @@
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "herramientas"))  # replay, salud, dev_*
 import contextlib, io, json, pathlib, unittest
-from unittest import mock
 import companion, replay
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent / "scripts"

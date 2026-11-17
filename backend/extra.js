@@ -1,4 +1,4 @@
-// Racha · v0.8 (todo gratis, D1): builds compartidas, invitaciones, reportes privados y métricas anónimas.
+// Racha · extras (todo gratis, D1): builds compartidas, invitaciones, reportes privados y métricas anónimas.
 // Admin = quien entra con un código cuyo nombre, o una sesión de Google cuyo correo, está en el secreto ADMINS.
 
 import {usuarioDeSesion, sha256} from "./cuenta.js";
