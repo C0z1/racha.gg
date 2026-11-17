@@ -315,11 +315,6 @@ def atravesable(root):
     except (AttributeError, OSError): pass  # fuera de Windows: ventana normal
 
 
-def pos_y(pos, alto_pantalla, alto_franja, margen=6, util=1.0):
-    """Coordenada y de la franja: arriba (por defecto) o abajo, sobre la barra de tareas (util = fracción de alto sin ella)."""
-    return max(0, int(alto_pantalla * util) - alto_franja - margen) if pos == "abajo" else margen
-
-
 def rect_juego():
     """(x0, y0, x1, y1) de la ventana del juego (RiotWindowClass) o None. Solo se lee su posición: nunca se le manda nada."""
     try:

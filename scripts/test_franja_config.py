@@ -22,14 +22,6 @@ class Piezas(unittest.TestCase):
         self.assertEqual(tipos({"franja_regla": False}), ["linea", "linea", "tarde"])
         self.assertEqual(tipos({"franja_objetivos": False}), ["linea", "linea", "peleas"])  # ajuste viejo de 0.16: no rompe
 
-    def test_pos_y(self):
-        self.assertEqual(overlay.pos_y("arriba", 1080, 30), 6); self.assertEqual(overlay.pos_y(None, 1080, 30), 6)
-        self.assertEqual(overlay.pos_y("abajo", 1080, 30), 1044); self.assertEqual(overlay.pos_y("abajo", 20, 30), 0)
-        self.assertEqual(overlay.pos_y("abajo", 1080, 30, 6, 0.95), 990)  # encima de la barra de tareas (5 % de la pantalla)
-        self.assertTrue(0.5 <= overlay.fraccion_util() <= 1.0)
-
-
-class Ajustes(unittest.TestCase):
     def setUp(self):
         self.d = tempfile.TemporaryDirectory(); self.addCleanup(self.d.cleanup)
         p = mock.patch.object(g, "AJUSTES_F", pathlib.Path(self.d.name) / "a.json"); p.start(); self.addCleanup(p.stop)

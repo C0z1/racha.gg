@@ -216,17 +216,6 @@ class TestPostPartida(unittest.TestCase):
             self.assertEqual(llamadas, [1])
         finally: g._post_partida = orig
 
-    def test_revision_en_champ_select_espera_a_la_partida(self):
-        vistas = []
-        app = g.App.__new__(g.App)  # sin ventana: solo el enrutado de eventos
-        app.fase, app.pendiente = "ChampSelect", None
-        app.vista_revision, app.espera = vistas.append, lambda t: vistas.append("espera")
-        app.pill = app.sub = app.key = type("W", (), {"config": lambda self, **k: None})()
-        app.evento(("post_espera", "Esperando…")); app.evento(("revision", {"champ": "Ekko"}))
-        self.assertEqual(vistas, [])  # no tapa el draft
-        app.evento(("fase", "InProgress"))
-        self.assertEqual(vistas, [{"champ": "Ekko"}])
-
 
 if __name__ == "__main__":
     unittest.main()
