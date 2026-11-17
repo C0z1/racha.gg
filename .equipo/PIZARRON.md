@@ -16,7 +16,7 @@ Llevar a `cozi#1134` (LAN) de **Master 15 LP a Challenger** (~1,750 LP). Para lo
 - **Iteración 7:** ideas 1–3 de DeepSeek en Perfil: el pie dice «±22 (95%)» y se calcula con el n real; con 0 partidas sale «Sin partidas». Rebuild `Companion.exe` v0.1.1 (CSP + Muertes 14–25 + esto); tag `v0.1.1`. No corrí el humo del `.exe`: el harness no dejó ejecutarlo. 193 OK.
 - **Iteración 8:** un timeline roto ya no vacía Perfil: `muertes14_25` da None solo para esa partida (tarea c de DeepSeek). Humo del `.exe` otra vez bloqueado por el harness. 195 OK.
 - **2026-11-12 noche (rondas 3 y 4 de Fable, `PLAN-ENVIVO-3.md` y `-4.md`):** pruebas reales 3 y 4 en Practice Tool con la cuenta Zeriously#cozi (4 prácticas: selección, carga, partida, 2 reconexiones ×2, salida, 2.ª práctica sin reiniciar). Arreglados los hallazgos 19 (S8 en falso por la lectura del arranque), 20 (cuenta ajena heredaba rendimiento y vista previa del dueño), 21 (el temblor del gameTime tras reconectar tiraba los eventos: `TEMBLOR` 1 s), 22 (Draft sin historial: rol, fase y reloj), 23 (partida cerrada sin pantalla de fin seguía «En partida») y 24 (`ultima` vieja). 9 vistas limpias en reposo, selección y partida; CPU 0,3–0,8 %. **v0.14.4 local, push sin release** (autorizado). 609 OK.
-- **2026-11-11 tarde (plan En vivo de Fable, `.equipo/PLAN-ENVIVO.md`):** `salud.py` (chequeo S1–S10), `dev_practica.py`, `dev_franja.py`; franja: título, `visible()` con foto < 30 s, posición sobre la ventana del juego, tope antes del marcador, etiquetas reusadas (CPU 1,3 % → 0,3 %), pausa congela timers; Practice Tool = Grieta; Reconnect sin avisos repetidos ni grabación partida y con eventos unidos (`unir_eventos`). Probado en 2 prácticas reales (`datos/salud/prueba-*.md`). v0.14.2 instalada local, sin publicar. 572 OK.
+- **2026-11-11 tarde (plan En vivo de Fable, `.equipo/archivo/PLAN-ENVIVO.md`):** `salud.py` (chequeo S1–S10), `dev_practica.py`, `dev_franja.py`; franja: título, `visible()` con foto < 30 s, posición sobre la ventana del juego, tope antes del marcador, etiquetas reusadas (CPU 1,3 % → 0,3 %), pausa congela timers; Practice Tool = Grieta; Reconnect sin avisos repetidos ni grabación partida y con eventos unidos (`unir_eventos`). Probado en 2 prácticas reales (`datos/salud/prueba-*.md`). v0.14.2 instalada local, sin publicar. 572 OK.
 - **2026-11-11:** v0.14.0 publicada (partidas desde el cliente) y v0.14.1: el CI de pruebas fallaba desde la v0.7 en clon limpio (`test_cs_meta` sin fixtures y `gui.perfil()` ignoraba el rango del cliente sin `perfil.json`); arreglado, 519 OK en Windows y Ubuntu (WSL).
 - **Iteración 9:** con n ≤ 3, el pie del WR dice «Pocas partidas: el WR casi no dice nada» (idea 1 de DeepSeek). El humo del `.exe` y el asesor siguen bloqueados por el harness. 196 OK.
 - **Iteración 10:** con 0 partidas, «Qué está fallando» dice «Sin partidas todavía.» en vez de «Últimas 0». Rebuild `Companion.exe` v0.1.2 (iteraciones 8–10), tag `v0.1.2`. Humo y asesor bloqueados por el harness. 197 OK.
@@ -52,12 +52,14 @@ Llevar a `cozi#1134` (LAN) de **Master 15 LP a Challenger** (~1,750 LP). Para lo
 - **Estado:** diseño Vino entregado a Opus para la primera build: 10 pantallas en `.equipo/diseno/canvas/project/*_Vino.dc.html` (+ `Minions_Variantes`, `Tubos_Kit`). Traspaso en `.equipo/notas-equipo.md` («ENTREGA FINAL»).
 - **Siguiente:** diseñar Vino claro; afinar el minion si el usuario lo pide; revisar la build de Opus contra los artboards.
 - **Iteración 1 (noche):** sin cambios de diseño; idea 2 de DeepSeek ya cubierta (n/20 en las tarjetas). Consulta a DeepSeek bloqueada por el harness.
-- **Iteración 2 (noche):** Vino claro propuesto en `.equipo/diseno-acuerdos.md` (contraste AA sin medir).
-- **Iteración 3 (noche):** revisión de la build de En vivo («Tu rival», «Objetivos») en `.equipo/diseno-auditoria.md` §6; 3 pedidos a Opus en notas.
-- **Sesión en vivo (2026-11-10):** retomada con el usuario; contexto al día en `.equipo/diseno-contexto.md`.
+- **Iteración 2 (noche):** Vino claro propuesto en `.equipo/archivo/diseno-acuerdos.md` (contraste AA sin medir).
+- **Iteración 3 (noche):** revisión de la build de En vivo («Tu rival», «Objetivos») en `.equipo/archivo/diseno-auditoria.md` §6; 3 pedidos a Opus en notas.
+- **Sesión en vivo (2026-11-10):** retomada con el usuario; contexto al día en `.equipo/archivo/diseno-contexto.md`.
 - **Actualizado:** 2026-11-10
 
 ## Mapa del repo
+Carpetas (reorganizado el 2026-11-16): `scripts/` la app, `pruebas/` las pruebas, `herramientas/` utilidades de desarrollo (replay, salud, dev_*), `instalador/` build + humo, `.equipo/archivo/` planes cerrados.
+
 | Archivo | Qué es | Dueño |
 |---|---|---|
 | `.equipo/PLAN.md` | Plan de acción vigente | Opus |
@@ -68,23 +70,23 @@ Llevar a `cozi#1134` (LAN) de **Master 15 LP a Challenger** (~1,750 LP). Para lo
 | `scripts/companion.py` | Lee el cliente de LoL (solo lectura): en champ select corre `draft.py` contra tu rival; al terminar, `descargar.py 5` + `revision.py 1`; en partida, avisos de nivel (5–7), minions (10) y muertes desde el 14 (2+ antes del 25); al terminar, una línea de la última foto en vivo (`resumen_fin()`, sin key). `rango()` da tu LP del cliente (sin key). `--fixture <carpeta>` para probar | Opus |
 | `scripts/companion_web.py` | Companion con UI web local (diseño del canvas): servidor en 127.0.0.1 con `/api/estado`, íconos de Data Dragon en caché; abre Edge `--app`. `--demo`, `--no-abrir` | Opus |
 | `scripts/web/index.html` | La página del companion (champ select del canvas; polling a `/api/estado`) | Opus |
-| `scripts/humo_exe.py` | Humo de la build: corre `Companion.exe --demo --no-abrir`, busca su puerto y comprueba `/api/estado`; sale 0 si responde | Opus |
-| `scripts/test_vistas.py` | Pruebas de `vistas.errores` (pelea perdida sin ti, frame sin tu id) con timelines sintéticos | Opus |
-| `scripts/test_companion_web.py` | Pruebas del servidor web (estado JSON, HTTP, Host, imágenes) sin red ni navegador | Opus |
+| `instalador/humo_exe.py` | Humo de la build: corre `Companion.exe --demo --no-abrir`, busca su puerto y comprueba `/api/estado`; sale 0 si responde | Opus |
+| `pruebas/test_vistas.py` | Pruebas de `vistas.errores` (pelea perdida sin ti, frame sin tu id) con timelines sintéticos | Opus |
+| `pruebas/test_companion_web.py` | Pruebas del servidor web (estado JSON, HTTP, Host, imágenes) sin red ni navegador | Opus |
 | `datos/vivo/` | Fotos en vivo de la Live Client Data API que guarda `companion.py` (una línea JSON cada 30 s; en `.gitignore`) | Opus |
 | `scripts/fixtures/` | JSON de ejemplo de la LCU (gameflow-phase, champ-select session) | Opus |
 | `scripts/fixtures/vivo/allgamedata.json` | Foto sintética de la Live Client Data API (min 6, Ekko 5 contra Zed 6; nombres inventados) | Opus |
-| `scripts/test_companion.py` | Pruebas sin red: `python -m unittest discover scripts` (incluye `Robusto`: lockfile, timeouts, JSON cortado, reinicio a media partida) | Opus |
+| `pruebas/test_companion.py` | Pruebas sin red: `python -m unittest discover pruebas` (incluye `Robusto`: lockfile, timeouts, JSON cortado, reinicio a media partida) | Opus |
 | `scripts/score.py` | Score por partida contra tu equipo y la partida (8 componentes en z contra los 10, corregido por rol; 50 = típico): tendencia, V/D, duelo con tu rival de línea, por campeón, qué te baja: `score.py [N]`; `score.resumen(n)` lo da como dict; `score.tilt()` da hoy, racha y WR tras 2 derrotas seguidas | Opus |
 | `scripts/builds.py` | Build de los mejores (Challenger/GM de la1 y kr, Riot API) y la tuya (`datos/raw`): `builds.py <Campeón> [rol]` o `--pool`; `guardado_dict()` la da como dict para la GUI | Opus |
 | `datos/meta/` | Caché de Riot API y Data Dragon, y `builds.json` que lee `draft.py` (en `.gitignore`) | Opus |
-| `scripts/test_builds.py` | Pruebas de `builds.py` con la Riot API simulada | Opus |
-| `scripts/test_score.py` | Pruebas de `score.py` y de la columna Score de `revision.py` | Opus |
-| `scripts/test_ds_*.py` | Pruebas de casos borde que escribe DeepSeek | DeepSeek |
-| `scripts/test_flujo.py` | Humo del companion de punta a punta sin cliente (champ select, partida, post-partida); corre en el CI | Opus |
-| `scripts/test_draft.py` | Pruebas de `draft.py` (funciones y recomendación con partidas sintéticas) y humo de `revision.py 1` | Opus |
+| `pruebas/test_builds.py` | Pruebas de `builds.py` con la Riot API simulada | Opus |
+| `pruebas/test_score.py` | Pruebas de `score.py` y de la columna Score de `revision.py` | Opus |
+| `pruebas/test_ds_*.py` | Pruebas de casos borde que escribe DeepSeek | DeepSeek |
+| `pruebas/test_flujo.py` | Humo del companion de punta a punta sin cliente (champ select, partida, post-partida); corre en el CI | Opus |
+| `pruebas/test_draft.py` | Pruebas de `draft.py` (funciones y recomendación con partidas sintéticas) y humo de `revision.py 1` | Opus |
 | `scripts/fixtures/datos/` | Perfil y una partida mínima: `test_draft` los usa si no hay `datos/raw` (CI, clon nuevo) | Opus |
-| `.github/workflows/pruebas.yml` | CI: `python -m unittest discover scripts` en Ubuntu y Windows | Opus |
+| `.github/workflows/pruebas.yml` | CI: `python -m unittest discover pruebas` en Ubuntu y Windows | Opus |
 | `docs/config.ejemplo.json` | Ejemplo (cozi) de `config.json`: pool y meta `minions10` para `revision.py`; `config.json` va en `.gitignore` | Opus |
 | `.equipo/notas-equipo.md` | Detalle de cada turno y de cada revisión | Ambos (solo agregar) |
 | `.equipo/BITACORA.md` | Sesiones jugadas por el usuario | DeepSeek |
@@ -277,7 +279,7 @@ Llevar a `cozi#1134` (LAN) de **Master 15 LP a Challenger** (~1,750 LP). Para lo
 - 2026-11-09 · Opus: la app nueva es web local (`http.server` en 127.0.0.1 + HTML del canvas, abierta con Edge `--app`), reutiliza el `trabajador` de `companion_gui.py`; tkinter queda de respaldo. Valida `Host` y se cierra sola sin la ventana (DeepSeek).
 
 ## Para el usuario (cuando vuelva)
-- **2026-11-11 tarde · Racha 0.14.2 instalada en tu PC (sin publicar).** La franja y las ventanas se probaron en 2 partidas de Herramienta de práctica con un chequeo cada 60 s (`scripts/salud.py`): todo OK al final, CPU de Racha en partida 0–0,3 %. Resultados en `datos/salud/prueba-1.md` y `prueba-2.md`; qué hacer tú en `.equipo/deepseek-al-llegar.md`. Lo que falta solo lo puedes hacer tú: 1 partida normal con `python scripts/salud.py --cada 60` corriendo y tus FPS (Ctrl+F) con la franja prendida y apagada. Para volver a la 0.14.1: el instalador del release v0.14.1 en GitHub. DeepSeek se quedó sin saldo (402): un Sonnet hizo su papel; recarga si quieres que vuelva.
+- **2026-11-11 tarde · Racha 0.14.2 instalada en tu PC (sin publicar).** La franja y las ventanas se probaron en 2 partidas de Herramienta de práctica con un chequeo cada 60 s (`scripts/salud.py`): todo OK al final, CPU de Racha en partida 0–0,3 %. Resultados en `datos/salud/prueba-1.md` y `prueba-2.md`; qué hacer tú en `.equipo/archivo/deepseek-al-llegar.md`. Lo que falta solo lo puedes hacer tú: 1 partida normal con `python scripts/salud.py --cada 60` corriendo y tus FPS (Ctrl+F) con la franja prendida y apagada. Para volver a la 0.14.1: el instalador del release v0.14.1 en GitHub. DeepSeek se quedó sin saldo (402): un Sonnet hizo su papel; recarga si quieres que vuelva.
 - **CHECKLIST PARA PROBAR HTC v0.3.9 EN PARTIDA (2026-11-10 00:45; v0.3.8 suma en «Objetivos» el rótulo Tú–Rival y el timer en ámbar cuando faltan < 60 s; v0.3.9 precarga tus partidas al arrancar, así que Selección sale en ~3 s y no en ~8).** Antes: cierra las ventanas viejas de HTC que dicen «Sin conexión». Si quieres el instalador nuevo, corre `powershell -File instalador/build.ps1` (yo no puedo lanzar Inno Setup); si no, abre `dist/HTC/HTC.exe`. [R] = solo se puede verificar en una partida real.
   1. **Al abrir LoL:** con HTC de fondo, la ventana se abre sola en ~1 s, en **Inicio** («Cliente conectado»). Si abres el acceso directo otra vez, no sale un segundo HTC.
   2. **Champ select [R]:** pasa solo a **Draft** («Esperando su pick…»). Cuando tu rival de línea pickea, en unos 3 s cambia a **Selección**: tu récord contra él, tu WR, «Hasta el nivel 6» y «Tu plan con <campeón>» con «Cumples N/M». *Reporta* si no cambia a Selección, si el rival que sale no es tu rival de línea o si el campeón recomendado no está en tu pool.

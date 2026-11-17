@@ -121,6 +121,20 @@ Tus partidas y tus ajustes viven en tu computadora. Si activas la cuenta en la n
 
 ---
 
+## Qué hay en este repo
+
+| Carpeta | Qué hay |
+|---|---|
+| `scripts/` | La app: el código que corre en tu PC. `companion_web.py` la arranca; `web/` son las pantallas. |
+| `pruebas/` | Las pruebas automáticas. Corren solas en cada cambio. |
+| `herramientas/` | Utilidades para desarrollar (repetir partidas grabadas, chequeo de salud). No van en la app. |
+| `instalador/` | Cómo se arma el `.exe` y el instalador de Windows. |
+| `backend/` | El servidor pequeño en Cloudflare: guarda la key de Riot y las cuentas. |
+| `docs/` | La página web, la guía de uso, privacidad y términos. |
+| `.equipo/` | Notas del equipo de agentes: el estado actual en `PIZARRON.md`; lo ya terminado en `archivo/`. |
+
+Qué cambió en cada versión: [`CHANGELOG.md`](CHANGELOG.md). Por dentro, la app y el instalador se siguen llamando HTC (el nombre viejo): cambiarlo rompería la actualización de quien ya la tiene instalada.
+
 <details>
 <summary>Para desarrolladores</summary>
 <br>
@@ -129,7 +143,7 @@ Racha está hecha en Python (con Pillow para dibujar la franja). Corre un servid
 
 ```bash
 python scripts/companion_web.py --demo      # la app con datos de ejemplo, sin cliente
-python -m unittest discover scripts         # pruebas: sin red, sin key, sin partidas
+python -m unittest discover pruebas         # pruebas: sin red, sin key, sin partidas
 ```
 
 Guía de uso, variables (`RIOT_KEY`, `RIOT_ID`, `RIOT_REGION`) y scripts: [`docs/USO.md`](docs/USO.md). Los PRs son bienvenidos. Licencia [MIT](LICENSE).

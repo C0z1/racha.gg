@@ -18,7 +18,7 @@ UninstallDisplayIcon={app}\HTC.exe
 
 [Files]
 Source: "..\dist\HTC\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
-Source: "..\scripts\*.py"; DestDir: "{app}\scripts"; Excludes: "test_*.py,humo_exe.py"; Flags: ignoreversion
+Source: "..\scripts\*.py"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "..\scripts\web\*"; DestDir: "{app}\scripts\web"; Flags: recursesubdirs ignoreversion
 Source: "..\scripts\fixtures\*"; DestDir: "{app}\scripts\fixtures"; Flags: recursesubdirs ignoreversion
 Source: "..\docs\config.ejemplo.json"; DestDir: "{app}"; Flags: ignoreversion
@@ -27,6 +27,13 @@ Source: "..\docs\config.ejemplo.json"; DestDir: "{app}"; Flags: ignoreversion
 ; accesos directos de cuando la app se llamaba HTC (la carpeta y el .exe conservan el nombre para actualizar encima)
 Type: files; Name: "{userprograms}\HTC.lnk"
 Type: files; Name: "{userdesktop}\HTC.lnk"
+; herramientas de desarrollo y pruebas que versiones viejas dejaban en scripts\ (ahora viven en herramientas\ y pruebas\ del repo)
+Type: files; Name: "{app}\scripts\dev_franja.py"
+Type: files; Name: "{app}\scripts\dev_medir.py"
+Type: files; Name: "{app}\scripts\dev_practica.py"
+Type: files; Name: "{app}\scripts\replay.py"
+Type: files; Name: "{app}\scripts\salud.py"
+Type: files; Name: "{app}\scripts\test_*.py"
 
 [Dirs]
 Name: "{app}\datos\raw"

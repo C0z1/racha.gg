@@ -80,7 +80,7 @@ Racha corre un servidor local en `127.0.0.1` y muestra la ventana con Edge en mo
 
 ```bash
 python scripts/companion_web.py --demo      # la app con datos de ejemplo, sin cliente
-python -m unittest discover scripts         # pruebas: sin red, sin key, sin partidas
+python -m unittest discover pruebas         # pruebas: sin red, sin key, sin partidas
 ```
 
 ### Configuración
@@ -100,28 +100,42 @@ Opcional: copia `docs/config.ejemplo.json` a `config.json` (no se sube a git) pa
 
 ### Scripts
 
-| Script | Qué hace |
+La app vive en `scripts/`; las herramientas de desarrollo, en `herramientas/`.
+
+| La app (`scripts/`) | Qué hace |
 |---|---|
-| `descargar.py` | Baja partidas y timelines de Solo/Duo de la Riot API a `datos/raw/`. `[N]` partidas (por defecto 100). |
-| `companion.py` | Companion de consola, solo lectura del cliente. |
-| `companion_gui.py` | Companion con ventana tkinter (respaldo de la app web). `--demo`. |
 | `companion_web.py` | La app Racha: servidor local y ventana con Edge. `--demo`, `--no-abrir`, `--fondo`, `--overlay`. |
+| `companion.py` | Lee el cliente de LoL (solo lectura). Solo, es un companion de consola. |
+| `companion_gui.py` | El trabajador de fondo: sondea el cliente, baja partidas y arma tu perfil. |
 | `overlay.py` | Franja en partida siempre encima (timers de dragón y barón, nivel y CS contra tu rival). |
-| `humo_exe.py` | Humo de la build: arranca el `.exe`, busca su puerto y comprueba `/api/estado`. |
+| `ventana.py` | Abre la ventana como app de Edge con perfil propio. |
+| `descargar.py` | Baja tus Solo/Duo de la temporada con timeline a `datos/raw/`. `[N \| todo]`. |
+| `cliente_v5.py` | Tus últimas 20 partidas desde el cliente, sin key. |
 | `draft.py` | Matchups y recomendación de pick contra tu rival. `<rival> [rol]`. |
-| `postpartida.py` | Los 3 momentos clave de una partida. `[match_id]`. |
+| `postpartida.py` | Los 3 momentos clave de una partida y el tipo de cada muerte. `[match_id]`. |
 | `revision.py` | Revisa tus últimas N partidas contra las metas del plan. `[N]`. |
 | `score.py` | Score por partida contra tu equipo y la partida (50 = típico de tu rol). `[N]`. |
 | `semanal.py` | Tu semana (récord, oro al 14, tilt, regla a cuidar). |
 | `comparar.py` | «Tú contra ellos»: tu build contra la de los onetricks del top. `<Campeón> [rol]`. |
-| `builds.py` | Build de los mejores (Challenger/GM de la1 y kr) y la tuya. `<Campeón> [rol]` o `--pool`. |
+| `builds.py` | Build de los mejores (Master+ de LA1, KR y EUW) y la tuya. `<Campeón> [rol]`, `--pool` o `--ladder`. |
+| `matchups.py` | Quién gana cada matchup en la línea, de muchas partidas Master+. |
 | `vistas.py` | Datos de las ventanas (Campeones, Draft, reglas, errores) sin red. |
 | `nube.py` | Cuenta en la nube (Google, sincronización, borrado). |
+
+| Herramientas (`herramientas/`, no van en la app) | Qué hace |
+|---|---|
+| `replay.py` | Repite una partida grabada sin LoL. `<archivo.jsonl> [--validar]`. |
+| `salud.py` | Chequeo de salud S1 a S10; mide y avisa, nunca arregla solo. |
+| `dev_franja.py` | Dibuja la franja con una partida grabada, encima del escritorio. |
+| `dev_medir.py` | Capturas de cada vista y tiempo del primer pintado. |
+| `dev_practica.py` | Entra y sale de una partida de práctica para probar. |
+
+`instalador/humo_exe.py` arranca el `.exe`, busca su puerto y comprueba `/api/estado` (lo corre `instalador/build.ps1`).
 
 ### Pruebas
 
 ```bash
-python -m unittest discover scripts
+python -m unittest discover pruebas
 ```
 
 Sin red, sin `RIOT_KEY` y sin partidas descargadas. GitHub Actions las corre en Ubuntu y Windows en cada push (`.github/workflows/pruebas.yml`).

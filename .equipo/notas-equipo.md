@@ -1075,14 +1075,14 @@ Sin commit nuevo desde 3d9e4ae (ya revisado). `descargar.py 5` → 401: RIOT_KEY
 
 ## 2026-11-08 · Diseñador · iteración 1
 
-- **Hecho:** `.equipo/diseno-auditoria.md` (20 problemas de la GUI ordenados por impacto en partida; 5 críticos).
+- **Hecho:** `.equipo/archivo/diseno-auditoria.md` (20 problemas de la GUI ordenados por impacto en partida; 5 críticos).
 - **Lo más grave:** la ventana no es `topmost` ni compacta, así que con LoL en pantalla completa no se ve; los avisos en vivo son un banner de 9 pt sin caducidad que se pisa entre sí y comparte estilo con los errores.
 - DeepSeek: no lo pude consultar (el permiso bloquea `ask-deepseek.ps1` como «nested PowerShell process», desde Bash y desde PowerShell).
 - **Para Opus (una línea cada uno):**
   - `post_partida` bloquea el hilo del sondeo hasta ~7 min (`companion_gui.py` l.92–104, 125): si el usuario pone cola enseguida, el champ select siguiente no se detecta. Va a un hilo aparte.
   - Exponer los avisos como `{texto, tipo: consejo|error, minuto}` en vez de cadenas.
   - Cuando existan, builds de los top y score relativo al equipo (con las últimas N) como datos estructurados, no texto de tabla.
-- **Siguiente (iteración 2):** `.equipo/diseno-propuesta.md` con las pantallas y 5–10 preguntas para el usuario.
+- **Siguiente (iteración 2):** `.equipo/archivo/diseno-propuesta.md` con las pantallas y 5–10 preguntas para el usuario.
 
 ## 2026-11-08 · Opus · turno 5 iteración 1
 
@@ -1155,7 +1155,7 @@ Sin commit nuevo desde 3d9e4ae (ya revisado). `descargar.py 5` → 401: RIOT_KEY
 
 ## 2026-11-08 · Diseñador · iteración 2
 
-- **Hecho:** `.equipo/diseno-propuesta.md` (principios, modo compacto/completo, 4 pantallas, tipografía, paleta propuesta con cian en vez de ámbar, tabla de datos por pantalla, 10 preguntas para el usuario). Incorpora la idea de DeepSeek de barra 0–100 con componentes coloreados y WR + score juntos por campeón.
+- **Hecho:** `.equipo/archivo/diseno-propuesta.md` (principios, modo compacto/completo, 4 pantallas, tipografía, paleta propuesta con cian en vez de ámbar, tabla de datos por pantalla, 10 preguntas para el usuario). Incorpora la idea de DeepSeek de barra 0–100 con componentes coloreados y WR + score juntos por campeón.
 - **DeepSeek:** no pude consultarlo; el permiso bloquea `ask-deepseek.ps1` («nested PowerShell process»). Sin aporte esta iteración. Pendiente: 3 riesgos del modo compacto topmost y un layout alternativo del champ select.
 - **Para Opus (sección 8 de la propuesta):** avisos como `{texto, tipo, minuto, cambia_decision}`; `builds.guardado()` con el dict estructurado; dict de score por partida (`score, puesto, componentes_z, tendencia`); meta de fase de la foto en vivo como números.
 - **Siguiente:** `.equipo/diseno/mockup.html`.
@@ -1945,7 +1945,7 @@ La app ahora se llama **HTC (How to Climb)**. Ya hay build rápida (0.5 s) e ins
 El usuario eligió la **paleta Vino + negro** para la primera build. Artboards en `.equipo/diseno/canvas/project/` (lo que lees tú):
 - `Perfil_Vino.dc.html` (Tu rendimiento), `Seleccion_Vino.dc.html` (Selección de campeón), `EnPartida_Vino.dc.html` (En partida).
 - `Tubos_Kit.dc.html`: especificación del **frasco** (tamaños L/M/S/XS, estados, horizontal, tiempos de animación). Los colores del kit son los de pizarra; en Vino usa los de abajo.
-- Canvas: https://claude.ai/artifact/RPTLnjKqhMnuVGkFm7riX7 (fila de arriba-medio, y = −1144). Acuerdos: `.equipo/diseno-acuerdos.md` (12–15).
+- Canvas: https://claude.ai/artifact/RPTLnjKqhMnuVGkFm7riX7 (fila de arriba-medio, y = −1144). Acuerdos: `.equipo/archivo/diseno-acuerdos.md` (12–15).
 
 Pedidos, en orden:
 1. **Tokens Vino** en `scripts/web/index.html`: fondo `#24111A`, tarjeta `#36192A`, línea `#5A2D40`, panel derecho `#0B0709`, filas `#1A1014`/`#2C1420`, texto tenue `#D2BAC4`/`#AE95A0`, **acento rosa `#F28DB0`** (claro `#F8C3D6`). Fuente Mulish.
@@ -2053,7 +2053,7 @@ Las cifras entre [corchetes] en los artboards son de ejemplo. Lo que no tenga da
 
 ## 2026-11-09 · Diseñador · ENTREGA FINAL a Opus (builder): primera build en Vino
 
-Todo lo de hoy, consolidado. Fuente de verdad: `.equipo/diseno/canvas/project/` (bajado del canvas, versión 104) + canvas https://claude.ai/artifact/RPTLnjKqhMnuVGkFm7riX7. Acuerdos: `.equipo/diseno-acuerdos.md` (12–20).
+Todo lo de hoy, consolidado. Fuente de verdad: `.equipo/diseno/canvas/project/` (bajado del canvas, versión 104) + canvas https://claude.ai/artifact/RPTLnjKqhMnuVGkFm7riX7. Acuerdos: `.equipo/archivo/diseno-acuerdos.md` (12–20).
 
 **Pantallas vigentes (10)** — todas 1440×1024, paleta Vino, barra lateral con las 9 ventanas:
 | Archivo | Ventana | Lo esencial |
@@ -2089,7 +2089,7 @@ Sin nada que revisar: entrega final de diseño del Diseñador (10 pantallas Vino
 - El diseño Vino ya está entregado (10 pantallas); no hay nada de `scripts/` que yo pueda tocar.
 - Idea 2 de DeepSeek («n real junto al conteo de errores»): ya está cubierta, `Errores_Vino` y `Perfil_Vino` muestran «[N/20] partidas». Sin cambios.
 - Consulta a DeepSeek (variante Vino claro): **bloqueada por el harness** (PowerShell anidado y `&` piden aprobación). No aportó nada.
-- Siguiente iteración: diseñar Vino claro (fondo, texto, acento rosa, ✓/✕ con contraste AA) en `.equipo/diseno-acuerdos.md`.
+- Siguiente iteración: diseñar Vino claro (fondo, texto, acento rosa, ✓/✕ con contraste AA) en `.equipo/archivo/diseno-acuerdos.md`.
 - Pedido a Opus: ninguno nuevo.
 
 ## 2026-11-09 · Opus · turno 9 iteración 1
@@ -2138,7 +2138,7 @@ Sin nada que revisar: entrega final de diseño del Diseñador (10 pantallas Vino
 **Tarea de pruebas para DeepSeek:** (a) revisa `sin_objetivo.py`: ¿el 81/50/27% aguanta si controlas por oro del equipo al 14 (≥ 0 contra < 0)? Si en las dos bandas se mantiene la caída de 0 a 1, el error es accionable; si no, es reflejo de ir perdiendo; (b) muerte exactamente a 60 s de un objetivo (borde, debe no contar como error); (c) un objetivo antes del 14:00 con la muerte a las 14:30 (debe valer igual).
 
 ## 2026-11-09 · Diseñador · iteración 2 (noche)
-- Propuse **Vino claro** (tabla de variables) en `.equipo/diseno-acuerdos.md`; acento `#B83A6B`, ✓/✕ con símbolo.
+- Propuse **Vino claro** (tabla de variables) en `.equipo/archivo/diseno-acuerdos.md`; acento `#B83A6B`, ✓/✕ con símbolo.
 - Contraste AA **sin medir** (las herramientas de cálculo pidieron aprobación): verificar al implementar.
 - Consulta a DeepSeek: no la hice (el harness bloquea PowerShell anidado).
 - Pedido a Opus: ninguno. Idea 1 de DeepSeek (Muertes sin número con signo) queda a tu criterio; es cosmético.
@@ -2190,7 +2190,7 @@ Sin nada que revisar: entrega final de diseño del Diseñador (10 pantallas Vino
 **Tarea de pruebas para DeepSeek:** (a) en `index.html`, con `s.draft` presente y `fase = "InProgress"`, la vista automática debe seguir siendo En vivo (no Selección): revisa la expresión de `vista` en `tick()`; (b) con `fase = null` (cliente cerrado), En vivo debe decir «Abre el cliente»; con `Lobby`, «Aún no estás en partida».
 
 ## 2026-11-09 · Diseñador · iteración 3 (noche)
-- Revisé la build de Opus (En vivo: «Tu rival» y «Objetivos») contra `EnPartida_Vino`: 7 puntos en `.equipo/diseno-auditoria.md` §6, sin tocar `scripts/`.
+- Revisé la build de Opus (En vivo: «Tu rival» y «Objetivos») contra `EnPartida_Vino`: 7 puntos en `.equipo/archivo/diseno-auditoria.md` §6, sin tocar `scripts/`.
 - **Pedido a Opus:** (a) rotular Tú/Rival en el marcador y cambiar `#FF8A8A` por `var(--red)` (`index.html`, `va()`); (b) tiempo de dragón/barón más grande y teñido cuando falten < 60 s; (c) `alt` con el nombre en los ítems del rival.
 - Consulta a DeepSeek: no la hice (el harness bloquea el PowerShell anidado, como en las iteraciones previas).
 
@@ -2443,7 +2443,7 @@ Pedido `prompt-deepseek-apoyo2.md` cumplido; informe completo en `C:\Users\felix
 - Bugs: ver el reporte final. Pendiente: D-a y D-e cuando existan `salud.py` y `dev_practica.py` estables.
 
 ## 2026-11-11 · Opus → todos · cierre del plan En vivo
-- Hecho por Opus: T1–T10, T12, F2–F6 del plan de Fable (`.equipo/PLAN-ENVIVO.md`); T11 no hizo falta (la franja siempre quedó encima). Pruebas reales en `datos/salud/prueba-1.md` y `prueba-2.md` (no se suben).
+- Hecho por Opus: T1–T10, T12, F2–F6 del plan de Fable (`.equipo/archivo/PLAN-ENVIVO.md`); T11 no hizo falta (la franja siempre quedó encima). Pruebas reales en `datos/salud/prueba-1.md` y `prueba-2.md` (no se suben).
 - Hallazgos del asistente aplicados: `dev_practica salir/reconectar` solo en Practice Tool; S2, S3 y S6 de `salud.py`; unir eventos solo dentro de la misma partida; franja rehecha si un dibujo falla.
 - Pendiente del usuario: 1 partida normal con `salud.py --cada 60` y FPS con y sin franja. Sin confirmar fuera de Practice Tool: que la Live API reinicie eventos al reconectar (el arreglo no cambia nada si no lo hace).
 

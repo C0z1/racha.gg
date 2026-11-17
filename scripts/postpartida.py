@@ -17,7 +17,7 @@ NOMBRE = {"BARON_NASHOR": "el barón", "ELDER_DRAGON": "el dragón anciano", "DR
 def _mm(ms): return f"{int(ms) // 60000}:{int(ms) // 1000 % 60:02d}"
 
 
-def zona(x, y, team):  # la misma de scripts/nivel6.py y revision.py (que la importa de aquí)
+def zona(x, y, team):  # revision.py la importa de aquí
     own = (x + y < 14800) == (team == 100)
     if x + y < 5600 or x + y > 24000: return "base propia" if own else "base rival"
     if abs(x - y) < 1600: z = "mid"
