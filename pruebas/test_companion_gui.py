@@ -101,6 +101,68 @@ class TestLineasFicha(unittest.TestCase):
         self.assertEqual(g.lineas_ficha(None), ([], []))
 
 
+class TestRivalesLinea(unittest.TestCase):
+    """Roles ocultos en ranked: el rival de línea sale del rol que juega cada campeón elegido (builds Master+)."""
+    BUILDS = {"Zed|MIDDLE": {"n": 300}, "Ahri|MIDDLE": {"n": 400}, "Sylas|MIDDLE": {"n": 10}, "Sylas|JUNGLE": {"n": 246},
+              "LeeSin|JUNGLE": {"n": 500}, "Thresh|UTILITY": {"n": 378}, "Yone|MIDDLE|tu": {"n": 99}, "_bajadas": {"x": 1}}
+
+    def setUp(self):
+        import builds, tempfile, types
+        self.tmp = tempfile.TemporaryDirectory(); self.orig = builds.META, sys.modules.get("draft")
+        builds.META = pathlib.Path(self.tmp.name); self.archivo = builds.META / "builds.json"
+        self.archivo.write_text(json.dumps(self.BUILDS), encoding="utf-8")
+        sys.modules["draft"] = types.SimpleNamespace(games=[{"pos": "MIDDLE", "opp": "Sylas"}] * 3 + [{"pos": "MIDDLE", "opp": "Zed"}])
+
+    def tearDown(self):
+        import builds
+        builds.META = self.orig[0]; self.tmp.cleanup()
+        if self.orig[1] is None: sys.modules.pop("draft", None)
+        else: sys.modules["draft"] = self.orig[1]
+
+    def test_un_solo_pick_de_otro_rol_no_es_tu_rival(self):  # el bug: su jungla elegía primero y salía como tu rival
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Sylas"]), [])  # Sylas mid: 10 de 256, aunque te tocó 3 veces
+        self.assertEqual(g.rivales_linea("MIDDLE", ["LeeSin", "Thresh"]), [])
+
+    def test_elige_el_que_juega_tu_rol(self):
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Sylas", "Ahri", "Thresh"]), ["Ahri"])
+        self.assertEqual(g.rivales_linea("JUNGLE", ["Ahri", "Sylas"]), ["Sylas"])
+        self.assertEqual(g.rivales_linea("JUNGLE", ["Lee Sin"]), ["Lee Sin"])  # alias con espacio: builds.norm
+
+    def test_empate_decide_tu_historial(self):
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Ahri", "Zed"]), ["Zed"])  # los dos 100 % mid; Zed te tocó
+
+    def test_campeon_sin_builds_usa_tu_historial(self):
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Thresh", "Zed", "Hwei"]), ["Zed"])
+        self.archivo.write_text(json.dumps({"Thresh|UTILITY": {"n": 1}}), encoding="utf-8")
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Thresh", "Zed", "Hwei"]), ["Zed"])  # Zed sin builds, pero en tus partidas
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Thresh", "Hwei"]), [])
+
+    def test_sin_builds_json_como_antes(self):
+        self.archivo.unlink()
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Ahri"]), ["Ahri"])
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Ahri", "Zed"]), ["Zed"])
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Ahri", "Thresh"]), ["Ahri", "Thresh"])
+        self.archivo.write_text("{cortado", encoding="utf-8")
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Ahri", "Zed"]), ["Zed"])
+
+    def test_trabajador_espera_a_tu_rival(self):  # top, y solo eligieron Zed y Lee Sin: Draft sigue esperando
+        import queue
+        c = g.companion
+        ses = json.loads((AQUI / "fixtures" / "champselect-sin-rol" / "session.json").read_text())
+        orig = c.lcu, c.nombres_lcu, c.nombres, c.metas_auto, g.time.sleep
+        vueltas = iter(range(2))
+        def dormir(_):
+            if next(vueltas, None) is None: raise KeyboardInterrupt
+        c.lcu = lambda path: ses if "session" in path else (None if "ranked" in path else "ChampSelect")
+        c.nombres_lcu = c.nombres = lambda: {238: "Zed", 64: "LeeSin"}; c.metas_auto = lambda: None; g.time.sleep = dormir
+        q = queue.Queue()
+        try:
+            with self.assertRaises(KeyboardInterrupt): g.trabajador(q)
+        finally: c.lcu, c.nombres_lcu, c.nombres, c.metas_auto, g.time.sleep = orig
+        tipos = [e[0] for e in list(q.queue)]
+        self.assertIn("pos", tipos); self.assertNotIn("draft", tipos)
+
+
 class TestTrabajador(unittest.TestCase):
     def test_banner_de_nivel_una_vez(self):
         import json, queue
