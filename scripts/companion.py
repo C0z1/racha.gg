@@ -314,6 +314,12 @@ def valor_items(p, pr=None):
     return sum((pr.get(str(i.get("itemID"))) or 0) * (i.get("count") or 1) for i in (p or {}).get("items") or [])
 
 
+def vida(d):
+    """Tu vida actual / máxima (0–1), solo la tuya (activePlayer); None si no viene. Sombra la usa para no hablar en una pelea."""
+    s = (((d or {}).get("activePlayer") or {}).get("championStats") or {})
+    return round(s["currentHealth"] / s["maxHealth"], 3) if s.get("maxHealth") and s.get("currentHealth") is not None else None
+
+
 def meta_fase(d, m10=None):
     """La meta de la fase como números para la GUI: {minuto, campeon, nivel, rival, nivel_rival, cs, cs_meta, muertes14}; None sin tu jugador.
     muertes14: tus muertes desde el 14:00 (None antes del 14; meta ≤ 2 hasta el 25).
@@ -333,6 +339,8 @@ def meta_fase(d, m10=None):
             "pos": POS.get(str(me.get("position") or "").lower(), "MIDDLE"),  # sin posición (normales a ciegas): mid, como draft.py
             "oro_actual": int((((d or {}).get("activePlayer") or {}).get("currentGold") or 0)),
             "muerto": bool(me.get("isDead")), "revive": round(me.get("respawnTimer") or 0) if me.get("isDead") else None,  # F4: solo los tuyos
+            "vida": vida(d), "ult_kill": max((e.get("EventTime") or 0 for e in ((d.get("events") or {}).get("Events") or []) if e.get("EventName") == "ChampionKill"), default=None),
+            "muertes": (me.get("scores") or {}).get("deaths"), "muertes6": muertes_en(d, me, 0, 360), "muertes14_25": muertes14(d, me, 1500),  # las marcas 6 y 25 de Sombra (momentos.py)
             "items": [[i["itemID"], i.get("displayName") or ""] for i in me.get("items") or [] if i.get("itemID") and not i.get("consumable") and i.get("slot") != 6][:6]}
 
 
