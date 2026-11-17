@@ -608,7 +608,7 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         juego = rect_juego(); esc = escala(juego)
         if e.get("carta"):  # al centro abajo, sobre la pantalla de carga; nada que mover ni animar
             x0, y0, x1, y1 = juego or (0, 0, root.winfo_screenwidth(), root.winfo_screenheight())
-            w, h = round(lienzo.CARTA_W * esc), round(lienzo.CARTA_H * esc); px, py = x0 + (x1 - x0 - w) // 2, y0 + int((y1 - y0) * 0.80) - h
+            w, h = round(lienzo.CARTA_W * esc), round(lienzo.carta_alto(e["carta"]) * esc); px, py = x0 + (x1 - x0 - w) // 2, y0 + int((y1 - y0) * 0.80) - h
             if (clave := (repr(e), esc, px, py)) == ultimo[0] and mostrada[0]: return
             if not mostrada[0]: root.deiconify(); root.attributes("-topmost", True); mostrada[0] = True
             gen[0] += 1

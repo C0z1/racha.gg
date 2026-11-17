@@ -583,6 +583,17 @@ function cicloRegla(V) {  // Sombra: la racha de tu regla (partidas seguidas cum
   return `<span class="sub" style="font-size:13px;padding:0 4px">Racha de tu regla: <b style="color:var(--txt)">${rh.racha}</b> seguida${rh.racha === 1 ? "" : "s"} · ${rh.falta ? `te faltan ${rh.falta} de 10 para graduarla` : "lista para graduarse"}${gr.length ? ` · graduada${gr.length > 1 ? "s" : ""}: ${gr.map(m => NOM[m] || m).join(", ")}` : ""}</span>`;
 }
 
+function tusErrores(V) {  // Sombra, Fase 7: el ciclo de corrección. Racha encuentra tu error, lo vigila en partida y te dice cuando ya lo corregiste
+  const c = V && V.ciclo_errores, NOM = {sin_objetivo: "Muerte sin objetivo", abajo_6: "Nivel abajo al 6", sin_pelea: "Pelea perdida sin ti"};
+  if (!c || !Object.keys(c.errores || {}).length) return "";
+  const fila = (k, i) => { const x = c.errores[k];
+    return `<div class="fila2" style="border:none"><span class="num" style="width:30px;height:30px;border-radius:8px;background:var(--dark4);color:var(--acc2);font-size:13px">E${i + 1}</span>
+      <div class="txt"><b>${esc(NOM[k] || k)}</b><small>En ${x.veces} de tus últimas 20 · lo evitas ${x.ok} de ${x.n}${x.falta ? ` · te faltan ${x.falta} para corregirlo` : ""}</small></div></div>`; };
+  return `<div class="card"><div class="cab2"><h2>Tus errores</h2><span class="sub" style="font-size:12px">la franja los vigila en partida</span></div>
+    ${(c.vigilados || []).map(fila).join("") || '<span class="sub">Ningún error repetido en tus últimas 20.</span>'}
+    ${(c.corregidos || []).length ? `<span class="sub" style="font-size:13px;padding:0 4px">Corregido${c.corregidos.length > 1 ? "s" : ""}: ${c.corregidos.map(k => `<b style="color:var(--teal)">✓ ${esc(NOM[k] || k)}</b>`).join(" · ")} (lo evitas 8 de 10 o más)</span>` : ""}</div>`;
+}
+
 function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un botón; rango, pick de hoy, oro y atajos al costado
   const R = s.rendimiento, t = R && R.tilt, ps = R ? R.resumen.partidas : [], [id, ...resto] = String(s.perfil || "").split(" · ");
   const nombre = id.includes("#") ? id.split("#")[0] : "", cliente = enCliente(s.fase);
@@ -626,6 +637,7 @@ function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un bo
   ${pasos}
   ${descanso}
   ${regla}
+  ${tusErrores(VS(s))}
   ${racha ? `<div class="dos" style="align-items:stretch">${racha}${sesion}</div>` : sesion}
   ${s.rendimiento ? `<button class="btn principal" style="align-self:flex-start" onclick="ver('draft')">Empezar a subir</button>` : ""}`;
   const base = t && t.base.wr, x = w => Math.max(0, Math.min(100, (w - .45) / .2 * 100));

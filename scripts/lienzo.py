@@ -4,7 +4,8 @@ Recibe la escena de momentos.paso y no decide nada: solo dibuja."""
 from overlay import ROSA, ROSA2, ROJO, SALVIA, ORO, TXT, ETQ, _fuente
 
 ANCHO, ALTO, RENGLON, PANEL, SEP = 340, 56, 28, 50, 4
-CARTA_W, CARTA_H = 420, 104  # la carta de la pantalla de carga: 3 renglones al centro abajo
+CARTA_W, CARTA_H = 420, 104  # la carta de la pantalla de carga: 3 renglones al centro abajo (4 con el plan de rol: +24)
+CARTA_RENGLON = 24
 Z1, Z2 = 104, 256  # bordes de las zonas: regla 0–104, sombra 104–256, marcas 256–340
 FONDO = (36, 12, 22, 224)  # vino oscuro al 88 %
 GRIS = ETQ
@@ -49,13 +50,14 @@ def pintar(escena, esc=1.0):
         caja = (cx - rr, cy - rr, cx + rr, cy + rr)
         if m.get("late"):  # tu próxima marca, en su último minuto: un latido suave
             h = rr * 1.7; d.ellipse((cx - h, cy - h, cx + h, cy + h), fill=ORO + (45,))
-        if escena.get("brillo") == m["min"]:  # recién sellada: un halo que se va a los 600 ms
+        figura = (lambda caja, **kw: d.rounded_rectangle(caja, radius=k(2.5), **kw)) if m.get("error") else d.ellipse  # tus errores: cuadros
+        if escena.get("brillo") is not None and escena["brillo"] in (m.get("id"), m["min"]):  # recién sellada: un halo que se va a los 600 ms
             h = rr * 2; d.ellipse((cx - h, cy - h, cx + h, cy + h), fill=(SALVIA if m["estado"] is True else ORO) + (70,))
-        if m["estado"] is True: d.ellipse(caja, fill=SALVIA + (255,))
-        elif m["estado"] is False: d.ellipse(caja, outline=(GRIS if roja else ROJO) + (255,), width=k(2))
+        if m["estado"] is True: figura(caja, fill=SALVIA + (255,))
+        elif m["estado"] is False: figura(caja, outline=(GRIS if roja else ROJO) + (255,), width=k(2))
         elif m["estado"] == "sin": d.line((cx - rr / 2, cy, cx + rr / 2, cy), fill=GRIS + (200,), width=k(2))
-        else: d.ellipse(caja, outline=(ORO if m.get("proxima") else GRIS) + (200 if m.get("proxima") else 110,), width=max(1, k(1.5)))
-        d.text((cx, k(40)), str(m["min"]), font=f10, fill=GRIS + (255,), anchor="mm")
+        else: figura(caja, outline=(ORO if m.get("proxima") else GRIS) + (200 if m.get("proxima") else 110,), width=max(1, k(1.5)))
+        d.text((cx, k(40)), str(m.get("etq", m["min"])), font=f10, fill=GRIS + (255,), anchor="mm")
 
     y = k(ALTO + SEP)
     if escena.get("panel"):
@@ -86,9 +88,17 @@ def pintar_carta(lineas, esc=1.0):
     """La carta de la pantalla de carga (momentos.carta_carga): el match, tu regla y la tasa de tus marcas."""
     from PIL import Image, ImageDraw
     S = 2; k = lambda v: round(v * esc * S)
-    W, H = round(CARTA_W * esc), round(CARTA_H * esc)
+    lineas = lineas[:4]
+    W, H = round(CARTA_W * esc), round(carta_alto(lineas) * esc)
     im = Image.new("RGBA", (W * S, H * S), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     d.rounded_rectangle((0, 0, W * S - 1, H * S - 1), radius=k(16), fill=FONDO, outline=ROSA + (90,), width=max(1, k(1)))
-    for i, t in enumerate(lineas[:3]):
-        d.text((k(CARTA_W / 2), k(26 + i * 26)), t, font=_fuente(k(16 if i == 0 else 12)), fill=(TXT if i == 0 else GRIS) + (255,), anchor="mm")
+    for i, t in enumerate(lineas):
+        px = 16 if i == 0 else 12
+        while px > 9 and d.textlength(t, font=_fuente(k(px))) > k(CARTA_W - 28): px -= 1  # un renglón largo se achica antes que cortarse
+        d.text((k(CARTA_W / 2), k(26 + i * CARTA_RENGLON)), t, font=_fuente(k(px)), fill=(TXT if i == 0 else GRIS) + (255,), anchor="mm")
     return im.resize((W, H), Image.LANCZOS)
+
+
+def carta_alto(lineas):
+    """Alto (a 1080p) de la carta: 3 renglones o hasta 4."""
+    return CARTA_H + CARTA_RENGLON * max(0, min(4, len(lineas)) - 3)

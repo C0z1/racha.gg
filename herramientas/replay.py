@@ -128,7 +128,7 @@ def repetir_momentos(fotos, g, aj=None):
 def texto_momentos(r):
     x = r["escena"]
     if not x: return f"{reloj(r['t'])} | (sin franja)"
-    mk = "".join({None: "·", True: "●", False: "○", "sin": "-"}[m["estado"]] for m in x["marcas"])
+    mk = " ".join(f"{m.get('etq', m['min'])}{ {None: '·', True: '●', False: '○', 'sin': '-'}[m['estado']] }" for m in x["marcas"])
     return (f"{reloj(r['t'])} | {x['regla']['apagadas']}/{x['regla']['tope']} | {x['sombra']['num']} {x['sombra']['etq']} | {mk} | "
             f"{x.get('renglon') or ''}{' | panel: ' + ' / '.join(x['panel']) if x.get('panel') else ''}")
 
@@ -156,7 +156,14 @@ def guion_de(fotos):
     """El guion con tus partidas (DATOS_DIR) para el campeón, rival y rol de la partida grabada; None si no se puede."""
     meta = next((m for d in fotos if (m := companion.meta_fase(d)) and m.get("modo") != "ARAM"), None)
     if not meta: return None
-    try: import guion; return guion.armar(meta["campeon"], meta.get("rival"), meta.get("pos"), guardar=False)
+    try:
+        import guion
+        er = None
+        try:  # tus errores vigilados (Fase 7), como en la app; sin partidas suficientes, solo el plan de rol
+            import ciclo, score, vistas
+            e = vistas.errores(score.partidas()[0]); er = {"ciclo": ciclo.errores(e), "tipos": e.get("tipos")}
+        except Exception: pass
+        return guion.armar(meta["campeon"], meta.get("rival"), meta.get("pos"), guardar=False, errores=er)
     except Exception: return None
 
 

@@ -110,6 +110,8 @@ La app vive en `scripts/`; las herramientas de desarrollo, en `herramientas/`.
 | `overlay.py` | Franja en partida siempre encima, sin timers. La ventana, su posición y la pastilla clásica. |
 | `momentos.py` | Franja Sombra: qué se muestra en cada foto (3 zonas, 4 marcas, máx. 3 interrupciones, nunca en pelea). |
 | `lienzo.py` | El dibujo de la franja Sombra. |
+| `errores.py` | Tus 3 errores repetidos con un solo detector para la revisión (timeline) y la franja (en vivo). |
+| `plan_rol.py` | El plan de partida de tu rol: dónde se separan tus victorias de tus derrotas. `<ROL>`. |
 | `franja.py` | La franja en su propio proceso (`HTC.exe --franja`): si se traba o se cae, HTC sigue. |
 | `sombra.py` | Tu sombra: la mediana minuto a minuto de tus victorias con ese campeón. `<campeón> <ROL>`. |
 | `guion.py` | Lo que la franja Sombra precalcula al empezar la partida. `<campeón> <rival> <ROL>`. |
@@ -133,6 +135,7 @@ La app vive en `scripts/`; las herramientas de desarrollo, en `herramientas/`.
 |---|---|
 | `replay.py` | Repite una partida grabada sin LoL. `<archivo.jsonl> [--validar] [--momentos]`. |
 | `salud.py` | Chequeo de salud S1 a S10; mide y avisa, nunca arregla solo. |
+| `validar_errores.py` | ¿La detección de errores en vivo coincide con la del timeline? Meta 90 %. |
 | `dev_franja.py` | Dibuja la franja con una partida grabada, encima del escritorio. `--sombra` para la nueva. |
 | `dev_medir.py` | Capturas de cada vista y tiempo del primer pintado. |
 | `dev_practica.py` | Entra y sale de una partida de práctica para probar. |

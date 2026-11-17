@@ -6,6 +6,8 @@ la bitácora: cada marca, cada compra y cada interrupción, mostrada o no, con e
 Solo datos, nunca órdenes (Riot: no dictar decisiones); todo lo que se muestra es tuyo o se ve con Tab."""
 import copy
 
+import errores, plan_rol
+
 MARCAS = (6, 10, 14, 25)
 ARRANQUE, LINEA, PELEAS = 90, 840, 1500  # s de juego: arranque, línea (0–14), peleas (14–25), tarde
 SELLO_S, COMPRA_S, INTERRUPCION_S = 4, 8, 6  # cuánto dura cada renglón
@@ -23,7 +25,7 @@ RENGLON_MAX = 34  # caracteres del renglón (6 palabras)
 
 def nuevo():
     return {"marcas": {}, "interrupciones": 0, "ult_interrupcion": None, "pendientes": [], "renglon": None, "vidas": [],
-            "ult_pelea": None, "items": None, "muerte": None, "cs": {}, "kp": {}, "t": None, "vistos": []}
+            "ult_pelea": None, "items": None, "muerte": None, "cs": {}, "kp": {}, "t": None, "vistos": [], "errores": [], "nivel6": None, "fases": []}
 
 
 def _cs(foto):
@@ -77,25 +79,68 @@ def candidatas(e, foto, g):
     return [(i, d) for i, d in out if i not in vistos]
 
 
-def _sellar(e, foto, g, t):
-    """Marcas que cruzaron su minuto en esta foto: [(minuto, ok o None, dato)]. None = sin dato (llegaste tarde a la partida)."""
-    mk, out = (g or {}).get("marcas") or {}, []
-    for m in MARCAS:
-        if str(m) in e["marcas"] or t < m * 60: continue
-        meta, tarde = (mk.get(str(m)) or {}).get("meta"), t >= m * 60 + 60  # sin foto cerca del minuto: no se inventa
-        ok = dato = None
-        if m == 6 and meta is not None and foto.get("muertes6") is not None:
-            ok, dato = foto["muertes6"] <= meta, f"Marca 6 · {foto['muertes6']} muerte{'' if foto['muertes6'] == 1 else 's'} · sombra {meta}"
-        elif m == 10 and meta is not None and _cs(foto) is not None and not tarde:
-            ok, dato = _cs(foto) >= meta, f"Marca 10 · {foto['cs']} CS · sombra {meta}"
-        elif m == 14 and not tarde and (o := foto.get("oro") or {}).get("tu") is not None and o.get("rival") is not None:
-            d = round((o["tu"] - o["rival"]) / 50) * 50
-            ok, dato = d >= 0, f"Marca 14 · {d:+d} de oro en ítems"
-        elif m == 25 and foto.get("muertes14_25") is not None:
-            tope = ((g or {}).get("regla") or {}).get("tope", 2)
-            ok, dato = foto["muertes14_25"] <= tope, f"Marca 25 · {foto['muertes14_25']} de {tope} · tu tope"
+def lista(g):
+    """Las 4 marcas de la partida: las personales del guion (Fase 7: plan de rol y errores) o las fijas 6, 10, 14 y 25."""
+    return (g or {}).get("marcas_p") or [{"id": str(m), "tipo": "fija", "etq": str(m), "min": m * 60} for m in MARCAS]
+
+
+# Cómo se lee en vivo cada medida del plan de rol (plan_rol.MEDIDAS)
+VIVO = {"muertes6": lambda f: f.get("muertes6"), "kp6": lambda f: f.get("participacion"), "kp25": lambda f: f.get("participacion"),
+        "nivel3": lambda f: f["nivel"] - f["nivel_rival"] if f.get("nivel") is not None and f.get("nivel_rival") is not None else None,
+        "cs10": lambda f: _cs(f), "muertes14": lambda f: f.get("muertes"),
+        "dragones14": lambda f: ((f.get("objetivos") or {}).get("tuyos") or {}).get("dragones"),
+        "muertes14_25": lambda f: f.get("muertes14_25")}
+VIVO["nivel10"] = VIVO["nivel3"]
+EXACTAS = ("muertes6", "muertes14_25")  # salen de los eventos: valen aunque la foto llegue tarde
+
+
+def _fija(m, foto, g, tarde):
+    """(ok, dato) de una marca fija (6, 10, 14, 25), o (None, None) sin dato."""
+    meta = (((g or {}).get("marcas") or {}).get(str(m)) or {}).get("meta")
+    if m == 6 and meta is not None and foto.get("muertes6") is not None:
+        n = foto["muertes6"]
+        return n <= meta, f"Marca 6 · {n} muerte{'' if n == 1 else 's'} · sombra {meta}"
+    if m == 10 and meta is not None and _cs(foto) is not None and not tarde:
+        return _cs(foto) >= meta, f"Marca 10 · ≈{_cs(foto)} CS · sombra {meta}"  # ≈: el CS en vivo llega de 10 en 10
+    if m == 14 and not tarde and (o := foto.get("oro") or {}).get("tu") is not None and o.get("rival") is not None:
+        d = round((o["tu"] - o["rival"]) / 50) * 50
+        return d >= 0, f"Marca 14 · {d:+d} de oro en ítems"
+    if m == 25 and foto.get("muertes14_25") is not None:
+        tope = ((g or {}).get("regla") or {}).get("tope", 2)
+        return foto["muertes14_25"] <= tope, f"Marca 25 · {foto['muertes14_25']} de {tope} · tu tope"
+    return None, None
+
+
+def _detectados(e, foto, t):
+    """{error: [s, …]} de tus errores hasta ahora, con los eventos en vivo (errores.py: el mismo detector que la revisión)."""
+    return errores.detectar(foto.get("eventos") or [], e.get("nivel6"), hasta=t)
+
+
+def _sellar(e, foto, g, t, det):
+    """Marcas que se deciden en esta foto: [(id, ok o None, dato, clase)]. None = sin dato (llegaste tarde a la partida).
+    Un error se marca en cuanto pasa (sin interrumpir); evitado, al cerrar su ventana."""
+    out = []
+    for mk in lista(g):
+        k = mk["id"]
+        if k in e["marcas"]: continue
+        if mk["tipo"] == "error":
+            lo, hi = mk["ventana"]
+            cae = [x for x in det.get(k) or [] if lo <= x < hi]
+            if cae:
+                out.append((k, False, f"{mk['nombre']} · min {int(cae[0] // 60)}", "error")); continue
+            if t < mk["min"]: continue
+            sin = k == "abajo_6" and e.get("nivel6") is None  # llegaste después del 6: no se sabe tu nivel
+            out.append((k, None if sin else True, None if sin else f"{mk['nombre']}: evitado", "sello")); continue
+        if t < mk["min"]: continue
+        tarde = t >= mk["min"] + 60  # sin foto cerca del minuto: no se inventa
+        if mk["tipo"] == "fija": ok, dato = _fija(int(k), foto, g, tarde)
+        else:
+            v = VIVO[k](foto) if k in VIVO and (not tarde or k in EXACTAS) else None
+            ok = plan_rol.cumple(k, v, mk["meta"]) if v is not None else None
+            dato = f"{mk['nombre']}: {'≈' if k == 'cs10' else ''}{plan_rol.valor(k, v)} · victorias {plan_rol.valor(k, mk['meta'])}" if v is not None else None
         if dato and len(x := dato + (" · cumplida" if ok else " · sin cumplir")) <= RENGLON_MAX: dato = x
-        e["marcas"][str(m)] = ok; out.append((m, ok, dato))
+        out.append((k, ok, dato, "sello"))
+    for k, ok, _, _ in out: e["marcas"][k] = ok
     return out
 
 
@@ -126,7 +171,12 @@ def _zona_regla(foto, g):
     tope = ((g or {}).get("regla") or {}).get("tope", 2)
     m = foto.get("muertes14") if (foto.get("t") or 0) < PELEAS else foto.get("muertes14_25")
     m = m or 0
-    return {"tope": tope, "apagadas": min(m, tope), "etq": "Tu tope", "color": "rosa" if m < tope else "oro" if m == tope else "rojo"}
+    z = {"tope": tope, "apagadas": min(m, tope), "etq": "Tu tope", "color": "rosa" if m < tope else "oro" if m == tope else "rojo"}
+    t, nv, nvr = foto.get("t") or 0, foto.get("nivel"), foto.get("nivel_rival")
+    err = next((x for x in lista(g) if x["id"] == "abajo_6" and x["tipo"] == "error"), None)
+    if err and 330 <= t < 420 and nv is not None and nvr is not None and nv < nvr and z["color"] != "rojo":  # antes de tu error: el dato, no la orden
+        z.update(etq=f"Nivel {nv - nvr} · E{err['rango']}", color="oro")  # 3 palabras: la zona Sombra puede llevar 6
+    return z
 
 
 def _panel(e, foto, g, t):
@@ -142,7 +192,20 @@ def _panel(e, foto, g, t):
     o = foto.get("objetivos") or {}
     tu, el = o.get("tuyos") or {}, o.get("rival") or {}
     l2 = f"Dragones {tu.get('dragones', 0)}–{el.get('dragones', 0)} · Torres {tu.get('torres', 0)}–{el.get('torres', 0)}" if "tuyos" in o else None
-    return [x for x in (l1, l2) if x] or None
+    return [x for x in (_linea_error(e, foto, g), l1, l2) if x][:2] or None
+
+
+def _linea_error(e, foto, g):
+    """Al morir, si esta muerte toca uno de tus errores vigilados: el dato (Fase 7). Si no, tu tipo de muerte más común si es gank."""
+    m, err = e["muerte"], {x["id"]: x for x in lista(g) if x["tipo"] == "error"}
+    nv, nvr = foto.get("nivel"), foto.get("nivel_rival")
+    if (x := err.get("abajo_6")) and 330 <= m < 420 and nv is not None and nvr is not None and nv < nvr:
+        return f"Nivel abajo al 6 · {x.get('veces', 0) + 1}.ª en 20 partidas"
+    if (x := err.get("sin_objetivo")) and 840 <= m < 1500:
+        obj = [ev["t"] for ev in foto.get("eventos") or [] if ev["k"] == "obj" and ev.get("nuestro") and m - errores.MARGEN_OBJ <= ev["t"]]
+        return f"Objetivo de tu equipo · min {int(obj[0] // 60)}" if obj else f"Sin objetivo del equipo · error {x['rango']}"
+    if (g or {}).get("muerte_comun") == "gank": return "Tu muerte más común: gank"
+    return None
 
 
 def paso(estado, foto, guion, ahora, aj=None):
@@ -160,9 +223,22 @@ def paso(estado, foto, guion, ahora, aj=None):
     if not foto.get("muerto"): e["muerte"] = None
     nota = lambda i, clase, dato, mostrado, motivo=None: notas.append(dict(t=round(t), id=i, clase=clase, dato=dato, mostrado=mostrado, motivo=motivo))
 
-    for m, ok, dato in _sellar(e, foto, g, t):  # sellar no es interrupción: lugar y minuto conocidos
-        nota(f"marca{m}", "sello", dato, bool(dato) and not foto.get("muerto"), "sin dato" if not dato else "muerto" if foto.get("muerto") else None)
-        if dato and not foto.get("muerto"): e["renglon"] = [dato, ahora + SELLO_S, "sello"]; e["brillo"] = [m, ahora + BRILLO_S]
+    if e.get("nivel6") is None and 360 <= t < 400 and foto.get("nivel") is not None and foto.get("nivel_rival") is not None:
+        e["nivel6"] = [foto["nivel"], foto["nivel_rival"]]  # tu nivel y el de tu rival al minuto 6 (abajo_6)
+    det = _detectados(e, foto, t)
+    for k, ts in det.items():  # cada error que pasa queda en la bitácora (sin interrumpir), vigilado o no
+        for x in ts:
+            if [k, round(x)] not in e["errores"]:
+                e["errores"].append([k, round(x)]); notas.append(dict(t=round(x), id=k, clase="error", dato=errores.NOMBRE[k], mostrado=False, motivo="sin interrumpir"))
+    puesto = False  # dos sellos en la misma foto: el renglón es del primero; el otro se ve en su punto
+    for k, ok, dato, clase in _sellar(e, foto, g, t, det):  # sellar no es interrupción: lugar y minuto conocidos
+        nombre = f"marca{k}" if k.isdigit() else f"marca_{k}"
+        if clase == "error": nota(nombre, "sello", dato, False, "sin interrumpir"); continue  # el punto se pone rojo y ya
+        ver = bool(dato) and not foto.get("muerto") and not puesto
+        nota(nombre, "sello", dato, ver, None if ver else "sin dato" if not dato else "muerto" if foto.get("muerto") else "otro sello")
+        if ver: e["renglon"] = [dato, ahora + SELLO_S, "sello"]; e["brillo"] = [k, ahora + BRILLO_S]; puesto = True
+    if not foto.get("muerto") and (not e["renglon"] or ahora >= e["renglon"][1]) and (f := _fase(e, g, t)):  # al empezar cada fase de tu plan
+        e["renglon"] = [f, ahora + INTERRUPCION_S, "fase"]; nota("fase", "fase", f, True)
 
     items = [str(i[0]) for i in foto.get("items") or []]
     if e["items"] is not None and items != e["items"] and t >= ARRANQUE and not e.get("regreso"):  # tu primer regreso contra el de tu sombra
@@ -196,13 +272,31 @@ def paso(estado, foto, guion, ahora, aj=None):
         renglon = mu["nota"][:RENGLON_MAX] if mu.get("nota") else f"vs {g.get('rival')} · {mu['v']} de {mu['n']} tuyas" if mu.get("n") else None
     panel = _panel(e, foto, g, t)
     if panel and renglon: panel, renglon = panel[:1] + [renglon], None  # muerto: el renglón pasa al panel
-    proxima = next((m for m in MARCAS if str(m) not in e["marcas"]), None)
+    ms = lista(g)
+    proxima = next((m["id"] for m in ms if m["id"] not in e["marcas"] and m["tipo"] != "error"), None)
+    cerca = lambda m: m["id"] == proxima and m["min"] - 60 <= t < m["min"]
     escena = {"regla": _zona_regla(foto, g), "sombra": _zona_sombra(e, foto, g, t),
-              "marcas": [{"min": m, "estado": ("sin" if e["marcas"][str(m)] is None else e["marcas"][str(m)]) if str(m) in e["marcas"] else None,
-                          "proxima": m == proxima and m * 60 - 60 <= t < m * 60,
-                          "late": m == proxima and m * 60 - 60 <= t < m * 60 and ahora % LATIDO_CADA < LATIDO_S} for m in MARCAS],
+              "marcas": [{"id": m["id"], "min": m["min"] // 60, "etq": m["etq"], "error": m["tipo"] == "error",
+                          "estado": ("sin" if e["marcas"][m["id"]] is None else e["marcas"][m["id"]]) if m["id"] in e["marcas"] else None,
+                          "proxima": cerca(m), "late": cerca(m) and ahora % LATIDO_CADA < LATIDO_S} for m in ms],
               "renglon": renglon, "panel": panel, "brillo": b[0] if (b := e.get("brillo")) and ahora < b[1] else None, "opacidad": OPACIDAD_TARDE if t >= TARDE_S else 1.0}
     return e, escena, notas
+
+
+FASES = {"1": (ARRANQUE, "0–6"), "2": (360, "6–14"), "3": (840, "14–25")}
+
+
+def _fase(e, g, t):
+    """El renglón al empezar cada fase de tu plan de rol (en sus primeros 20 s, una vez): «6–14 · CS al 10 · victorias 71»."""
+    fs = (((g or {}).get("plan") or {}).get("fases")) or {}
+    for k, (ini, nombre) in FASES.items():
+        x = fs.get(k) or fs.get(int(k))  # en JSON las llaves son texto; recién armado, números
+        if ini <= t < ini + 20 and k not in e["fases"] and x:
+            e["fases"].append(k)
+            v = plan_rol.valor(x["id"], x["v"])
+            largo, corto = f"{nombre} · {x['etq']} · victorias {v}", f"{x['etq']} · victorias {v}"
+            return largo if len(largo) <= RENGLON_MAX else corto[:RENGLON_MAX]
+    return None
 
 
 def carta_carga(g):
@@ -215,13 +309,20 @@ def carta_carga(g):
     if xs and len({x["n"] for _, x in xs}) == 1: l3 = f"Marcas {'/'.join(m for m, _ in xs)}: {' · '.join(str(x['ok']) for _, x in xs)} de {xs[0][1]['n']}"
     else: l3 = " · ".join(f"marca {m}: {x['ok']} de {x['n']}" for m, x in xs) or None
     if r.get("racha"): l3 = (l3 + " · " if l3 else "") + f"racha {r['racha']}"
-    return [x for x in (l1, l2, l3) if x]
+    ps = [m for m in g.get("marcas_p") or [] if m["tipo"] == "plan"]
+    es = [m for m in g.get("marcas_p") or [] if m["tipo"] == "error"]
+    l4 = None
+    if ps or es:  # Fase 7: tu plan de rol y tus errores vigilados en lugar de las tasas de las marcas fijas
+        l3 = ("Tu plan: " + " · ".join(f"{m['nombre']} {plan_rol.valor(m['id'], m['meta'])}" for m in ps)) if ps else None
+        l4 = ("Vigilas: " + " · ".join(f"E{m['rango']} {m['nombre'].lower()}" for m in es)) if es else None
+        if r.get("racha"): l2 = (l2 + " · " if l2 else "") + f"racha {r['racha']}"
+    return [x for x in (l1, l2, l3, l4) if x]
 
 
 def carta_fin(e, cumplida=None, racha=None):
     """La carta al terminar: marcas cumplidas, tu regla y tu racha (ciclo.py)."""
     ok = sum(v is True for v in (e or {}).get("marcas", {}).values())
-    out = [f"{ok} de {len(MARCAS)} marcas"]
+    out = [f"{ok} de {len(MARCAS)} marcas"]  # siempre 4: fijas o personales
     if cumplida is not None: out.append(f"Tu regla: {'cumplida' if cumplida else 'sin cumplir'}" + (f" · racha {racha}" if racha else ""))
     return out
 
@@ -229,7 +330,7 @@ def carta_fin(e, cumplida=None, racha=None):
 def textos(escena):
     """Los textos de la escena en orden de lectura (para validar palabras e imperativos)."""
     if not escena: return []
-    out = [escena["regla"]["etq"], escena["sombra"]["num"], escena["sombra"]["etq"]] + [str(m["min"]) for m in escena["marcas"]]
+    out = [escena["regla"]["etq"], escena["sombra"]["num"], escena["sombra"]["etq"]] + [str(m.get("etq", m["min"])) for m in escena["marcas"]]
     return out + ([escena["renglon"]] if escena.get("renglon") else []) + (escena.get("panel") or [])
 
 

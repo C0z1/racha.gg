@@ -34,6 +34,31 @@ def actualizar(gs, reglas):
     e = estado(gs, reglas, set(leer().get("graduadas") or []))
     try:
         ARCHIVO.parent.mkdir(parents=True, exist_ok=True)
-        ARCHIVO.write_text(json.dumps({"graduadas": sorted(m for m, x in e.items() if x["graduada"]), "reglas": e}, ensure_ascii=False), encoding="utf-8")
+        ARCHIVO.write_text(json.dumps({**leer(), "graduadas": sorted(m for m, x in e.items() if x["graduada"]), "reglas": e}, ensure_ascii=False), encoding="utf-8")
     except OSError: pass
     return e
+
+
+VIGILADOS = 2  # errores que la franja vigila a la vez
+
+
+def errores(e, graduados=None):
+    """El ciclo de tus errores (vistas.errores): por error, en tus últimas 10 partidas revisadas, cuántas lo evitaste, tu racha
+    sin él y si ya está corregido (8 de 10; vuelve bajo 5). vigilados = los 2 más repetidos sin corregir, el n.º 1 primero.
+    {"errores": {id: {ok, n, racha, graduada, falta, veces}}, "vigilados": [id, id], "corregidos": [id]}. Guarda los corregidos."""
+    if not e or not e.get("revisadas"): return {"errores": {}, "vigilados": [], "corregidos": []}
+    previo = leer()
+    graduados = set(previo.get("errores_corregidos") or []) if graduados is None else set(graduados)
+    orden = list(reversed(e["revisadas"]))  # de la más vieja a la más reciente
+    out = {}
+    for k, ms in (e.get("momentos") or {}).items():
+        con = {m["archivo"] for m in ms}
+        x = estado([{"evitado": a not in con} for a in orden], {k: ("evitado", bool)}, graduados)[k]
+        out[k] = {**x, "veces": e["partidas"].get(k, 0)}
+    corregidos = sorted(k for k, x in out.items() if x["graduada"])
+    vig = [k for k in sorted(out, key=lambda k: -out[k]["veces"]) if k not in corregidos and out[k]["veces"]][:VIGILADOS]
+    try:
+        ARCHIVO.parent.mkdir(parents=True, exist_ok=True)
+        ARCHIVO.write_text(json.dumps({**previo, "errores_corregidos": corregidos}, ensure_ascii=False), encoding="utf-8")
+    except OSError: pass
+    return {"errores": out, "vigilados": vig, "corregidos": corregidos}

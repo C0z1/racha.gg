@@ -32,13 +32,16 @@ def serie(f, yo):
         kills = [e for x in fr for e in x["events"] if e.get("type") == "CHAMPION_KILL"]
         compras = [e["timestamp"] for x in fr for e in x["events"] if e.get("type") == "ITEM_PURCHASED" and e.get("participantId") == pid and e["timestamp"] > SALIDA_MS]
         out = dict(win=me["win"], champ=me["championName"], pos=me.get("teamPosition") or "", rival=opp["championName"] if opp else None,
-                   t=m["info"]["gameCreation"], cs=[], nivel=[], muertes=[], kp=[], oro14=None,
+                   t=m["info"]["gameCreation"], cs=[], nivel=[], muertes=[], kp=[], oro14=None, nivel_rival=[],
+                   dragones14=sum(e.get("type") == "ELITE_MONSTER_KILL" and e.get("monsterType") == "DRAGON" and e.get("killerTeamId") == me["teamId"]
+                                  and e["timestamp"] <= 14 * 60000 for x in fr for e in x["events"]),  # plan de rol (plan_rol.py)
                    regreso=round(min(compras) / 60000, 1) if compras else None)  # minuto de tu primer regreso a la tienda
         for i, x in enumerate(fr[:MINUTOS]):
             p = x["participantFrames"][str(pid)]
             ks = [e for e in kills if e["timestamp"] <= i * 60000]
             eq = [e for e in ks if e.get("killerId") in aliados]
             out["cs"].append(p["minionsKilled"] + p["jungleMinionsKilled"]); out["nivel"].append(p["level"])
+            if opp: out["nivel_rival"].append(x["participantFrames"][str(opp["participantId"])]["level"])
             out["muertes"].append(sum(e.get("victimId") == pid for e in ks))
             out["kp"].append(round(sum(e["killerId"] == pid or pid in (e.get("assistingParticipantIds") or []) for e in eq) / len(eq), 2) if eq else None)
         if opp and len(fr) > 14:

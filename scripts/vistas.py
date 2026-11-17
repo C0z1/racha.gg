@@ -5,6 +5,7 @@ import json, statistics as st, sys, time
 from collections import Counter, defaultdict
 
 import draft, score
+import errores as errores_  # el detector común (timeline y en vivo)
 import postpartida  # clasificar_muerte: la causa probable de cada muerte
 
 R_KP = dict(texto="Únete a las peleas del 14 en adelante", por_que="Tu participación en kills es lo que más te baja el score",
@@ -146,46 +147,34 @@ def errores(gs, n=20):
     sin_pelea: pelea del 14 en adelante (3+ muertes en 30 s) que tu equipo pierde (más muertes suyas), sin kill, asistencia ni muerte tuya."""
     mm = lambda ms: f"{ms // 60000}:{ms // 1000 % 60:02d}"
     out = {k: [] for k in ("sin_objetivo", "abajo_6", "sin_pelea")}
-    vistos = 0
+    vistos, revisadas = 0, []
     for g in reversed(gs):
         if vistos >= n: break
         tf = g["f"].parent / "timeline" / g["f"].name
         try:
             fr = json.loads(tf.read_text())["info"]["frames"]; info = json.loads(g["f"].read_text())["info"]
         except (OSError, ValueError, KeyError): continue
-        vistos += 1
+        vistos += 1; revisadas.append(g["f"].stem)
         yo = g["pid"]; me = next(p for p in info["participants"] if p["participantId"] == yo); eq = me["teamId"]
         opp = next((p for p in info["participants"] if p["teamPosition"] == me["teamPosition"] and p["teamId"] != eq), None)
         equipo = {p["participantId"]: p["teamId"] for p in info["participants"]}
         base = dict(campeon=g["champ"], rival=opp["championName"] if opp else None, archivo=g["f"].stem)
         ev = [e for f in fr for e in f["events"]]
-        kills = [e for e in ev if e["type"] == "CHAMPION_KILL"]
-        mio = lambda e: yo in (e.get("killerId"), e.get("victimId")) or yo in (e.get("assistingParticipantIds") or [])
-        obj = [e["timestamp"] for e in ev if (e["type"] == "ELITE_MONSTER_KILL" and e.get("killerTeamId") == eq)
-               or (e["type"] == "BUILDING_KILL" and e.get("teamId") not in (None, eq))]
+        kills = {e["timestamp"]: e for e in ev if e["type"] == "CHAMPION_KILL" and e.get("victimId") == yo}
+        pf = (fr[6].get("participantFrames") or {}) if len(fr) > 6 else {}
+        nv = lambda pid: (pf.get(str(pid)) or {}).get("level")
+        det = errores_.detectar(errores_.de_timeline(fr, yo, equipo), (nv(yo), nv(opp["participantId"])) if opp and len(fr) > 6 else None)  # el mismo detector que la franja en vivo
         objs = postpartida._objetivos(ev)
-        for e in kills:
-            if e.get("victimId") == yo and 14 * 60000 <= e["timestamp"] < 25 * 60000 and not any(-60000 <= t - e["timestamp"] <= 60000 for t in obj):  # ±60 s: morir asegurando o robando no cuenta (scripts/sin_objetivo.py)
-                try: tipo = postpartida.clasificar_muerte(e, me, info["participants"], fr, ev, objs)["tipo"]  # causa probable: gank, 1v1, pelea…
-                except (KeyError, TypeError, IndexError): tipo = None
-                out["sin_objetivo"].append({**base, "minuto": mm(e["timestamp"]), "tipo": tipo})
-        if opp and len(fr) > 6:
-            pf = fr[6].get("participantFrames") or {}
-            nv = lambda pid: (pf.get(str(pid)) or {}).get("level")
-            if None not in (nv(yo), nv(opp["participantId"])) and nv(yo) < nv(opp["participantId"]):
-                e = next((e for e in kills if 330000 <= e["timestamp"] < 420000 and mio(e)), None)
-                if e: out["abajo_6"].append({**base, "minuto": mm(e["timestamp"])})
-        i, tarde = 0, [e for e in kills if e["timestamp"] >= 14 * 60000]
-        while i < len(tarde):  # peleas: kills encadenadas a menos de 30 s
-            j = i
-            while j + 1 < len(tarde) and tarde[j + 1]["timestamp"] - tarde[j]["timestamp"] <= 30000: j += 1
-            pelea = tarde[i:j + 1]
-            caen = sum(equipo.get(e.get("victimId")) == eq for e in pelea)  # muertes de tu equipo
-            if len(pelea) >= 3 and caen > len(pelea) - caen and not any(mio(e) for e in pelea): out["sin_pelea"].append({**base, "minuto": mm(pelea[0]["timestamp"])})
-            i = j + 1
+        for t in det["sin_objetivo"]:
+            try: tipo = postpartida.clasificar_muerte(kills[round(t * 1000)], me, info["participants"], fr, ev, objs)["tipo"]  # causa probable: gank, 1v1, pelea…
+            except (KeyError, TypeError, IndexError): tipo = None
+            out["sin_objetivo"].append({**base, "minuto": mm(round(t * 1000)), "tipo": tipo})
+        out["abajo_6"] += [{**base, "minuto": mm(round(t * 1000))} for t in det["abajo_6"]]
+        out["sin_pelea"] += [{**base, "minuto": mm(round(t * 1000))} for t in det["sin_pelea"]]
     cuenta = {k: len({m["archivo"] for m in v}) for k, v in out.items()}
     tipos = Counter(m["tipo"] for m in out["sin_objetivo"] if m.get("tipo"))
-    return dict(n=vistos, partidas=cuenta, momentos=out, causa=tipos.most_common(1)[0][0] if tipos else None, tipos=dict(tipos))
+    return dict(n=vistos, partidas=cuenta, momentos=out, causa=tipos.most_common(1)[0][0] if tipos else None, tipos=dict(tipos),
+                revisadas=revisadas)  # la más reciente primero: el ciclo de cada error (ciclo.errores)
 
 
 MIN_HOY = 8  # partidas con el campeón en el rol para recomendarlo: menos, y el estimado es casi tu media
@@ -225,9 +214,11 @@ def todo(resumen):
     import ciclo
     cl = ciclo.actualizar(sorted(draft.games, key=lambda g: g["t"]), {r["metrica"]: (r["campo"], r["ok"]) for r in (draft.R_MUERTES, draft.R_NIVEL6)})
     rh = regla_hoy(rg, {m for m, x in cl.items() if x["graduada"]})
+    e = errores(gs)
+    ce = ciclo.errores(e)  # Sombra, Fase 7: tus 2 errores vigilados en partida y los ya corregidos
     if rh and (c := cl.get(rh["metrica"])): rh.update(racha=c["racha"], falta=c["falta"])  # Sombra: tu racha y cuánto falta para graduarla
     return dict(campeones=cs, hoy=pick_hoy(draft.games, pos, draft.base), reglas=rg, regla_hoy=rh, ciclo=cl,
-                draft={p: draft_rol(p) for p in ("TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY")}, pos=pos, errores=(e := errores(gs)), por_partida=por_partida(resumen, e),
+                draft={p: draft_rol(p) for p in ("TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY")}, pos=pos, errores=e, ciclo_errores=ce, por_partida=por_partida(resumen, e),
                 total=len(draft.games), ultima=max(g["t"] for g in draft.games))
 
 

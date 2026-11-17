@@ -96,7 +96,9 @@ def armar_guion(campeon, rival, pos):
     try:
         import guion
         rh = (((ESTADO.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy")) or None
-        g = guion.armar(campeon, rival, pos or "MIDDLE", regla=rh, racha=(rh or {}).get("racha", 0)) if gui.es_base() else None  # cuenta ajena: sin tu historial
+        V = ((ESTADO.get("rendimiento") or {}).get("vistas") or {})
+        er = {"ciclo": V.get("ciclo_errores"), "tipos": (V.get("errores") or {}).get("tipos")}  # Fase 7: tus errores vigilados
+        g = guion.armar(campeon, rival, pos or "MIDDLE", regla=rh, racha=(rh or {}).get("racha", 0), errores=er) if gui.es_base() else None  # cuenta ajena: sin tu historial
     except Exception as x: g = None; gui.registrar_franja(f"guion: {x!r}")
     with LOCK: ESTADO.update(guion=g or {"campeon": campeon, "rival": rival, "pos": pos}, v=ESTADO["v"] + 1); GUION[0] = False
 

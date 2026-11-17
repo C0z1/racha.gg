@@ -10,6 +10,7 @@ Uso:
 - EndOfGame/PreEndOfGame: una línea con la última foto en vivo (KDA, CS, muertes del 14 al 25; sirve sin key), espera 60 s y corre descargar.py 5 y revision.py 1 (si la key caducó, lo avisa).
 Lockfile: C:\\Riot Games\\League of Legends\\lockfile (o la variable LOL_LOCKFILE)."""
 import argparse, base64, http.client, json, os, pathlib, ssl, subprocess, sys, time, urllib.request
+import errores  # el detector de tus errores, el mismo del timeline (Sombra, Fase 7)
 
 sys.stdout.reconfigure(encoding="utf-8")
 DIR = pathlib.Path(__file__).resolve().parent
@@ -314,6 +315,9 @@ def valor_items(p, pr=None):
     return sum((pr.get(str(i.get("itemID"))) or 0) * (i.get("count") or 1) for i in (p or {}).get("items") or [])
 
 
+EVENTOS_DESDE = 270  # s: los errores se vigilan desde el 5:30 (y los objetivos cuentan 60 s antes)
+
+
 def vida(d):
     """Tu vida actual / máxima (0–1), solo la tuya (activePlayer); None si no viene. Sombra la usa para no hablar en una pelea."""
     s = (((d or {}).get("activePlayer") or {}).get("championStats") or {})
@@ -341,6 +345,7 @@ def meta_fase(d, m10=None):
             "muerto": bool(me.get("isDead")), "revive": round(me.get("respawnTimer") or 0) if me.get("isDead") else None,  # F4: solo los tuyos
             "vida": vida(d), "ult_kill": max((e.get("EventTime") or 0 for e in ((d.get("events") or {}).get("Events") or []) if e.get("EventName") == "ChampionKill"), default=None),
             "muertes": (me.get("scores") or {}).get("deaths"), "muertes6": muertes_en(d, me, 0, 360), "muertes14_25": muertes14(d, me, 1500),  # las marcas 6 y 25 de Sombra (momentos.py)
+            "eventos": [e for e in errores.de_vivo(d) if e["t"] >= EVENTOS_DESDE],  # Sombra, Fase 7: tus errores en vivo (errores.py)
             "items": [[i["itemID"], i.get("displayName") or ""] for i in me.get("items") or [] if i.get("itemID") and not i.get("consumable") and i.get("slot") != 6][:6]}
 
 

@@ -10,6 +10,8 @@ Sombra solo muestra datos tuyos o conteos que se ven con Tab. Lee el cliente (LC
 | Sin puntaje ni rango propio | 4 casillas y una regla, sin MMR ni nota | `LISTA_NEGRA` («mmr», «elo») |
 | Sin lectura de memoria (Vanguard, 06-10-2026) | Solo HTTP local a `127.0.0.1:2999` (Live Client Data) y al LCU | `companion.vivo()` es la única lectura en partida |
 | Información dinámica en tiempo real, con recelo | Comparación solo contra tu propio historial; máx. 3 interrupciones, nunca en pelea, nada después del 25; cada momento se apaga en Ajustes | `test_momentos.Contrato` (6 pruebas) |
+| Plan de partida por rol (Fase 7) | Comparación de tus victorias con tus derrotas en tu rol, escrita como dato («CS al 10: victorias 71 · derrotas 68»), nunca como orden | `test_fase7.Plan`, `IMPERATIVOS` en `replay.py` |
+| Tus errores vigilados (Fase 7) | Solo eventos públicos y tus datos: sin posiciones, sin timers. Un error se marca en su punto sin interrumpir; al morir, el panel dice el dato | `test_fase7.Detector`, `test_fase7.Motor`, `validar_errores.py` (96 % igual que el timeline) |
 | Scouting de los 10 jugadores | No hay: solo tú y, en el panel al morir, el marcador de objetivos que se ve con Tab | — |
 
 Fase 0: Racha está registrada (app 904596). Falta enviar por la pestaña *Messages* de la app la pregunta por 3 puntos: la comparación en vivo con el historial propio, la carta en la pantalla de carga y el uso de la vida propia para callar la franja. Plan B si Riot objeta la comparación en vivo: la sombra solo al morir, en la carga y al terminar.

@@ -98,7 +98,7 @@ class Etapa2(unittest.TestCase):
         g = {"marcas": {"6": {"meta": 1}}, "regla": {"tope": 2}, "sombra": {}}
         f = {"t": 361, "muertes6": 0, "cs": 40, "items": []}
         e, esc, _ = momentos.paso(None, f, g, 100.0)
-        self.assertEqual(esc["brillo"], 6)
+        self.assertEqual(esc["brillo"], "6")
         self.assertIsNone(momentos.paso(e, {**f, "t": 362}, g, 100.7)[1]["brillo"])
         self.assertEqual(lienzo.pintar(esc).size, (340, 88))
 
