@@ -78,7 +78,7 @@ def poner_pick(mp):
     return {} if mp is ant or (mp is None and not ant) else {"mi_pick": mp}
 
 
-SIRVIO = {"si": 0, "no": 0, "no_vi": 0}  # «¿te sirvieron los avisos?» (v0.13): contadores para el ping opt-in, sin identidad
+SIRVIO = {"si": 0, "no": 0, "no_vi": 0}  # «¿te sirvieron los avisos?» : contadores para el ping opt-in, sin identidad
 AVISO_ENTRE, AVISO_MAX = 90, 6  # F1: separación mínima entre avisos en la franja y tope por partida
 
 
@@ -95,7 +95,7 @@ def evento(e):
         s = {"fase": e[1]}
         if FONDO[0] and ESTADO["fase"] in (None, "inicio") and e[1] is not None and not ventana.viva() and time.time() - VIVO[0] > 6:
             abrir(URL[0])  # el cliente acaba de abrir y no hay ventana de Racha
-        if ESTADO["fase"] in ("InProgress", "Reconnect") and e[1] not in ("InProgress", "Reconnect"):  # hallazgo 24: «Tu última partida» = la que acaba de terminar
+        if ESTADO["fase"] in ("InProgress", "Reconnect") and e[1] not in ("InProgress", "Reconnect"):  # «Tu última partida» = la que acaba de terminar
             threading.Thread(target=vistas_previas, args=(ESTADO.get("rendimiento"),), daemon=True).start()
         if e[1] == "ChampSelect": s.update(tablero=None, mi_pick=None, comentario=None, draft=None, fin=None, meta=None, pos=None, avisos=[]); USADO.add("champ_select")
         if e[1] in ("ChampSelect", "InProgress"): s["pantalla_completa"] = companion.pantalla_completa()  # la franja no se vería
@@ -221,10 +221,10 @@ def refrescar():  # lee ~300 JSON (o la caché): en su hilo, para no frenar la c
     INDICE[0] = ((r or {}).get("resumen") or {}).get("indice") or []
     if r and "indice" in (r.get("resumen") or {}): r = {**r, "resumen": {k: v for k, v in r["resumen"].items() if k != "indice"}}
     with LOCK:
-        if gui.ajeno(gui.CUENTA[0]): r = None; ESTADO["descarga"] = AJENA  # la cuenta pudo llegar mientras se calculaba (hallazgo 20)
+        if gui.ajeno(gui.CUENTA[0]): r = None; ESTADO["descarga"] = AJENA  # la cuenta pudo llegar mientras se calculaba
         ESTADO.update(rendimiento=r, v=ESTADO["v"] + 1, **({} if r is not None else {"previa": None}))
-    vistas_previas(r)  # siempre: «ultima» es la última partida grabada en esta PC, también con cuenta ajena (ronda 4)
-    if r is not None and gui.es_base(): tus_builds()  # «Tu build» (datos/meta) es del dueño  # tu build propia relee las timelines: al final (auditoría de rendimiento)
+    vistas_previas(r)  # siempre: «ultima» es la última partida grabada en esta PC, también con cuenta ajena
+    if r is not None and gui.es_base(): tus_builds()  # «Tu build» (datos/meta) es del dueño  # tu build propia relee las timelines: al final
     builds_del_backend(); sync_nube()
 
 
@@ -264,7 +264,7 @@ def vistas_previas(r):
             if (m := companion.meta_fase(d)): ultima = {**m, "texto": gui.texto_meta(m), "recibido": None, "archivo": fs[-1].stem}
     except (OSError, ValueError, KeyError, IndexError, AttributeError): ultima = None
     with LOCK:
-        if gui.ajeno(gui.CUENTA[0]): previa = None  # un hilo viejo pudo seguir aquí después de que la cuenta ajena limpió (hallazgo 20)
+        if gui.ajeno(gui.CUENTA[0]): previa = None  # un hilo viejo pudo seguir aquí después de que la cuenta ajena limpió
         ESTADO.update(previa=previa, ultima=ultima, v=ESTADO["v"] + 1)
 
 
@@ -331,7 +331,7 @@ BUSCAR_CADA = 1800  # s: una versión publicada aparece sin reiniciar Racha
 
 
 def vigilar_version(cada=BUSCAR_CADA):
-    """Busca versión nueva al arrancar y cada `cada` s (pedido del usuario, 2026-11-13: que no tengan que instalar a mano)."""
+    """Busca versión nueva al arrancar y cada `cada` s (nadie tiene que instalar a mano)."""
     while True:
         buscar_version(); time.sleep(cada)
 
@@ -358,7 +358,7 @@ def _buscar_version():
     if inst: actualizar(d["tag_name"], *inst)
 
 
-MOVER_S = 90  # el modo mover se apaga solo: una franja que capta clics no puede quedarse así por olvido (DeepSeek)
+MOVER_S = 90  # el modo mover se apaga solo: una franja que capta clics no puede quedarse así por olvido
 
 
 def apagar_mover(desde):
@@ -699,7 +699,7 @@ class H(http.server.BaseHTTPRequestHandler):
             if gui.ajeno(gui.CUENTA[0]) or not (gui.RAW / f"{m.group(1)}.json").is_file(): return self.enviar(404, b"{}", "application/json")
             return self.enviar(200, json.dumps(gui.ultima_partida(m.group(1))).encode(), "application/json; charset=utf-8")
         if self.path == "/api/estado" or self.path.startswith("/api/estado?"):
-            if self.path == f"/api/estado?desde={ESTADO['v']}":  # nada cambió desde la última vez: sin cuerpo (auditoría de DeepSeek)
+            if self.path == f"/api/estado?desde={ESTADO['v']}":  # nada cambió desde la última vez: sin cuerpo
                 self.send_response(304); self.send_header("Cache-Control", "no-store"); self.end_headers(); return
             return self.enviar(200, estado().encode(), "application/json; charset=utf-8")
         if m := re.fullmatch(r"/img/(champion|item|profileicon|rango|minion)/(\w{1,40})\.png", self.path):
@@ -764,7 +764,7 @@ class H(http.server.BaseHTTPRequestHandler):
             except (ValueError, TypeError): return self.enviar(400, b"", "text/plain")
             ok, msg = buscar_cuenta(str(d.get("riot_id") or ""), str(d.get("region") or ""))
             return self.enviar(200 if ok else 409, json.dumps({"ok": ok, "mensaje": msg}).encode(), "application/json")
-        if self.path == "/api/runas":  # A5: importar la página de runas de la build, solo cuando el jugador pulsa el botón
+        if self.path == "/api/runas":  # importar la página de runas de la build, solo cuando el jugador pulsa el botón
             try:
                 d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 300)))
                 b = build_para(str(d["champ"]), str(d["pos"])) or {}
@@ -882,7 +882,7 @@ def main(argv=None):
     if "--overlay" in argv or not ({"--demo", "--no-abrir", "--sin-overlay"} & set(argv)):
         def leer():
             with LOCK: return dict(ESTADO)
-        def registrar(txt):  # D7: si la franja truena, que quede rastro (datos/salud/franja.log)
+        def registrar(txt):  # si la franja truena, que quede rastro (datos/salud/franja.log)
             try:
                 f = gui.REPO / "datos" / "salud" / "franja.log"; f.parent.mkdir(parents=True, exist_ok=True)
                 with f.open("a", encoding="utf-8") as h: h.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {txt}\n")

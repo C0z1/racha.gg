@@ -1,6 +1,6 @@
 """Solo desarrollo (no va en el .exe): dibuja la franja real con una partida grabada, para verla encima del juego o el escritorio.
   python herramientas/dev_franja.py datos/vivo/20261109-175517.jsonl                 recorre la partida (cada foto, 1 s)
-  python herramientas/dev_franja.py <archivo> --minuto 18:58 [--aviso "texto"]       se queda en ese minuto (peor ancho, D9)
+  python herramientas/dev_franja.py <archivo> --minuto 18:58 [--aviso "texto"]       se queda en ese minuto (peor ancho)
   python herramientas/dev_franja.py <archivo> --segundos 30                          cuánto dura abierta (por defecto, toda la partida)"""
 import argparse, pathlib, sys, time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/

@@ -111,7 +111,7 @@ METRICAS = [
      f"monitor sin meta (sube al ganar); en tus partidas, V {SCO[0]} contra D {SCO[1]}", None),
 ] + ([] if not M10 else [
     (f"{M10['campeon']}: partidas con {M10['minimo']}+ minions de línea al 10",
-     # con ~4 por cada 20 partidas la marca es ruido: solo se marca con n ≥ 10 (revisión de DeepSeek)
+     # con ~4 por cada 20 partidas la marca es ruido: solo se marca con n ≥ 10
      lambda rs: (lambda t: t if sum(r["lm10"] is not None for r in rs) >= 10 else (t[0], None))(
          prop(rs, lambda r: None if r["lm10"] is None else r["lm10"] >= M10["minimo"])),
      "> 50%, marca solo con n ≥ 10" + (f" ({M10['nota']})" if M10.get("nota") else ""), lambda v: v > .5),

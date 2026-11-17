@@ -140,7 +140,7 @@ def datos_draft(rival, pos):
 
 
 def _con_comparacion(b, champ, pos):
-    """La build de los mejores con `vs_tu`: en qué difiere la tuya (comparar.py, de DeepSeek); un fallo no la quita."""
+    """La build de los mejores con `vs_tu`: en qué difiere la tuya (comparar.py); un fallo no la quita."""
     if not b or b.get("fuente") != "mejores": return b
     try:
         import comparar
@@ -188,7 +188,7 @@ def notas(rival):
     return [x for x in v if isinstance(x, str)]
 
 
-# Pedido 2: «cómo jugarlo», reglas de .equipo/PLAN.md con su número (n = partidas detrás del número; pista = IC cruzados).
+# «Cómo jugarlo»: reglas de .equipo/PLAN.md con su número (n = partidas detrás del número; pista = IC cruzados).
 # shortcut: números copiados del PLAN a mano, al cambiar el PLAN hay que actualizarlos aquí.
 # metrica = ícono en la GUI, meta = la meta corta, minuto = etiqueta; campo/ok = cómo medir tu dato (sin campo: solo la meta).
 R = lambda texto, numero, n, pista=False, fuente="", metrica="", meta="", minuto="", campo=None, ok=None: dict(
@@ -259,7 +259,7 @@ def tu_regla(r, mv, mias, rival, champ):
 
 
 def ficha(rival, pos, champ=None):
-    """Champ select en torno a un pick (por defecto el recomendado), como dict para la GUI (pedidos 1, 3 y 4 del Diseñador).
+    """Champ select en torno a un pick (por defecto el recomendado), como dict para la GUI.
     por_que: el dato que justifica el pick; cuidado: tus partidas contra ese rival en el rol (cualquier campeón tuyo) contra
     tu media del rol, más notas a mano; counters: rivales de línea con peor estimado para ese campeón (3+ partidas).
     Las medidas son diferencias contra tu rival de línea; pocas = n < 5 (pista)."""
@@ -299,7 +299,7 @@ def ficha(rival, pos, champ=None):
         cs.append(dict(rival=o, v=w, wr=round(w / len(rs), 3), ic=[round(x, 3) for x in wilson(w, len(rs))],
                        est=round(shrink(w, len(rs), p0), 3), **medidas(rs), pocas=len(rs) < 5))
     cs.sort(key=lambda x: x["est"])
-    try: import matchups; mu = matchups.para_ficha(c, pos, nombre)  # de muchas partidas Master+ (PLAN-MATCHUPS.md); None sin datos
+    try: import matchups; mu = matchups.para_ficha(c, pos, nombre)  # de muchas partidas Master+; None sin datos
     except Exception: mu = None
     return dict(champ=c, rival=nombre, pos=pos, por_que=por_que, cuidado=cuidado, matchup=mu, reglas=[tu_regla(r, mv, mias, nombre, c) for r in reglas(c, pos)],
                 counters=dict(lista=cs[:3], ref=medidas(mias)))
@@ -336,7 +336,7 @@ ROL_TXT = {"TOP": "top", "JUNGLE": "jungla", "MIDDLE": "mid", "BOTTOM": "bot", "
 
 
 def comentario(tab, pos, rival=None, minimo=3):
-    """Racha comenta el draft (plan de Fable, 0.16): hasta 4 frases de dato con tu historial, nunca órdenes (Riot: no
+    """Racha comenta el draft: hasta 4 frases de dato con tu historial, nunca órdenes (Riot: no
     dictar decisiones). tab: companion.tablero(); rival: tu rival de línea si se sabe. [{"clave", "texto"}]."""
     if not tab: return []
     rol, out = ROL_TXT.get(pos, "tu rol"), []

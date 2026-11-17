@@ -144,7 +144,7 @@ details.alt summary{cursor:pointer;color:var(--muted);font-size:14px;padding:6px
 .falla>div{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--dark2);border:1px solid var(--line)}
 .falla .ic{width:36px;height:36px;border-radius:8px}.falla .txt{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.falla small{font-size:12px;color:var(--muted)}
 .btn{background:var(--acc);color:#24111A;border:none;border-radius:10px;padding:12px 16px;font:700 14px Mulish,'Segoe UI',sans-serif;cursor:pointer}
-/* Estela (0.18.0, PLAN-REINVENCION.md): la racha como una estela de luz. Solo se anima transform, opacity y
+/* Estela: la racha como una estela de luz. Solo se anima transform, opacity y
    stroke-dashoffset; nada se mueve en partida, con la ventana oculta ni con «Reducir movimiento». Sin bucles infinitos:
    cualquier bucle visible hace que Edge redibuje toda la ventana (medido: 15–20 % de un núcleo
    contra 0,4 % quieta), así que la aurora es fija y los adornos dan 1–2 vueltas al entrar a la vista. */
@@ -577,7 +577,7 @@ function oroCard(r) {  // «Racha de oro al 14»: de tus últimas 5, cuántas ll
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><span class="forma" style="margin:0">${m.map(([c, t]) => `<i class="${c}" role="img" aria-label="${t}" title="${t}"${c == "s" ? ' style="background:var(--dark4)"' : ""}></i>`).join("")}</span>
     <span>En <b>${r.ok} de ${r.n}</b> partidas llegaste al 14 con oro igual o mayor que tu rival.${r.ok < r.n / 2 ? " Si vas abajo, prioriza XP y farm." : ""}</span></div></div>`;
 }
-function inicio(s) {  // ritual de sesión (0.19): racha, regla de hoy, sesión y un botón; rango, pick de hoy, oro y atajos al costado
+function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un botón; rango, pick de hoy, oro y atajos al costado
   const R = s.rendimiento, t = R && R.tilt, ps = R ? R.resumen.partidas : [], [id, ...resto] = String(s.perfil || "").split(" · ");
   const nombre = id.includes("#") ? id.split("#")[0] : "", cliente = enCliente(s.fase);
   const hoy = t ? t.hoy : (delCliente(s) || []).filter(g => new Date(g.ts).toDateString() === new Date().toDateString()).reverse()
@@ -587,7 +587,7 @@ function inicio(s) {  // ritual de sesión (0.19): racha, regla de hoy, sesión 
     ${[["Abre el cliente de LoL y entra a tu cuenta (o escribe tu Riot ID en Ajustes).", enCliente(s.fase) || !!s.cuenta], ["Dale a Descargar: tus últimas 20 partidas salen de tu cliente, sin key ni invitación.", !!s.rendimiento], ["Opcional: entra con Google o con un código de invitación para bajar hasta 100 y guardar tu cuenta en la nube.", s.conectado || !!s.nube]].map(([t, ok], i) =>
       `<div class="filaV" style="padding:10px 14px"><span class="num" style="width:32px;height:32px;border-radius:50%;background:${ok ? "var(--okbg)" : "var(--dark4)"};color:${ok ? "var(--okfg)" : "var(--acc2)"};font-size:14px">${ok ? "✓" : i + 1}</span><b style="flex:1;font-size:15px">${t}</b></div>`).join("")}
     <button class="btn" style="align-self:flex-start" onclick="ver('ajustes')">Ir a Ajustes</button></div>` : "";
-  // Ritual de sesión (0.19, PLAN-REINVENCION.md): tu racha, tu regla de hoy, tu sesión y un solo botón. Tras 2 derrotas
+  // Ritual de sesión: tu racha, tu regla de hoy, tu sesión y un solo botón. Tras 2 derrotas
   // seguidas, el descanso de 15 min (un dato de tu historial: no bloquea nada).
   let rv = 0; const g0 = ps[0]; for (const p of ps) { if (p.win !== (g0 && g0.win)) break; rv++; }  // racha actual (ps: la más nueva primero)
   const resta = t && t.racha >= 2 && t.desde ? Math.max(0, 900 - (Date.now() - t.desde) / 1000) : 0;
@@ -694,7 +694,7 @@ function tableroH(s) {  // bans y picks de la selección, como en el cliente (si
 
 function draftV(s) {  // Draft_Vino: fase de bans y picks antes de ver a tu rival
   const V = VS(s);
-  if (!V) return s.fase === "ChampSelect" && s.pos ? [draftCab(s, s.pos) + tableroH(s) + sinDatosCard(), ""] : sinDatos("Draft");  // hallazgo 22: rol y reloj sin historial
+  if (!V) return s.fase === "ChampSelect" && s.pos ? [draftCab(s, s.pos) + tableroH(s) + sinDatosCard(), ""] : sinDatos("Draft");  // rol y reloj sin historial
   const pos = s.pos || V.pos, d = V.draft[pos] || {bans: [], frecuentes: [], pool: []}, rol = ROLMIN[pos] || pos;
   const main = `
   ${draftCab(s, pos)}${tableroH(s)}
@@ -807,7 +807,7 @@ function envivoAram(s, m, prev) {  // ARAM y modos sin líneas: marcador, tu KDA
   return [main, aside];
 }
 
-function estelaCard(e) {  // recap 0.19: la partida como una estela de oro (sube si ibas arriba de tu rival de línea) con 3 momentos
+function estelaCard(e) {  // la partida como una estela de oro (sube si ibas arriba de tu rival de línea) con 3 momentos
   if (!e || !e.dur) return "";
   const W = 680, H = 150, M = 12, ms = (e.momentos || []).filter(m => m && m.t != null);
   const oro = e.oro || [], tope = Math.max(1000, ...oro.map(Math.abs));
@@ -842,7 +842,7 @@ function lobbyCard(s) {  // los 10 de la partida: rango de Solo/Duo y win rate d
 }
 
 function envivo(s) {  // EnPartida_Vino: tus reglas en esta partida con su estado en vivo; al terminar, la línea final
-  const prev = !s.fin && !!(s.meta || s.ultima) && !EN_PARTIDA.includes(s.fase);  // hallazgo 23: una partida que acabó sin pantalla de fin ya no está «En partida»
+  const prev = !s.fin && !!(s.meta || s.ultima) && !EN_PARTIDA.includes(s.fase);  // una partida que acabó sin pantalla de fin ya no está «En partida»
   const m = prev && s.meta ? {...s.meta, recibido: null} : s.meta || (prev ? s.ultima : null), f = s.fin;  // recibido null: timers quietos
   if (!m && !f) return [otraFase(s), ""];
   if (m && !f && m.modo === "ARAM") return envivoAram(s, m, prev);
@@ -956,7 +956,7 @@ const CAMPO = "width:100%;box-sizing:border-box;background:var(--dark3);border:1
 let borrador = "";
 const ABIERTOS = new Set();  // desplegables abiertos (por su título): redibujar la pantalla no los cierra
 document.addEventListener("toggle", e => { const t = e.target.querySelector?.("summary")?.textContent; if (t) e.target.open ? ABIERTOS.add(t) : ABIERTOS.delete(t); }, true);  // lo que llevas escrito del reporte (sobrevive a que la pantalla se redibuje)
-function glosarioV() {  // v0.9: términos del juego y de Racha, una línea cada uno
+function glosarioV() {  // términos del juego y de Racha, una línea cada uno
   const t = [["Pick", "elegir campeón (o el campeón que elegiste)."], ["Ban", "campeón que se prohíbe antes de elegir: nadie puede usarlo."],
     ["Tradear", "intercambiar golpes con tu rival en la línea."], ["Roamear", "dejar tu línea un rato para ayudar a otra."],
     ["Farmear / CS", "matar minions y monstruos para ganar oro; CS es cuántos llevas."],
@@ -966,7 +966,7 @@ function glosarioV() {  // v0.9: términos del juego y de Racha, una línea cada
   return `<details class="card alt" style="align-self:flex-start"><summary>Glosario</summary>
     <dl style="margin:12px 0 0;display:flex;flex-direction:column;gap:8px">${t.map(([a, d]) => `<div><dt style="display:inline;font-weight:700">${a}:</dt> <dd class="sub" style="display:inline;margin:0;font-size:14px">${d}</dd></div>`).join("")}</dl></details>`;
 }
-function ayudaV(s, aj) {  // v0.8: reportes privados, métricas opcionales y, solo para el admin, invitar amigos
+function ayudaV(s, aj) {  // reportes privados, métricas opcionales y, solo para el admin, invitar amigos
   const inv = s.invitacion;
   const lista = Array.isArray(s.admin) ? s.admin : null;
   return `<div class="card" style="align-self:flex-start;display:flex;flex-direction:column;gap:12px"><div class="cab2"><h2>Ayuda</h2></div>
@@ -1018,7 +1018,7 @@ async function buscarCuenta() {  // tu Riot ID: Racha comprueba que existe y baj
   catch (e) { cuentaMsg = "No se pudo hablar con Racha."; }
   v = -1; tick();
 }
-async function sirvio(valor) {  // v0.13: va en las métricas opcionales como contador, nunca con tu identidad
+async function sirvio(valor) {  // va en las métricas opcionales como contador, nunca con tu identidad
   try { await fetch("/api/sirvio", {method: "POST", headers: {"X-HTC": "1", "Content-Type": "application/json"}, body: JSON.stringify({valor})}); } catch (e) {}
   v = -1; tick();
 }
@@ -1053,7 +1053,7 @@ async function copiarCampo(id, b) {
   try { await navigator.clipboard.writeText(document.getElementById(id).value); b.textContent = "Copiado"; }
   catch (e) { document.getElementById(id).select(); b.textContent = "Selecciónalo y cópialo con Ctrl+C"; }
 }
-function matchupCard(fi, pos, s) {  // muchas partidas Master+ (PLAN-MATCHUPS.md): datos históricos del matchup, nunca órdenes
+function matchupCard(fi, pos, s) {  // muchas partidas Master+: datos históricos del matchup, nunca órdenes
   const mu = fi && fi.matchup; if (!mu || !(mu.frases || []).length) return "";
   return `<div class="card" style="gap:10px"><div class="cab2"><h2>Matchup</h2><span class="sub" style="font-size:12px">mains Master+ · ${mu.n} partidas${(mu.parches || []).length ? " · parches " + mu.parches.map(esc).join(", ") : ""}</span></div>
     ${mu.frases.map(f => `<div class="filaV oscura"><span style="font-size:14px">${esc(f)}</span></div>`).join("")}
@@ -1076,7 +1076,7 @@ function miPick(s) {  // tu campeón en hover o fijado: sus runas arriba, con el
     ${mu || (b && b.pagina_ids) ? `<button class="btn2" style="margin-left:auto" data-champ="${esc(p.champ)}" data-pos="${esc(p.pos)}" data-rival="${esc(mu ? p.rival : "")}" onclick="ponerRunas(this.dataset.champ,this.dataset.pos,this.dataset.rival || undefined)">Poner estas runas</button>
       <span class="sub" style="font-size:13px" role="status" aria-live="polite">${esc(runasMsg)}</span>` : ""}</div>`;
 }
-async function ponerRunas(champ, pos, rival) {  // A5: solo con tu clic; Racha no elige, banea ni acepta por ti. Con rival: la página del matchup
+async function ponerRunas(champ, pos, rival) {  // solo con tu clic; Racha no elige, banea ni acepta por ti. Con rival: la página del matchup
   runasMsg = "Poniendo las runas…"; v = -1; tick();
   try { const r = await fetch("/api/runas", {method: "POST", headers: {"X-HTC": "1", "Content-Type": "application/json"}, body: JSON.stringify({champ, pos, rival})}); runasMsg = (await r.json()).mensaje || ""; }
   catch (e) { runasMsg = "No se pudo hablar con Racha."; }

@@ -1,5 +1,4 @@
-"""Partidas desde tu propio cliente de LoL, sin key ni invitación (pedido del usuario: «que bajen sus partidas desde su
-launcher»). La API local del cliente da tus últimas 20 partidas con el detalle de los 10 jugadores y su timeline, en el
+"""Partidas desde tu propio cliente de LoL, sin key ni invitación. La API local del cliente da tus últimas 20 partidas con el detalle de los 10 jugadores y su timeline, en el
 formato antiguo de Riot (estilo match-v4); aquí se traducen al formato match-v5 que usa el resto de Racha.
 
 Límites (probados con el cliente real, 2026-11-10): solo las últimas 20 partidas (la paginación no pasa de ahí); el
@@ -86,7 +85,7 @@ def a_v5(game, timeline, plataforma, campeones=None, puuids=None):
     return match, tl
 
 
-_UNO = __import__("threading").Lock()  # guardado al salir de la partida y puesta al día al conectar: nunca a la vez (DeepSeek)
+_UNO = __import__("threading").Lock()  # guardado al salir de la partida y puesta al día al conectar: nunca a la vez
 
 
 def unificar(raw=None):

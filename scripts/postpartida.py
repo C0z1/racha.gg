@@ -36,7 +36,7 @@ VENTANA_PELEA, VENTANA_WARD = 15_000, 90_000  # ms: kills de aliados alrededor =
 
 
 def clasificar_muerte(e, me, ps, fr, ev, objs):
-    """Por qué probablemente caíste (pedido del usuario: enseñar, no culpar). {t, tipo, n, jungla, zona, dnivel, ward, obj_tuyo,
+    """Por qué probablemente caíste (para enseñar, no culpar). {t, tipo, n, jungla, zona, dnivel, ward, obj_tuyo,
     obj_rival, texto}. tipo: trade (tu equipo tomó un objetivo en ±60 s), torre (no te mató un campeón), pelea (2+ rivales y tus
     aliados metidos), gank (su jungla entre 2+), varios (2+ rivales sin su jungla: roam o 2v2) o 1v1. Riot no da la posición de
     los wards ni la oleada: la causa es probable, y así se dice."""
@@ -153,7 +153,7 @@ def momentos(match, timeline, puuid):
 
 
 def estela(match, timeline, puuid):
-    """La partida como una estela (recap 0.19): {dur (s), win, oro: [tu oro − el de tu rival de línea, por minuto], momentos:
+    """La partida como una estela: {dur (s), win, oro: [tu oro − el de tu rival de línea, por minuto], momentos:
     [{t, tipo, texto}]}; None sin datos o fuera de la Grieta (sin rival de línea el oro va vacío y la estela queda plana)."""
     c = _ctx(match, timeline, puuid)
     if not c or (match.get("info") or {}).get("gameMode", "CLASSIC") != "CLASSIC": return None

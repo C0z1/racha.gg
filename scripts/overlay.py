@@ -1,4 +1,4 @@
-"""Overlay en partida (0.17): una pastilla de 380×72 siempre encima, del lienzo «Base LOL» (plan de Fable y DeepSeek):
+"""Overlay en partida: una pastilla de 380×72 siempre encima, del lienzo «Base LOL»:
 nivel y farm hasta el 14, muertes y peleas del 14 al 25, KDA después, y el aviso corto 8 s.
 Solo lee el estado de HTC (que a su vez solo lee la Live Client Data): no inyecta nada en el juego. Los clics la
 atraviesan (WS_EX_TRANSPARENT) y no roba el foco. Se ve con LoL en «sin bordes» (el modo por defecto), no en pantalla
@@ -22,7 +22,7 @@ def ritmo(cs_meta, t):
 
 
 IGUALO_S, ORO14_S = 3, 5  # fase 2 del plan: cuánto duran «Igualaste» y la moneda del 14
-MUERTE_ESPERA, COMPRA_S, ITEM_DESDE = 6, 8, 90  # ÍTEM (PLAN-OVERLAY-2): 6 s tras morir, 8 s tras comprar, nunca antes de 1:30
+MUERTE_ESPERA, COMPRA_S, ITEM_DESDE = 6, 8, 90  # ÍTEM: 6 s tras morir, 8 s tras comprar, nunca antes de 1:30
 
 
 def marcar(m, meta, ahora):
@@ -33,7 +33,7 @@ def marcar(m, meta, ahora):
     if t < m.get("t", 0) - 30: m.clear()  # otra partida (30 s de margen por el temblor al reconectar)
     m["t"] = t
     nv, nvr = meta.get("nivel"), meta.get("nivel_rival")
-    if meta.get("rival") != m.get("rival"): m["rival"] = meta.get("rival"); m.pop("d", None)  # otro rival de línea: sin «Igualaste» falso (DeepSeek)
+    if meta.get("rival") != m.get("rival"): m["rival"] = meta.get("rival"); m.pop("d", None)  # otro rival de línea: sin «Igualaste» falso
     if nv is not None and nvr is not None:
         if m.get("d", 0) < 0 <= nv - nvr and meta.get("rival"): m["igualo"] = ahora
         m["d"] = nv - nvr
@@ -51,11 +51,11 @@ ALTO, ALTO_X = 72, 110  # la pastilla y la expandida (al morir: marcador y tu re
 
 
 def extra_muerto(meta, aj, regla):
-    """El renglón de la expandida (PLAN-OVERLAY-2, fase 3): mientras estás muerto, el marcador de objetivos (conteos que se
+    """El renglón de la expandida: mientras estás muerto, el marcador de objetivos (conteos que se
     ven con Tab, sin timers) y tu regla. None si no estás muerto o no hay datos."""
     o = meta.get("objetivos") or {}
     if not meta.get("muerto") or not on_aj(aj, "franja_muerto") or meta.get("modo") == "ARAM" or "tuyos" not in o: return None
-    tu, el = o.get("tuyos") or {}, o.get("rival") or {}  # foto a medias: conteos en 0, no un error (DeepSeek)
+    tu, el = o.get("tuyos") or {}, o.get("rival") or {}  # foto a medias: conteos en 0, no un error
     marcador = " · ".join(f"{n} {tu.get(k, 0)}–{el.get(k, 0)}" for n, k in (("Dragones", "dragones"), ("Torres", "torres"), ("Larvas", "larvas"), ("Barón", "baron")))
     r = (regla or {}).get("texto")
     if meta.get("dato"): return {"marcador": marcador, "regla": corta(meta["dato"], 62)}  # muchas partidas Master+ antes que tu regla
@@ -69,7 +69,7 @@ def estado(meta, ahora, aj=None, regla=None, aviso=None, marcas=None, racha_oro=
 
 
 def _estado(meta, ahora, aj=None, regla=None, aviso=None, marcas=None, racha_oro=None):
-    """Qué muestra la pastilla (plan del overlay de Fable con la revisión de DeepSeek), o None. Solo datos y tu regla,
+    """Qué muestra la pastilla, o None. Solo datos y tu regla,
     nunca órdenes (Riot: no dictar decisiones). Huecos: a (tu medallón), rival (opcional), b (anillo + número), chip."""
     if not meta: return None
     aj = aj or {}; on = lambda k: aj.get(k, True) is not False
@@ -89,7 +89,7 @@ def _estado(meta, ahora, aj=None, regla=None, aviso=None, marcas=None, racha_oro
         return {"tipo": "igualaste", "a": {"campeon": camp, "anillo": 1.0, "color": "salvia", "insignia": meta["nivel"]},
                 "rival": {"campeon": meta["rival"], "anillo": 1.0, "color": "gris", "insignia": meta.get("nivel_rival")},
                 "flecha": {"txt": "=", "color": "salvia"}, "b": {"icono": None, "color": "salvia", "num": "Igualaste", "etq": f"nivel {meta['nivel']}"},
-                "chip": ("Igualado", "salvia")}  # dato, no consejo (DeepSeek)
+                "chip": ("Igualado", "salvia")}  # dato, no consejo
     p, t0 = meta.get("proximo"), meta.get("t") or 0
     if p and t0 >= ITEM_DESDE and on_aj(aj, "franja_build") and ((mk.get("muerte") is not None and ahora - mk["muerte"] >= MUERTE_ESPERA)
                                                                 or (mk.get("compra") is not None and ahora - mk["compra"] < COMPRA_S)):
@@ -113,7 +113,7 @@ def _estado(meta, ahora, aj=None, regla=None, aviso=None, marcas=None, racha_oro
         cs, meta10, rcs = meta.get("cs"), meta.get("cs_meta"), meta.get("rival_cs")
         b, bajo = {"icono": "minion", "anillo": None, "color": "rosa", "num": str(cs if cs is not None else "—"), "etq": "CS"}, None
         if cs is not None and meta10 and t < 600:
-            obj = ritmo(meta10, t)  # el umbral va sobre el flotante, no sobre el redondeo (DeepSeek)
+            obj = ritmo(meta10, t)  # el umbral va sobre el flotante, no sobre el redondeo
             col = "salvia" if cs >= obj else "oro" if cs >= .85 * obj else "rojo"
             b.update(anillo=min(1.0, cs / obj) if obj else 1.0, color=col, etq=f"ritmo {round(obj)}"); bajo = col != "salvia"
         elif cs is not None and rcs is not None:
@@ -150,7 +150,7 @@ def partir(t, n=46):
     """Un dato largo en dos renglones de la pastilla (el segundo, la parte entre paréntesis o el resto)."""
     if len(t) <= n: return [t]
     i = t.rfind(":", 0, n) + 1 or t.rfind(" ", 0, n)
-    if i <= 0: i = n  # sin «:» ni espacios: corte duro (DeepSeek)
+    if i <= 0: i = n  # sin «:» ni espacios: corte duro
     return [t[:i].strip(), corta(t[i:].strip(), 52)]
 
 
@@ -158,7 +158,7 @@ def coma(x, dec=1): return f"{x:.{dec}f}".replace(".", ",")  # decimales en espa
 
 
 def inicio(pl, t, camp):
-    """Los primeros 90 s (PLAN-OVERLAY-2, fase 2), por reloj de juego y solo con tu historial: el match, tu regla y tu nota
+    """Los primeros 90 s, por reloj de juego y solo con tu historial: el match, tu regla y tu nota
     del matchup. None si ese tramo no tiene dato (sigue la vista de línea)."""
     a = {"campeon": camp, "anillo": 1.0, "color": "rosa", "insignia": None}
     if t < 30:
@@ -175,7 +175,7 @@ def inicio(pl, t, camp):
         return {"tipo": "plan", "a": a, "lineas": [f"Tu regla · {pl['regla']}"] + ([f"tu media {coma(tu['media'], 0 if float(tu['media']).is_integer() else 1)} · la cumples {round(tu['cumple'] * 100)} %"] if tu else []), "chip": None}
     if 60 <= t < 90:
         if pl.get("nota"): return {"tipo": "plan", "a": a, "lineas": [f"Tu nota · {pl['nota']}"], "chip": None}
-        if pl.get("dato"): return {"tipo": "plan", "a": a, "lineas": partir(pl["dato"]), "chip": None}  # muchas partidas Master+ (PLAN-MATCHUPS)
+        if pl.get("dato"): return {"tipo": "plan", "a": a, "lineas": partir(pl["dato"]), "chip": None}  # muchas partidas Master+
         if pl.get("m6") is not None and pl.get("m6_ref") is not None and not pl.get("m6_pocas"):
             return {"tipo": "plan", "a": a, "lineas": [f"Contra {pl['rival']}: {coma(pl['m6'])} muertes antes del 6", f"tu media {coma(pl['m6_ref'])}"], "chip": None}
     return None
@@ -327,12 +327,12 @@ def rect_juego():
 
 
 ABAJO_X, HUD_Y = 0.30, 0.85  # «abajo»: a la derecha del chat y encima de la barra de habilidades (zonas de salud.py)
-TOPE_DERECHO = 0.76  # el marcador del juego (kills, KDA, CS, reloj) empieza en ~0,78 del ancho (D9 del plan En vivo)
+TOPE_DERECHO = 0.76  # el marcador del juego (kills, KDA, CS, reloj) empieza en ~0,78 del ancho
 
 
 def colocar(juego, pantalla, alto_franja, x=0.22, pos=None, margen=6, util=1.0, ancho_franja=0):
     """(x, y) de la franja: relativa a la ventana del juego si se conoce (otro monitor, modo ventana); si no, a la pantalla
-    principal sin la barra de tareas (D4). Si no cabe antes del marcador (pantallas chicas, escala alta), se corre a la izquierda."""
+    principal sin la barra de tareas. Si no cabe antes del marcador (pantallas chicas, escala alta), se corre a la izquierda."""
     if juego: x0, y0, x1, y1 = juego
     else: x0, y0, (x1, y1) = 0, 0, pantalla
     if pos == "abajo":  # abajo: a la derecha del chat (x < 0,25) y encima de la barra de habilidades (y > 0,85), sin pisar el HUD
@@ -410,15 +410,15 @@ def escala(juego):
 
 
 def bgra_premultiplicado(im):
-    """Bytes BGRA con el color multiplicado por el alfa: lo que pide UpdateLayeredWindow (sin esto, halos oscuros: DeepSeek)."""
+    """Bytes BGRA con el color multiplicado por el alfa: lo que pide UpdateLayeredWindow (sin esto, halos oscuros)."""
     from PIL import Image, ImageChops
     r, g, b, a = im.convert("RGBA").split()
     return Image.merge("RGBA", tuple(ImageChops.multiply(c, a) for c in (b, g, r)) + (a,)).tobytes()
 
 
 def mostrar(hwnd, im, x, y):
-    """Pone la imagen RGBA en la ventana en capas: DIB de 32 bits BGRA premultiplicado (sin premultiplicar salen halos,
-    DeepSeek). True si Windows la aceptó."""
+    """Pone la imagen RGBA en la ventana en capas: DIB de 32 bits BGRA premultiplicado (sin premultiplicar salen halos).
+    True si Windows la aceptó."""
     import ctypes, ctypes.wintypes as w
     u, g, H = ctypes.windll.user32, ctypes.windll.gdi32, ctypes.c_void_p
     u.GetDC.restype = H; u.GetDC.argtypes = [w.HWND]; u.ReleaseDC.argtypes = [w.HWND, H]
@@ -473,7 +473,7 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
     def tick():
         if not seguir(): root.destroy(); return
         try: dibujar()
-        except Exception:  # un dato raro no congela la franja el resto de la partida (revisión de DeepSeek)
+        except Exception:  # un dato raro no congela la franja el resto de la partida
             if (txt := traceback.format_exc(limit=2).strip().splitlines()[-1]) not in errores: errores.add(txt); registrar(txt)
         root.after(1000, tick)
 
@@ -498,7 +498,7 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         clave = (repr(e), esc, px, py)
         if clave == ultimo[0] and mostrada[0]: return  # nada cambió: no se repinta
         if not mostrada[0]: root.deiconify(); root.attributes("-topmost", True); mostrada[0] = True  # la ventana en capas solo se ve tras mostrarla
-        gen[0] += 1; g = gen[0]  # los pasos de una animación vieja no pisan un estado nuevo ni una franja oculta (DeepSeek)
+        gen[0] += 1; g = gen[0]  # los pasos de una animación vieja no pisan un estado nuevo ni una franja oculta
         img = pintar(e, esc, icono)
         if hwnd: mostrar(hwnd, img, px, py)
         if hwnd and e["tipo"] in ("aviso", "igualaste", "oro14") and e["tipo"] != tipo_ant[0] and animar():  # al entrar: sacudida (aviso) y dos pulsos

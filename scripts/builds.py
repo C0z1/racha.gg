@@ -175,7 +175,7 @@ def onetrick(top, cid, ahora, dias=14):
 
 def mejores(cid, nombre, pos=None, por_region=2, partidas=20, ahora=None, top_n=100):
     """[(match, timeline, puuid, «Nombre#TAG (región, #puesto Challenger, LP)»)] de los Challenger del top del ladder
-    cuyo campeón MÁS jugado es este (pedido del usuario: onetricks de verdad, rank 1 primero). Si en el top no hay
+    cuyo campeón MÁS jugado es este (onetricks de verdad, rank 1 primero). Si en el top no hay
     ninguno, cae a Challenger/Grandmaster que lo jugaron hace poco. Lanza SinKey sin key."""
     ahora = ahora or time.time()
     out = []
@@ -394,7 +394,7 @@ def pool(minimo=10):
 
 def guardar_tuyas(minimo=10):
     """«Tu build» sin key: tu build por campeón (10+ partidas, con timeline) desde datos/raw, mezclada en builds.json sin
-    borrar las de los mejores. Devuelve cuántas guardó. La corre la app al ver partidas nuevas (auditoría de DeepSeek)."""
+    borrar las de los mejores. Devuelve cuántas guardó. La corre la app al ver partidas nuevas."""
     items, runas, _ = ddragon()
     f = META / "builds.json"
     try: d = json.loads(f.read_text(encoding="utf-8"))

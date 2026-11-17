@@ -1,4 +1,4 @@
-"""Cuenta en la nube de Racha (pedido del usuario): iniciar sesión con Google y guardar tu Riot ID, tus ajustes y el
+"""Cuenta en la nube de Racha: iniciar sesión con Google y guardar tu Riot ID, tus ajustes y el
 resumen de tus partidas en el backend (backend/cuenta.js). Flujo de Google para apps de escritorio: PKCE + redirect a
 127.0.0.1 (el servidor local de la app); el `code` lo cambia el Worker, que es el único que tiene el secreto.
 La sesión vive en datos/cache/sesion.json (fuera de git); el token es de Racha, no de Google."""
