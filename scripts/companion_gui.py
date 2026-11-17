@@ -2,7 +2,7 @@
 Lo usa companion_web.py (la app); no se corre solo."""
 import contextlib, importlib, io, json, os, pathlib, runpy, sys, threading, time, traceback
 # PyInstaller solo empaqueta lo que ve importado: estos los usan los scripts que el .exe carga del disco
-import argparse, base64, collections, datetime, math, random, ssl, statistics, subprocess, webbrowser  # noqa: F401
+import argparse, base64, collections, datetime, math, random, sqlite3, ssl, statistics, subprocess, webbrowser  # noqa: F401
 import urllib.error, urllib.parse, urllib.request  # noqa: F401
 try: import winreg  # noqa: F401
 except ImportError: winreg = None

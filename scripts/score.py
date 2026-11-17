@@ -22,6 +22,8 @@ import json, math, os, pathlib, statistics as st, sys
 from collections import defaultdict
 from datetime import datetime
 
+import indice  # lo calculado por partida, sin releer los JSON (solo stdlib)
+
 COMP = ("daño", "oro", "kp", "muertes", "visión", "cs", "objetivos", "línea")
 
 
@@ -133,29 +135,50 @@ def cargar_partida(f):
     return m if isinstance(m, dict) and isinstance(m.get("info"), dict) and isinstance(m["info"].get("participants"), list) else None
 
 
-def partidas(raw=None):
-    """(gs, med, yo): tus partidas de la Grieta en orden (dicts con t, win, champ, rol, kda, zs y lo de `de`)."""
-    raw = pathlib.Path(raw or os.environ.get("DATOS_DIR") or pathlib.Path(__file__).resolve().parent.parent / "datos" / "raw")
-    yo = json.loads((raw / "perfil.json").read_text())["account"]["puuid"]
-    gs = []
-    for f in raw.glob("*_*.json"):
-        try: info = cargar_partida(f)["info"]; zs = z_partida(info)
-        except (OSError, ValueError, KeyError, TypeError): continue  # una partida dañada no vacía todo el rendimiento
-        me = next((p for p in info["participants"] if p["puuid"] == yo), None)
-        if zs and me: gs.append(dict(t=info["gameCreation"], cola=info.get("queueId"), fin=info["gameCreation"] + (info.get("gameDuration") or 0) * 1000, win=me["win"], champ=me["championName"], rol=me["teamPosition"],
-                                     kda=f"{me['kills']}/{me['deaths']}/{me['assists']}", zs=zs, f=f, pid=me["participantId"],
+def _entrada(f, yo):
+    """Lo de una partida que no depende de las demás (sin `de` ni el archivo), o None. Pasa por el índice (indice.py)."""
+    try: info = cargar_partida(f)["info"]; zs = z_partida(info)
+    except (OSError, ValueError, KeyError, TypeError): return None  # una partida dañada no vacía todo el rendimiento
+    me = next((p for p in info["participants"] if p["puuid"] == yo), None)
+    if zs and me: return dict(t=info["gameCreation"], cola=info.get("queueId"), fin=info["gameCreation"] + (info.get("gameDuration") or 0) * 1000, win=me["win"], champ=me["championName"], rol=me["teamPosition"],
+                                     kda=f"{me['kills']}/{me['deaths']}/{me['assists']}", zs=zs, pid=me["participantId"],
                                      pids={p["puuid"]: p["participantId"] for p in info["participants"]},
                                      jug={p["puuid"]: [p["championName"], f"{p['kills']}/{p['deaths']}/{p['assists']}"] for p in info["participants"]},
-                                     u=unidades(info)))
+                                     u=unidades(info))
+    return None
+
+
+_MEMO = {}  # en este proceso: rendimiento() pide partidas() 3 veces seguidas
+
+
+def partidas(raw=None):
+    """(gs, med, yo): tus partidas de la Grieta en orden (dicts con t, win, champ, rol, kda, zs, f y lo de `de`)."""
+    raw = pathlib.Path(raw or os.environ.get("DATOS_DIR") or pathlib.Path(__file__).resolve().parent.parent / "datos" / "raw")
+    yo = json.loads((raw / "perfil.json").read_text())["account"]["puuid"]
+    fs = sorted(raw.glob("*_*.json"))
+    llave = (str(raw), yo, tuple((f.name, *_marca(f)) for f in fs))
+    if (m := _MEMO.get("ult")) and m[0] == llave: return [dict(g) for g in m[1]], m[2], yo
+    ver = indice.version(pathlib.Path(__file__), yo)
+    gs = [{**e, "f": f} for f in fs if (e := indice.derivado(f, "score", ver, lambda f=f: _entrada(f, yo)))]
     gs.sort(key=lambda g: g["t"])
     med = medias_rol((g["zs"] for g in gs), yo)
     for g in gs: g.update(de(g["zs"], yo, med))
-    return gs, med, yo
+    _MEMO["ult"] = (llave, gs, med)
+    return [dict(g) for g in gs], med, yo
+
+
+def _marca(f):
+    try: s = f.stat(); return s.st_mtime_ns, s.st_size
+    except OSError: return 0, 0
 
 
 def muertes14_25(g):
     """Tus muertes del 14:00 al 25:00 (como revision.py) desde datos/raw/timeline/<archivo>; None sin timeline."""
     if "f" not in g: return None
+    return indice.derivado(g["f"], f"m25:{g['pid']}", indice.version(pathlib.Path(__file__)), lambda: _muertes14_25(g))
+
+
+def _muertes14_25(g):
     tf = g["f"].parent / "timeline" / g["f"].name
     if not tf.exists(): return None
     try:  # un timeline roto deja sin dato solo a esa partida, no a todo Perfil
@@ -170,6 +193,10 @@ def oro14(g):
     """Tu oro total al 14:00 menos el de tu rival de línea (timeline); None sin timeline, sin rival o si acabó antes del 14."""
     rid = g.get("pids", {}).get(g.get("rival_id"))
     if "f" not in g or rid is None: return None
+    return indice.derivado(g["f"], f"oro14:{g['pid']}:{rid}", indice.version(pathlib.Path(__file__)), lambda: _oro14(g, rid))
+
+
+def _oro14(g, rid):
     tf = g["f"].parent / "timeline" / g["f"].name
     try:
         if not tf.exists(): return None

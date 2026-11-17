@@ -6,6 +6,7 @@ Rol: top, jungla, mid, bot, support (por defecto mid)."""
 import json, os, math, pathlib, random, statistics as st, sys
 from collections import defaultdict
 import score  # cargar_partida: la lectura común de datos/raw
+import indice  # lo calculado por partida, sin releer los JSON
 
 sys.stdout.reconfigure(encoding="utf-8")
 RAW = pathlib.Path(os.environ.get("DATOS_DIR") or pathlib.Path(__file__).resolve().parent.parent / "datos" / "raw")
@@ -39,17 +40,17 @@ def gd(rs):
     return f"{st.mean(v):+.0f}" if v else "-"
 
 
-games = []
-for f in RAW.glob("*_*.json"):
-    if not (m := score.cargar_partida(f)): continue  # cortada o dañada: se salta, no tumba el champ select
+def _juego(f):
+    """Lo que draft usa de una partida (dict) o None (dañada, remake o sin tu puuid). Pasa por el índice (indice.py)."""
+    if not (m := score.cargar_partida(f)): return None  # cortada o dañada: se salta, no tumba el champ select
     m = m["info"]
-    if m["gameDuration"] < 300: continue  # remakes
+    if m["gameDuration"] < 300: return None  # remakes
     ps = m["participants"]
     me = next((p for p in ps if p["puuid"] == puuid), None)
-    if not me: continue  # sin tu puuid (carpeta a medio reparar): se salta, no tumba el champ select
+    if not me: return None  # sin tu puuid (carpeta a medio reparar): se salta, no tumba el champ select
     opp = next((p for p in ps if p["teamPosition"] == me["teamPosition"] and p["teamId"] != me["teamId"]), None)
     g = dict(win=me["win"], champ=me["championName"], pos=me["teamPosition"] or "?", opp=opp["championName"] if opp else "?",
-             enemies={p["championName"] for p in ps if p["teamId"] != me["teamId"]}, gd14=None, t=m["gameCreation"])
+             enemies=sorted({p["championName"] for p in ps if p["teamId"] != me["teamId"]}), gd14=None, t=m["gameCreation"])
     tf = RAW / "timeline" / f.name
     if opp and tf.exists():
         fr = json.loads(tf.read_text())["info"]["frames"]
@@ -65,7 +66,11 @@ for f in RAW.glob("*_*.json"):
                                         and 14 * 60000 <= e["timestamp"] < 25 * 60000 for f in fr for e in f["events"])
         g["muertes6"] = sum(e.get("type") == "CHAMPION_KILL" and e.get("victimId") == me["participantId"] and e["timestamp"] < 360000
                             for f in fr for e in f["events"])
-    games.append(g)
+    return g
+
+
+VER = indice.version(pathlib.Path(__file__), pathlib.Path(score.__file__), puuid)  # otra fórmula u otra cuenta: se recalcula
+games = [{**g, "enemies": set(g["enemies"])} for f in RAW.glob("*_*.json") if (g := indice.derivado(f, "draft", VER, lambda f=f: _juego(f)))]
 assert games, "sin partidas"
 base = sum(g["win"] for g in games) / len(games)
 
