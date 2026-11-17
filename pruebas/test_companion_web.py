@@ -223,6 +223,14 @@ class Http(unittest.TestCase):
     def test_host_ajeno_403(self):
         self.assertEqual(self.get("/api/estado", host="evil.example")[0], 403)
 
+    def test_otro_sitio_403(self):  # un fetch desde una página cualquiera: Chromium manda Sec-Fetch-Site
+        def get(path, sitio):
+            c = http.client.HTTPConnection("127.0.0.1", self.srv.server_port, timeout=5)
+            c.request("GET", path, headers={"Sec-Fetch-Site": sitio}); return c.getresponse().status
+        for sitio in ("cross-site", "same-site"): self.assertEqual(get("/api/estado", sitio), 403, sitio)
+        for sitio in ("same-origin", "none"): self.assertEqual(get("/api/estado", sitio), 200, sitio)
+        self.assertEqual(get("/oauth?code=x&state=no-existe", "cross-site"), 200)  # la vuelta de Google; el state falso no entra
+
     def test_imagen_valida_el_nombre(self):
         with mock.patch.object(w, "imagen", return_value=b"PNG") as im:
             self.assertEqual(self.get("/img/champion/Ahri.png"), (200, b"PNG")); im.assert_called_with("champion", "Ahri")
