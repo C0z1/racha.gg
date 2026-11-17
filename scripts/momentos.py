@@ -154,11 +154,13 @@ def _zona_sombra(e, foto, g, t):
         s = _curva(sb["cs"], t)
         if s is None or _cs(foto) is None: return {"num": "—", "etq": f"CS vs {de}", "color": "gris", "trazo": None}
         d = round((_cs(foto) - s) / 5) * 5  # en pasos de 5: el CS en vivo no da más precisión
-        return {"num": f"{d:+d}" if d else "=", "etq": f"CS vs {de}", "color": "salvia" if d >= 0 else "oro", "trazo": trazo}
+        return {"num": f"{d:+d}" if d else "=", "etq": f"CS vs {de}", "color": "salvia" if d >= 0 else "oro", "trazo": trazo,
+                "icono": "minion", "anillo": round(min(1.0, _cs(foto) / s), 3) if s else 1.0}  # el minion en un anillo que se llena hacia tu sombra
     s, kp = _curva(sb["kp"], t), foto.get("participacion")
     if s is None or kp is None: return {"num": "—", "etq": f"peleas vs {de}", "color": "gris", "trazo": None}
     d = round((kp - s) * 100)
-    return {"num": f"{d:+d}%" if d else "=", "etq": f"peleas vs {de}", "color": "salvia" if d >= 0 else "oro", "trazo": trazo}
+    return {"num": f"{d:+d}%" if d else "=", "etq": f"peleas vs {de}", "color": "salvia" if d >= 0 else "oro", "trazo": trazo,
+            "icono": "espadas", "anillo": round(min(1.0, kp / s), 3) if s else 1.0}
 
 
 ROL = {"TOP": "top", "JUNGLE": "jungla", "MIDDLE": "mid", "BOTTOM": "bot", "UTILITY": "support"}
@@ -275,7 +277,7 @@ def paso(estado, foto, guion, ahora, aj=None):
     ms = lista(g)
     proxima = next((m["id"] for m in ms if m["id"] not in e["marcas"] and m["tipo"] != "error"), None)
     cerca = lambda m: m["id"] == proxima and m["min"] - 60 <= t < m["min"]
-    escena = {"regla": _zona_regla(foto, g), "sombra": _zona_sombra(e, foto, g, t),
+    escena = {"campeon": foto.get("campeon"), "regla": _zona_regla(foto, g), "sombra": _zona_sombra(e, foto, g, t),
               "marcas": [{"id": m["id"], "min": m["min"] // 60, "etq": m["etq"], "error": m["tipo"] == "error",
                           "estado": ("sin" if e["marcas"][m["id"]] is None else e["marcas"][m["id"]]) if m["id"] in e["marcas"] else None,
                           "proxima": cerca(m), "late": cerca(m) and ahora % LATIDO_CADA < LATIDO_S} for m in ms],

@@ -627,11 +627,11 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         if clave == ultimo[0] and mostrada[0]: return  # nada cambió: no se repinta
         if not mostrada[0]: root.deiconify(); root.attributes("-topmost", True); mostrada[0] = True  # la ventana en capas solo se ve tras mostrarla
         gen[0] += 1; g = gen[0]  # los pasos de una animación vieja no pisan un estado nuevo ni una franja oculta
-        img = lienzo.pintar(e, esc) if sombra else pintar(e, esc, icono)
+        img = lienzo.pintar(e, esc, icono) if sombra else pintar(e, esc, icono)
         if hwnd: mostrar(hwnd, img, px, py)
         if meta and (r := meta.get("recibido")) and r != med["ult"]: med["lat"].append(time.time() - r); med["ult"] = r
         if hwnd and sombra and e.get("brillo") is not None and mostrada[0]:  # el brillo del sello se apaga a los 600 ms
-            quieta = lienzo.pintar({**e, "brillo": None}, esc); vale = lambda: gen[0] == g and mostrada[0]
+            quieta = lienzo.pintar({**e, "brillo": None}, esc, icono); vale = lambda: gen[0] == g and mostrada[0]
             root.after(int(momentos.BRILLO_S * 1000), lambda: vale() and mostrar(hwnd, quieta, px, py))
         if hwnd and e.get("tipo") in ("aviso", "igualaste", "oro14") and e["tipo"] != tipo_ant[0] and animar():  # al entrar: sacudida (aviso) y dos pulsos
             imgs = (pintar({**e, "pulso": True}, esc, icono), img)

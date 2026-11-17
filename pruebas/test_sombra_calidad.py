@@ -129,3 +129,17 @@ if __name__ == "__main__":
         REF.mkdir(exist_ok=True)
         for k in MOMENTOS: dibujar(k).save(REF / f"sombra-{k}.png"); print("rehecha", k)
     else: unittest.main()
+
+
+class Renders(unittest.TestCase):
+    def test_usa_tu_retrato_y_el_minion(self):
+        """Los renders del lienzo «Base LOL»: con icono(), tu retrato va en el medallón y el minion en el anillo de la sombra."""
+        import io
+        from PIL import Image
+        png = lambda col: (lambda b: (Image.new("RGBA", (64, 64), col).save(b, "PNG"), b.getvalue())[1])(io.BytesIO())
+        icono = lambda tipo, nombre: png((0, 0, 255, 255)) if tipo == "champion" else png((0, 255, 0, 255))
+        esc = {"campeon": "Prueba", "regla": R(0, "rosa"), "marcas": M(None, None, None, None),
+               "sombra": {"num": "+5", "etq": "CS vs sombra", "color": "salvia", "icono": "minion", "anillo": 0.8}}
+        im = lienzo.pintar(esc, 1.0, icono)
+        self.assertEqual(im.getpixel((30, 28))[:3], (0, 0, 255))  # el retrato, al centro del medallón de la zona Regla
+        self.assertEqual(im.getpixel((lienzo.Z1 + 30, 28))[:3], (0, 255, 0))  # el minion, al centro del anillo de la zona Sombra
