@@ -4,6 +4,7 @@ Una línea por versión, en palabras de jugador. Lo más nuevo arriba.
 
 ## Sin publicar
 - En ranked, Racha se equivoca menos al adivinar a tu rival de línea antes de que se revelen los roles: con 386 de tus partidas, el ajuste nuevo baja los errores de 23 % a 22 % (prefiere esperar a que tu rival elija antes que señalar al equivocado).
+- En partida, el nivel «10 · 10» ya no se parte en dos líneas cuando aparece «Puedes tradear».
 - Un timeline dañado ya no tumba la selección de campeón ni la revisión post-partida, y «Tu última partida» se salta un archivo roto en vez de quedar vacía.
 - Racha es mucho más rápida: la selección de campeón carga en 0.15 s (antes 4 s), tu perfil se arma en medio segundo (antes 7 s) y la revisión post-partida sale en 0.4 s (antes 5 s). Cada partida se procesa una sola vez.
 - Un archivo de partida dañado ya no rompe la selección de campeón ni las builds: se salta.
