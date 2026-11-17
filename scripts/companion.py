@@ -213,8 +213,15 @@ TEMBLOR = 1  # s: tras reconectar el gameTime tiembla un paso de float32 (7,6e-6
 def vivo():
     """Foto de /liveclientdata/allgamedata (sin auth, solo durante la partida); None si no responde."""
     try:
-        with urllib.request.urlopen("https://127.0.0.1:2999/liveclientdata/allgamedata", context=SSL, timeout=5) as r: return json.load(r)
+        with urllib.request.urlopen("https://127.0.0.1:2999/liveclientdata/allgamedata", context=SSL, timeout=5) as r: return limpia(json.load(r))
     except FALLAS: return None
+
+
+def limpia(d):
+    """En la Herramienta de práctica los muñecos traen "items": {"error": ...} en vez de una lista: se deja vacía."""
+    for p in (d or {}).get("allPlayers") or []:
+        if isinstance(p, dict) and not isinstance(p.get("items"), list): p["items"] = []
+    return d
 
 
 def capturar(archivo, d):
