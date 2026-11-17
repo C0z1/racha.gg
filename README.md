@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://c0z1.github.io/racha.gg/">Página del proyecto</a> ·
+  <a href="CHANGELOG.md">Novedades</a> ·
   <a href="https://c0z1.github.io/racha.gg/privacidad.html">Privacidad</a> ·
   <a href="https://c0z1.github.io/racha.gg/terminos.html">Términos</a>
 </p>
@@ -21,67 +22,57 @@
   <img src="docs/img/readme/pasos.png" alt="1. Descarga. 2. Abre LoL. 3. Juega.">
 </p>
 
-<br>
+## En champ select
 
 <p align="center">
-  <img src="docs/img/readme/champ-select.png" alt="Champ select: tu récord contra el rival, tu win rate, tu plan con el campeón y la build">
+  <img src="docs/img/readme/champ-select.webp" alt="Selección de campeón: tu récord contra el rival con ese campeón, tu win rate, tus muertes antes del 6, tu plan de 3 reglas y los counters">
 </p>
-<p align="center">Tu récord contra ese rival, tu mejor pick y <b>3 reglas para esa partida</b>, antes de que cargue la pantalla.</p>
 
-<br>
+Tu récord contra ese rival, tu win rate con el campeón, el estimado contra él y **3 reglas para esa partida**, sacadas de tus números. Si aún no sabes contra quién vas, Racha espera a que tu rival de línea elija.
+
+## Después de jugar
 
 <p align="center">
-  <img src="docs/img/readme/en-vivo.png" alt="En partida: nivel y minions contra tu rival, muertes, reglas en vivo, build, rival y objetivos">
+  <img src="docs/img/readme/errores.webp" alt="Para trabajar: los errores que se repiten en tus últimas 20 partidas, con el minuto exacto de cada uno">
 </p>
-<p align="center">Tu nivel y tus minions contra los de tu rival, sus ítems y <b>cuánto falta para dragón y barón</b>, sin salir del juego.</p>
 
-<br>
+Los errores que repites, **con el minuto exacto** para buscarlos en el replay, y qué probar la próxima vez. Nada de ver la partida entera.
+
+## Tus campeones
 
 <p align="center">
-  <img src="docs/img/readme/errores.png" alt="Errores repetidos con el minuto exacto de cada uno para buscarlo en el replay">
+  <img src="docs/img/readme/campeones.webp" alt="Campeones: win rate y últimas 5 de cada campeón, mejores y peores rivales, su regla y sus counters">
 </p>
-<p align="center">Los errores que repites, <b>con el minuto exacto</b> para buscarlos en el replay. Nada de ver la partida entera.</p>
 
-<br>
+Con quién ganas de verdad, contra quién sufres y **qué cuidar con cada campeón**.
+
+## Al abrir LoL
 
 <p align="center">
-  <img src="docs/img/readme/campeones.png" alt="Tus campeones: win rate, últimas 5 partidas, mejores y peores matchups y reglas por campeón">
+  <img src="docs/img/readme/inicio.webp" alt="Inicio: tu regla de hoy, tu racha, tu sesión, tu pick de hoy y tu win rate contra tu meta">
 </p>
-<p align="center">Con quién ganas de verdad, contra quién sufres y <b>qué cuidar con cada campeón</b>.</p>
 
-<br>
+Tu regla de hoy, tu racha, tu sesión y **el campeón que más te conviene hoy**. En partida, una franja discreta sobre el HUD te avisa de tu nivel contra tu rival, tus minions y los objetivos.
 
-<p align="center">
-  <img src="docs/img/readme/inicio.png" alt="Inicio: tu día, tu racha, tu regla de hoy y tu win rate contra tu meta">
-</p>
-<p align="center">Al abrir LoL: tu racha del día, <b>la regla que más te conviene cuidar hoy</b> y tu win rate contra tu meta.</p>
+## Por qué Racha
 
-<br>
-
-##  Por qué Racha
-
-|  |  |
+| | |
 |---|---|
-|  **Hecho con tus partidas** | Nada de «farmea más». Racha descubre, por ejemplo, que *con 2 muertes o menos del minuto 14 al 25 ganas el 68%, y con 3 o más, el 43%*. |
-|  **Aparece sola** | Se abre cuando abres LoL y cambia de pantalla según la fase: champ select, partida y final. Cero clics. |
-|  **Juego limpio** | Lee lo que el cliente ofrece a las apps y solo escribe tu página de runas cuando pulsas «Poner las runas». No juega por ti, no toca el juego y no da ventajas injustas. |
-|  **Tus datos son tuyos** | Tus partidas viven en tu computadora. La cuenta en la nube es opcional y la borras con un botón. |
+| **Hecho con tus partidas** | Nada de «farmea más». Racha descubre, por ejemplo, que *con 2 muertes o menos del minuto 14 al 25 ganas el 65 %, y con 3 o más, el 44 %*. |
+| **Aparece sola** | Se abre cuando abres LoL y cambia de pantalla según la fase: champ select, partida y final. Cero clics. |
+| **Juego limpio** | Lee lo que el cliente ofrece a las apps y solo escribe tu página de runas cuando pulsas «Poner las runas». No juega por ti ni toca el juego. |
+| **Tus datos son tuyos** | Tus partidas viven en tu computadora. La cuenta en la nube es opcional y la borras con un botón. |
 
-##  Qué más te da
+## Qué más trae
 
-- **Revisión post-partida con 3 momentos clave**: al terminar, Racha te marca hasta 3 momentos de la partida (una muerte que regaló un objetivo, un objetivo que perdiste, un vuelco de oro contra tu rival de línea) con el minuto exacto para buscarlos en el replay.
-- **Tu pick de hoy** (Inicio): el campeón de tu rol con mejor win rate estimado, para que no elijas por una racha corta.
-- **Tu semana** (Perfil): tu récord de la semana frente a la anterior, cuántas veces llegaste al 14 con oro parejo o arriba, cuántas veces caíste en 2 derrotas seguidas, tu mejor campeón, tu peor rival y la regla a cuidar.
-- **Racha de oro al 14** (Inicio): de tus últimas 5 partidas, cuántas llegaste al minuto 14 con oro igual o mayor que tu rival de línea.
-- **Plan de regreso**: si del minuto 10 al 14 vas abajo de nivel, Racha te avisa con un consejo para igualar en vez de pelear de más.
-- **«Tú contra ellos»** (Selección): tu build contra la de los onetricks del top de tu campeón, y en qué difieren (primer ítem, core, botas, runa y habilidades).
-- **Builds del top para todos**: la build de los mejores con tu campeón, sin key de desarrollador.
-- **Se actualiza sola**: en la versión instalada baja la versión nueva, comprueba que el instalador es el original (su huella sha256 de GitHub) y se instala cuando no estás en partida.
-- **Cuenta en la nube (opcional)**: guarda tu Riot ID, tus ajustes y el resumen de tus partidas para usarlos en otra PC.
-- **Tabla del grupo (opcional)**: si tú y tus amigos la activan, se comparan por win rate y score en Inicio. Nunca se muestra el correo.
-- **Reportes y glosario**: en Ajustes mandas un reporte privado y consultas el glosario de términos.
+- **Revisión al terminar**: hasta 3 momentos clave de la partida con su minuto.
+- **Tu semana**: tu récord frente a la semana anterior, tu mejor campeón y tu peor rival.
+- **Builds de Master+** para todos los campeones, y tu build contra la de los onetricks del top.
+- **Runas con un clic**: la página de la build o la del matchup, cuando tú lo pides.
+- **Se actualiza sola**, nunca a mitad de partida, y comprueba que el instalador sea el original.
+- **Cuenta en la nube y tabla del grupo**, opcionales: tus ajustes en otra PC y tu win rate junto al de tus amigos.
 
-##  Preguntas frecuentes
+## Preguntas frecuentes
 
 <details>
 <summary><b>¿Me pueden banear por usarla?</b></summary>
@@ -121,33 +112,24 @@ Tus partidas y tus ajustes viven en tu computadora. Si activas la cuenta en la n
 
 ---
 
-## Qué hay en este repo
+## Cómo está hecho
+
+Racha está hecha en Python. Corre un servidor local y muestra la ventana con Edge en modo app; la franja en partida se dibuja con Pillow. Lee de tres fuentes: la Riot API (con tu key o tu código de acceso), la API local del cliente (LCU) y la Live Client Data API. Solo escribe en el cliente tu página de runas, cuando pulsas el botón. Los datos de matchup salen de partidas Master+ agregadas, sin nombres de jugadores.
 
 | Carpeta | Qué hay |
 |---|---|
-| `scripts/` | La app: el código que corre en tu PC. `companion_web.py` la arranca; `web/` son las pantallas. |
-| `pruebas/` | Las pruebas automáticas. Corren solas en cada cambio. |
-| `herramientas/` | Utilidades para desarrollar (repetir partidas grabadas, chequeo de salud). No van en la app. |
-| `instalador/` | Cómo se arma el `.exe` y el instalador de Windows. |
-| `backend/` | El servidor pequeño en Cloudflare: guarda la key de Riot y las cuentas. |
-| `docs/` | La página web, la guía de uso, privacidad y términos. |
-| `.equipo/` | Notas del equipo de agentes: el estado actual en `PIZARRON.md`; lo ya terminado en `archivo/`. |
-
-Qué cambió en cada versión: [`CHANGELOG.md`](CHANGELOG.md). Por dentro, la app y el instalador se siguen llamando HTC (el nombre viejo): cambiarlo rompería la actualización de quien ya la tiene instalada.
-
-<details>
-<summary>Para desarrolladores</summary>
-<br>
-
-Racha está hecha en Python (con Pillow para dibujar la franja). Corre un servidor local y muestra la ventana con Edge en modo app. Lee de tres fuentes: la Riot API (con tu key o tu código de acceso), la API local del cliente (LCU) y la Live Client Data API. Solo escribe en el cliente tu página de runas, cuando pulsas el botón. Los datos de matchup salen de partidas Master+ agregadas (sin nombres de jugadores).
+| [`scripts/`](scripts) | La app. `companion_web.py` la arranca; `web/` son las pantallas. |
+| [`pruebas/`](pruebas) | Las pruebas automáticas; corren en cada cambio en Windows y Ubuntu. |
+| [`backend/`](backend) | El servidor pequeño en Cloudflare: guarda la key de Riot y las cuentas. |
+| [`instalador/`](instalador) | Cómo se arma el `.exe` y el instalador de Windows. |
+| [`herramientas/`](herramientas) | Utilidades de desarrollo que no van en la app. |
+| [`docs/`](docs) | La página web, la [guía de uso](docs/USO.md), privacidad y términos. |
 
 ```bash
 python scripts/companion_web.py --demo      # la app con datos de ejemplo, sin cliente
 python -m unittest discover pruebas         # pruebas: sin red, sin key, sin partidas
 ```
 
-Guía de uso, variables (`RIOT_KEY`, `RIOT_ID`, `RIOT_REGION`) y scripts: [`docs/USO.md`](docs/USO.md). Los PRs son bienvenidos. Licencia [MIT](LICENSE).
-
-</details>
+Por dentro, la app y el instalador se siguen llamando HTC (su nombre viejo): cambiarlo rompería la actualización de quien ya la tiene instalada. Los PRs son bienvenidos. Licencia [MIT](LICENSE).
 
 <sub>Racha isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</sub>
