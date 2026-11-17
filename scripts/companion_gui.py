@@ -1,6 +1,6 @@
 """El trabajador de fondo de Racha: sondea el cliente de LoL (solo lectura), baja partidas y arma el perfil.
-Lo usa companion_web.py (la app); no se corre solo. La vieja ventana tkinter se quitó en la reorganización del repo."""
-import contextlib, importlib, io, json, os, pathlib, queue, runpy, sys, threading, time, traceback
+Lo usa companion_web.py (la app); no se corre solo."""
+import contextlib, importlib, io, json, os, pathlib, runpy, sys, threading, time, traceback
 # PyInstaller solo empaqueta lo que ve importado: estos los usan los scripts que el .exe carga del disco
 import argparse, base64, collections, datetime, math, random, ssl, statistics, subprocess, webbrowser  # noqa: F401
 import urllib.error, urllib.parse, urllib.request  # noqa: F401
@@ -55,11 +55,7 @@ FIN = ("PreEndOfGame", "EndOfGame")
 FASES = {None: "Cliente cerrado", "None": "Sin actividad", "Lobby": "En lobby", "Matchmaking": "Buscando partida",
          "ReadyCheck": "Partida encontrada", "ChampSelect": "Champ select", "InProgress": "En partida",
          "PreEndOfGame": "Fin de partida", "EndOfGame": "Fin de partida"}
-REGLAS = ["Oro ≥ 0 contra tu rival al minuto 14.", "Ganks: minuto 3 y del 8 al 13 (pico en el 10).",
-          "Con poca vida y su flash + ignite arriba: base."]  # TARJETA.md, las 3 que más pesan en línea
 
-
-# ---------- lógica (sin tkinter) ----------
 
 def script(nombre, *args):
     """Corre scripts/<nombre> en este proceso (el .exe no tiene python.exe para un subproceso): (código, salida)."""

@@ -5,7 +5,7 @@ gana cada ventana de nivel en la línea, el oro por minuto, el WR del matchup y 
   python scripts/matchups.py --agregar              rehace datos/meta/matchups.json desde las filas
 Solo se guardan filas de ~1 KB por partida (sin crudos ni nombres de jugadores). Las frases son datos históricos, nunca
 órdenes (Riot: no dictar decisiones)."""
-import argparse, collections, json, math, os, pathlib, statistics as st, sys, time
+import argparse, collections, json, math, os, pathlib, statistics as st, sys
 
 DIR = pathlib.Path(__file__).resolve().parent
 META = pathlib.Path(os.environ.get("META_DIR") or DIR.parent / "datos" / "meta")

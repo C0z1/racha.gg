@@ -2,7 +2,7 @@
 resumen de tus partidas en el backend (backend/cuenta.js). Flujo de Google para apps de escritorio: PKCE + redirect a
 127.0.0.1 (el servidor local de la app); el `code` lo cambia el Worker, que es el único que tiene el secreto.
 La sesión vive en datos/cache/sesion.json (fuera de git); el token es de Racha, no de Google."""
-import base64, hashlib, json, pathlib, secrets, time, urllib.error, urllib.parse, urllib.request
+import base64, hashlib, json, secrets, time, urllib.error, urllib.parse, urllib.request
 
 import companion_gui as gui
 

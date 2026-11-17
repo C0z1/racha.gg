@@ -7,7 +7,7 @@ Uso:
   python scripts/companion_web.py --fondo    en segundo plano (arranca con Windows): abre la ventana sola al abrir el cliente de LoL
 Sin --fondo, desde el código, el servidor se cierra solo si la ventana deja de preguntar 60 s (el .exe instalado sigue en segundo plano). Si ya hay un HTC abierto, abre su ventana y sale."""
 import ventana  # noqa: E402
-import html, http.server, json, os, pathlib, queue, re, shutil, subprocess, sys, threading, time, urllib.parse, urllib.request, webbrowser
+import html, http.server, json, os, pathlib, queue, re, subprocess, sys, threading, time, urllib.parse, urllib.request, webbrowser
 
 import companion_gui as gui  # noqa: E402  (trae REPO, sys.path del .exe y el trabajador)
 from companion_gui import companion
@@ -50,7 +50,6 @@ def mi_pick(tab, draft=None):
     ant = ESTADO.get("mi_pick") or {}
     fijo = bool(yo.get("fijo"))
     if (ant.get("champ"), ant.get("pos"), ant.get("fijo"), ant.get("rival")) == (yo["campeon"], pos, fijo, rival) and ant.get("build"): return ant  # sin build: se reintenta
-    import builds
     mu = None
     if rival:
         try: import matchups; mu = matchups.para_ficha(yo["campeon"], pos, rival)
@@ -171,7 +170,7 @@ def firma(raw):
 
 def rendimiento_rapido(raw=None, cache=None):
     """rendimiento() desde la caché en disco si las partidas no cambiaron (abre al instante); si no, lo calcula y la reescribe."""
-    import score, os
+    import os
     pedido, raw = raw, pathlib.Path(raw or os.environ.get("DATOS_DIR") or gui.REPO / "datos" / "raw"); cache = pathlib.Path(cache or CACHE)
     try: f = firma(raw)
     except OSError: return rendimiento(pedido)
@@ -766,7 +765,6 @@ class H(http.server.BaseHTTPRequestHandler):
             ok, msg = buscar_cuenta(str(d.get("riot_id") or ""), str(d.get("region") or ""))
             return self.enviar(200 if ok else 409, json.dumps({"ok": ok, "mensaje": msg}).encode(), "application/json")
         if self.path == "/api/runas":  # A5: importar la página de runas de la build, solo cuando el jugador pulsa el botón
-            import builds
             try:
                 d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 300)))
                 b = build_para(str(d["champ"]), str(d["pos"])) or {}

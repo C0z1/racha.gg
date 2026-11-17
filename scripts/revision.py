@@ -173,7 +173,7 @@ def racha(games):
 if rs := racha(games):
     print("\n## Racha de oro bajo al 14\n\n" + "\n".join(rs))
 
-print(f"\n## Partida por partida (más reciente primero)\n\n| Fecha | Campeón | | Oro @14 | CS @14 | Muertes <14 | Muertes 14–25 | Control wards | Score |\n|---|---|---|---|---|---|---|---|---|")
+print("\n## Partida por partida (más reciente primero)\n\n| Fecha | Campeón | | Oro @14 | CS @14 | Muertes <14 | Muertes 14–25 | Control wards | Score |\n|---|---|---|---|---|---|---|---|---|")
 f = lambda v, fmt="{:+d}": "-" if v is None else fmt.format(v)
 for g in reversed(rec):
     print(f"| {fecha(g):%m-%d %H:%M} | {g['champ']}{'' if g['champ'] in POOL else ' (fuera del pool)'} | "
