@@ -30,7 +30,7 @@ DeepSeek (Sonnet de reemplazo), 2026-11-11. Solo lectura del código; no se corr
 | PATCH | `/lol-champ-select/v1/session/actions/{id}` | por cada `pick` propio sin completar | Elige y confirma el campeón de la práctica; no toca bans. |
 | POST | `/lol-gameflow/v1/early-exit` | solo con `salir` | Sin candado de fase ni de modo: hallazgo 1. |
 
-Nada pide cola, acepta partida ni banea. Esto se separa de lo que Riot pide declarar (`.equipo/deepseek-politica-overlay.md`: la LCU no está soportada, sin verificar si estos endpoints son aceptables). `companion.lcu_escribir` solo acepta POST/PUT/DELETE según su docstring, y aquí también envía PATCH (acepta cualquier método en `metodo`): conviene actualizar el docstring (`companion.py:33`).
+Nada pide cola, acepta partida ni banea. Esto se separa de lo que Riot pide declarar (`.equipo/archivo/deepseek-politica-overlay.md`: la LCU no está soportada, sin verificar si estos endpoints son aceptables). `companion.lcu_escribir` solo acepta POST/PUT/DELETE según su docstring, y aquí también envía PATCH (acepta cualquier método en `metodo`): conviene actualizar el docstring (`companion.py:33`).
 
 ## Diff T6-T9 (`git diff` de overlay, companion, companion_gui, companion_web)
 

@@ -1,6 +1,6 @@
 # Propuesta de rediseño del companion
 
-Parte de `.equipo/diseno-auditoria.md` (los números entre paréntesis, p. ej. (#2), son los problemas de esa lista). Es una propuesta para hablarla, no un compromiso: nada de esto está construido. El mockup visual va aparte en `.equipo/diseno/mockup.html` (aún no hecho).
+Parte de `.equipo/archivo/diseno-auditoria.md` (los números entre paréntesis, p. ej. (#2), son los problemas de esa lista). Es una propuesta para hablarla, no un compromiso: nada de esto está construido. El mockup visual va aparte en `.equipo/diseno/mockup.html` (aún no hecho).
 
 ## 1. Principios
 

@@ -12,7 +12,7 @@ DeepSeek (Sonnet de reemplazo), 2026-11-11. Sin red: solo lo que ya hay en el re
 
 ## Vanguard
 
-- El repo no cita ninguna fuente de Riot sobre Vanguard. Solo dice que la tecla para ocultar (F7) está «EN ESPERA hasta saber cómo lo toma Vanguard» (`.equipo/PLAN-ENPARTIDA.md`) y fija las reglas «no leer memoria, no mandar entradas ni mover la ventana del juego, no hooks de teclado, no editar `game.cfg`» (`PLAN-ENVIVO.md` §5).
+- El repo no cita ninguna fuente de Riot sobre Vanguard. Solo dice que la tecla para ocultar (F7) está «EN ESPERA hasta saber cómo lo toma Vanguard» (`.equipo/archivo/PLAN-ENPARTIDA.md`) y fija las reglas «no leer memoria, no mandar entradas ni mover la ventana del juego, no hooks de teclado, no editar `game.cfg`» (`PLAN-ENVIVO.md` §5).
 - Que Vanguard bloquee o tolere una ventana tkinter topmost y transparente a clics: sin verificar. La primera prueba real (P1) será la única evidencia.
 - Que `GetAsyncKeyState` o un hook de teclado disparen Vanguard: sin verificar (por eso F7 sigue en espera).
 - Leer `Config/game.cfg` (lo hace `companion.pantalla_completa()`, solo lectura) como riesgo: sin verificar; el plan prohíbe editarlo, no leerlo.

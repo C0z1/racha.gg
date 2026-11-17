@@ -1,4 +1,4 @@
-"""Chequeo de salud de Racha (plan En vivo, .equipo/PLAN-ENVIVO.md): mide, registra y nunca arregla solo.
+"""Chequeo de salud de Racha (plan En vivo, .equipo/archivo/PLAN-ENVIVO.md): mide, registra y nunca arregla solo.
   python herramientas/salud.py                 una pasada; sale con 1 si hay FALLA
   python herramientas/salud.py --cada 60       en bucle (60 s en partida; fuera de partida, cada 300 s)
   python herramientas/salud.py --vistas        además abre las 9 vistas en Edge sin ventana (S10)

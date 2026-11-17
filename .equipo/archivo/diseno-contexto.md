@@ -1,6 +1,6 @@
 # Contexto de diseño del companion (sesión en vivo)
 
-Actualizado 2026-11-10 por el Diseñador (al retomar). Canvas «Base LOL»: https://claude.ai/artifact/RPTLnjKqhMnuVGkFm7riX7 (versión 1794263707-e5fa, idéntica a `.equipo/diseno/canvas/project/`). Acuerdos: `.equipo/diseno-acuerdos.md` (1–20). Sin comentarios abiertos en el canvas.
+Actualizado 2026-11-10 por el Diseñador (al retomar). Canvas «Base LOL»: https://claude.ai/artifact/RPTLnjKqhMnuVGkFm7riX7 (versión 1794263707-e5fa, idéntica a `.equipo/diseno/canvas/project/`). Acuerdos: `.equipo/archivo/diseno-acuerdos.md` (1–20). Sin comentarios abiertos en el canvas.
 
 ## Decisiones tomadas (con el usuario)
 - **Paleta Vino + negro** para la build: fondo `#24111A`, tarjeta `#36192A`, panel `#0B0709`, acento rosa `#F28DB0`; frascos salvia / lila / carmín. Mulish. Pizarra, crema y navy quedan fuera.
@@ -39,7 +39,7 @@ Locales viejos (no usar): `Inv1`, `Inv5`, `Navy3`, `Perfil`, `ChampSelect*`; `Tu
 
 ## Lo próximo
 - Cambios chicos en vivo al canvas a pedido, respuesta en una línea; vigilar comentarios (watch activo).
-- Acuerdos nuevos a `.equipo/diseno-acuerdos.md`; al cerrar, bajar el canvas a `.equipo/diseno/canvas/project/`.
+- Acuerdos nuevos a `.equipo/archivo/diseno-acuerdos.md`; al cerrar, bajar el canvas a `.equipo/diseno/canvas/project/`.
 
 ## Ideas en el canvas (2026-11-10, fila «Ideas para Racha», y = −2968; sin aprobar)
 - `Idea_Overlay_Regreso`: overlay min 10–14 (Plan de regreso), «De vuelta» al igualar, moneda de oro al 14.

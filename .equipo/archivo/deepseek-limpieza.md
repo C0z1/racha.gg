@@ -30,7 +30,7 @@ Pedido del usuario: dejar solo lo que usa la app HTC, mejorar `README.md` y borr
 
 - **`.equipo/PLAN.md:4`** enlaza a `datos/analisis-2026-11-07.md` y `datos/analisis-timeline-2026-11-07.md` (ahora rotos). No lo toqué: está en «NO borres» y solo me autorizaron a editar `README.md`. → Opus decide si quita el enlace.
 - **`companion_gui.py`** (respaldo tkinter, se queda) tiene la cadena «Minuto a minuto: python scripts/partida.py --early»: apunta a un script borrado. Fuera de los tres lugares del paso 6; lo dejo anotado.
-- **`.equipo/diseno-contexto.md`** ya estaba modificado por el Diseñador (no es mío); no lo toqué.
+- **`.equipo/archivo/diseno-contexto.md`** ya estaba modificado por el Diseñador (no es mío); no lo toqué.
 - **`test_ds_anticipa.py`** se queda: pese al nombre, prueba `companion_gui.lineas_ficha()`, no `anticipa.py`.
 - **`docs/config.ejemplo.json`** se queda aunque trae el `RIOT_ID` de cozi: lo pide la tarea y no es un secreto (ya estaba público).
 

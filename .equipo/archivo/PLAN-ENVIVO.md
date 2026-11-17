@@ -68,10 +68,10 @@ Opus toca `scripts/*.py` salvo `test_ds_*`; DeepSeek toca `scripts/test_ds_*.py`
 | T13 | Segunda prueba real + rebuild + humo + `salud.py --vistas` contra el `.exe` → `prueba-2.md` | Todo OK o AVISO justificado; release solo con permiso | Opus |
 | D-a | Pruebas de borde de `salud.evaluar` (tras T1) en `scripts/test_ds_salud.py` | ≥ 12 pruebas sin red ni Win32 | DeepSeek |
 | D-b | `expectedFailure` de D1, D2, D3 y D10 en `scripts/test_ds_franja_vida.py` | Fallan hoy por la razón escrita | DeepSeek |
-| D-c | Tabla de anchos de la franja por fase → `.equipo/deepseek-anchos-franja.md` | Archivo, minuto y texto | DeepSeek |
-| D-d | `replay.py --validar --precios` en las capturas → `.equipo/deepseek-replays-envivo.md` | 0 fallos o lista | DeepSeek |
-| D-e | Revisión escrita de `salud.py`, `dev_practica.py` y diffs T6–T12 → `.equipo/deepseek-revision-envivo.md` | Hallazgos con archivo:línea | DeepSeek |
-| D-f | «Qué mirar al llegar» (≤ 15 renglones) y nota de política de overlays → `.equipo/deepseek-al-llegar.md`, `.equipo/deepseek-politica-overlay.md` | Entregados | DeepSeek |
+| D-c | Tabla de anchos de la franja por fase → `.equipo/archivo/deepseek-anchos-franja.md` | Archivo, minuto y texto | DeepSeek |
+| D-d | `replay.py --validar --precios` en las capturas → `.equipo/archivo/deepseek-replays-envivo.md` | 0 fallos o lista | DeepSeek |
+| D-e | Revisión escrita de `salud.py`, `dev_practica.py` y diffs T6–T12 → `.equipo/archivo/deepseek-revision-envivo.md` | Hallazgos con archivo:línea | DeepSeek |
+| D-f | «Qué mirar al llegar» (≤ 15 renglones) y nota de política de overlays → `.equipo/archivo/deepseek-al-llegar.md`, `.equipo/archivo/deepseek-politica-overlay.md` | Entregados | DeepSeek |
 
 ## 4. Protocolo de prueba real (Practice Tool)
 

@@ -1,6 +1,6 @@
 # Acuerdos de diseño del companion
 
-Sesión en vivo con el usuario, 2026-11-09. Canvas: https://claude.ai/artifact/RPTLnjKqhMnuVGkFm7riX7 («Base LOL»). Contexto: `.equipo/diseno-contexto.md`.
+Sesión en vivo con el usuario, 2026-11-09. Canvas: https://claude.ai/artifact/RPTLnjKqhMnuVGkFm7riX7 («Base LOL»). Contexto: `.equipo/archivo/diseno-contexto.md`.
 
 ## Acordado
 1. **Una sola ventana** que cambia sola por fase: champ select → franja en partida → una línea al terminar. Score, tendencia y tilt van a la ventana 2 (Perfil).
@@ -10,7 +10,7 @@ Sesión en vivo con el usuario, 2026-11-09. Canvas: https://claude.ai/artifact/R
 5. **Copy de la meta 14+**: «con 3+ bajas de 68% a 43%» (todas tus partidas), no 82/57. Corregido en los dos champ select.
 6. **«Cómo jugarlo»** son 3 tarjetas de stat (Nivel al 6, Minions al 10, Muertes 14–25) con ícono, valor, ✓/✕ y su número; **Perfil** tiene «Qué está fallando» en 3 filas. Los valores entre [corchetes] son ejemplo.
 7. Copia vigente del canvas (versión 1794217527-6e0d) guardada en `.equipo/diseno/canvas/project/`: es lo que lee Opus.
-8. Las ventanas de franja y post-partida que propuse se descartaron por ahora. Opus las construye desde `.equipo/diseno-propuesta.md` (su siguiente paso en el turno 7).
+8. Las ventanas de franja y post-partida que propuse se descartaron por ahora. Opus las construye desde `.equipo/archivo/diseno-propuesta.md` (su siguiente paso en el turno 7).
 9. **Frascos premium** (2026-11-09) para medidores en las 3 pantallas: vidrio, llenado 1.6 s, ola de 2 capas, brillo cada 6 s; colores por métrica (win rate teal, score azul, muertes rojo, minions naranja). Especificación en el artboard `Tubos_Kit.dc.html`.
 10. **Elevación suave + encabezado con luz** (2026-11-09) en todas las tarjetas: degradado #3B4452→#343C49, sombra en capas, filo de luz arriba; títulos de sección con degradado naranja. Referencia: `Sombras_Opciones.dc.html` (opción A).
 11. **Selección de campeón simplificada**: una idea por tarjeta; «Cómo jugarlo» = 3 frascos con % de partidas que cumples la meta.
