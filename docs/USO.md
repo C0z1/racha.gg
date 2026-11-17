@@ -22,7 +22,7 @@ Con cualquiera de las dos, la primera vez Racha baja tu historial sola (puede ta
 - **Inicio**: el estado del cliente, tu racha del día, **tu pick de hoy**, **tu racha de oro al 14** y **tu regla de hoy** (la que más te cuesta). A la derecha, tu cuenta, tu rango y tu win rate contra la meta.
 - **Draft**: antes de que se vea el rival, a quién banear y tu pool del rol.
 - **Selección**: cuando ya se ve tu rival de línea, tu récord contra él, tu win rate, tu plan con el campeón (3 reglas) y la build, con **«Tú contra ellos»**: en qué difiere tu build de la de los onetricks del top.
-- **En vivo**: durante la partida, tu nivel y CS contra tu rival, tus muertes desde el 14, los objetivos y los timers de dragón y barón. Al terminar, la línea final y la **revisión post-partida con 3 momentos clave**.
+- **En vivo**: durante la partida, tu nivel y CS contra tu rival, tus muertes desde el 14, los objetivos de cada equipo (sin timers). Al terminar, la línea final y la **revisión post-partida con 3 momentos clave**.
 - **Perfil**: tu score, tu win rate, tus errores, qué cambiar y **tu semana** (récord contra la anterior, oro al 14, 2 derrotas seguidas, mejor campeón, peor rival).
 - **Partidas**: tus últimas partidas en tabla, con score, reglas cumplidas y el error de cada una; al elegir una, los detalles.
 - **Campeones**: tu pool con win rate, forma reciente, mejores y peores matchups y reglas por campeón.
@@ -107,7 +107,13 @@ La app vive en `scripts/`; las herramientas de desarrollo, en `herramientas/`.
 | `companion_web.py` | La app Racha: servidor local y ventana con Edge. `--demo`, `--no-abrir`, `--fondo`, `--overlay`. |
 | `companion.py` | Lee el cliente de LoL (solo lectura). Solo, es un companion de consola. |
 | `companion_gui.py` | El trabajador de fondo: sondea el cliente, baja partidas y arma tu perfil. |
-| `overlay.py` | Franja en partida siempre encima (timers de dragón y barón, nivel y CS contra tu rival). |
+| `overlay.py` | Franja en partida siempre encima, sin timers. La ventana, su posición y la pastilla clásica. |
+| `momentos.py` | Franja Sombra: qué se muestra en cada foto (3 zonas, 4 marcas, máx. 3 interrupciones, nunca en pelea). |
+| `lienzo.py` | El dibujo de la franja Sombra. |
+| `sombra.py` | Tu sombra: la mediana minuto a minuto de tus victorias con ese campeón. `<campeón> <ROL>`. |
+| `guion.py` | Lo que la franja Sombra precalcula al empezar la partida. `<campeón> <rival> <ROL>`. |
+| `bitacora.py` | Lo que la franja mostró (o no, y por qué) en cada partida, para la revisión. |
+| `ciclo.py` | La racha de tu regla y su graduación (8 de 10). |
 | `ventana.py` | Abre la ventana como app de Edge con perfil propio. |
 | `descargar.py` | Baja tus Solo/Duo de la temporada con timeline a `datos/raw/`. `[N \| todo]`. |
 | `cliente_v5.py` | Tus últimas 20 partidas desde el cliente, sin key. |
@@ -124,9 +130,9 @@ La app vive en `scripts/`; las herramientas de desarrollo, en `herramientas/`.
 
 | Herramientas (`herramientas/`, no van en la app) | Qué hace |
 |---|---|
-| `replay.py` | Repite una partida grabada sin LoL. `<archivo.jsonl> [--validar]`. |
+| `replay.py` | Repite una partida grabada sin LoL. `<archivo.jsonl> [--validar] [--momentos]`. |
 | `salud.py` | Chequeo de salud S1 a S10; mide y avisa, nunca arregla solo. |
-| `dev_franja.py` | Dibuja la franja con una partida grabada, encima del escritorio. |
+| `dev_franja.py` | Dibuja la franja con una partida grabada, encima del escritorio. `--sombra` para la nueva. |
 | `dev_medir.py` | Capturas de cada vista y tiempo del primer pintado. |
 | `dev_practica.py` | Entra y sale de una partida de práctica para probar. |
 

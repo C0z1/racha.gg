@@ -88,6 +88,39 @@ def franja_libre(previos, ahora):
     return len(salidos) < AVISO_MAX and (not salidos or ahora - max(salidos) >= AVISO_ENTRE)
 
 
+GUION = [False]  # hay un hilo armando el guion de Sombra
+
+
+def armar_guion(campeon, rival, pos):
+    """El guion de Sombra para esta partida (guion.py), con tu regla de hoy y tu racha; a ESTADO["guion"]."""
+    try:
+        import guion
+        rh = (((ESTADO.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy")) or None
+        g = guion.armar(campeon, rival, pos or "MIDDLE", regla=rh, racha=(rh or {}).get("racha", 0)) if gui.es_base() else None  # cuenta ajena: sin tu historial
+    except Exception as x: g = None; gui.registrar_franja(f"guion: {x!r}")
+    with LOCK: ESTADO.update(guion=g or {"campeon": campeon, "rival": rival, "pos": pos}, v=ESTADO["v"] + 1); GUION[0] = False
+
+
+def anotar(notas, marcas):
+    """La franja Sombra manda lo que mostró (o no) y tus marcas: se juntan para la bitácora de la partida."""
+    with LOCK:
+        sb = ESTADO.get("sombra") or {"notas": [], "marcas": {}}
+        ESTADO["sombra"] = {"notas": sb["notas"] + list(notas), "marcas": dict(marcas)}
+
+
+def cerrar_sombra(r):
+    """Al terminar: si cumpliste tu regla, la carta de cierre y la bitácora (a disco y para la revisión)."""
+    try:
+        import bitacora, momentos
+        g, sb = ESTADO.get("guion") or {}, ESTADO.get("sombra") or {"notas": [], "marcas": {}}
+        rg = g.get("regla") or {}
+        cumplida = r["muertes14_25"] <= rg.get("tope", 2) if rg.get("metrica") == "muertes" and r.get("muertes14_25") is not None else None
+        bitacora.guardar(g, sb, sb["notas"], cumplida)
+        filas = bitacora.para_revision({"notas": sb["notas"]})
+        return {"carta": momentos.carta_fin(sb, cumplida, (rg.get("racha") or 0) + 1 if cumplida else None), "bitacora": filas}
+    except Exception as x: gui.registrar_franja(f"bitácora: {x!r}"); return {}
+
+
 def evento(e):
     """Aplica un evento de la cola (los mismos que App.evento de companion_gui) al estado."""
     tipo, s = e[0], {}
@@ -97,7 +130,8 @@ def evento(e):
             abrir(URL[0])  # el cliente acaba de abrir y no hay ventana de Racha
         if ESTADO["fase"] in ("InProgress", "Reconnect") and e[1] not in ("InProgress", "Reconnect"):  # «Tu última partida» = la que acaba de terminar
             threading.Thread(target=vistas_previas, args=(ESTADO.get("rendimiento"),), daemon=True).start()
-        if e[1] == "ChampSelect": s.update(tablero=None, mi_pick=None, comentario=None, draft=None, fin=None, meta=None, pos=None, avisos=[]); USADO.add("champ_select")
+        if e[1] == "ChampSelect": s.update(tablero=None, mi_pick=None, comentario=None, draft=None, fin=None, meta=None, pos=None, avisos=[], guion=None); USADO.add("champ_select")
+        if e[1] == "InProgress" and ESTADO["fase"] not in ("InProgress", "Reconnect"): s["sombra"] = None  # bitácora nueva
         if e[1] in ("ChampSelect", "InProgress"): s["pantalla_completa"] = companion.pantalla_completa()  # la franja no se vería
         if e[1] == "InProgress" and ESTADO["ajustes"].get("overlay", True): USADO.add("overlay")
         if e[1] == "InProgress" and ESTADO["fase"] not in ("InProgress", "Reconnect"): s["lobby"] = None; threading.Thread(target=armar_lobby, daemon=True).start()
@@ -109,13 +143,18 @@ def evento(e):
         antes = (ESTADO.get("meta") or {}).get("t")
         pausa = e[1].get("t") is not None and antes is not None and abs(e[1]["t"] - antes) <= companion.TEMBLOR
         s = {"meta": {**e[1], "texto": gui.texto_meta(e[1]), "recibido": time.time(), "pausa": pausa}}  # «recibido»: el overlay descuenta los timers
+        c = e[1].get("campeon")
+        if c and e[1].get("modo") != "ARAM" and ESTADO["ajustes"].get("franja_estilo") == "sombra" and (ESTADO.get("guion") or {}).get("campeon") != c and not GUION[0]:
+            GUION[0] = True; threading.Thread(target=armar_guion, args=(c, e[1].get("rival"), e[1].get("pos")), daemon=True).start()
     elif tipo == "fin":  # el tope de tu coach (F12) también en la línea final; y el ping sale aunque no llegue la revisión de Riot
         tope = ((((ESTADO.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy")) or {}).get("tope", 2)
         s = {"fin": {**e[1], "texto": companion.linea_fin(e[1], tope)}}
+        if ESTADO.get("sombra") or ESTADO.get("guion"): x = cerrar_sombra(e[1]); s["fin"].update(x); s["bitacora"] = x.get("bitacora")  # carta de cierre y bitácora
         threading.Thread(target=ping, daemon=True).start()
     elif tipo == "post_espera": s = {"espera": e[1]}
     elif tipo == "revision":
-        s = {"revision": e[1], "fin": None, "espera": None, "perfil": gui.perfil(ESTADO["rango"], ESTADO["cuenta"])}
+        s = {"revision": {**e[1], "bitacora": (ESTADO.get("fin") or {}).get("bitacora") or ESTADO.get("bitacora")} if isinstance(e[1], dict) else e[1],
+             "fin": None, "espera": None, "perfil": gui.perfil(ESTADO["rango"], ESTADO["cuenta"])}  # «Lo que viste en partida»
         USADO.add("revision"); threading.Thread(target=refrescar, daemon=True).start(); threading.Thread(target=ping, daemon=True).start()
     elif tipo == "rango": s = {"rango": e[1] or ESTADO["rango"]}; s["perfil"] = gui.perfil(s["rango"], ESTADO["cuenta"])
     elif tipo == "cuenta":  # la cuenta con sesión en el cliente: manda sobre perfil.json (un amigo, u otra cuenta en tu PC)
@@ -894,7 +933,7 @@ def main(argv=None):
                 f = gui.REPO / "datos" / "salud" / "franja.log"; f.parent.mkdir(parents=True, exist_ok=True)
                 with f.open("a", encoding="utf-8") as h: h.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {txt}\n")
             except OSError: pass
-        try: import overlay; overlay.correr(leer, seguir, registrar=registrar, icono=imagen, guardar=guardar_franja)  # franja en partida; ocupa el hilo principal (tkinter)
+        try: import overlay; overlay.correr(leer, seguir, registrar=registrar, icono=imagen, guardar=guardar_franja, anotar=anotar)  # franja en partida; ocupa el hilo principal (tkinter)
         except Exception as e: registrar(f"sin franja: {e!r}")  # sin tkinter o sin pantalla: HTC sigue sin overlay
     while seguir(): time.sleep(2)
     ventana.cerrar(); srv.shutdown()

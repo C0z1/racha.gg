@@ -83,7 +83,7 @@ def _sellar(e, foto, g, t):
         meta, tarde = (mk.get(str(m)) or {}).get("meta"), t >= m * 60 + 60  # sin foto cerca del minuto: no se inventa
         ok = dato = None
         if m == 6 and meta is not None and foto.get("muertes6") is not None:
-            ok, dato = foto["muertes6"] <= meta, f"Marca 6 · {foto['muertes6']} muertes · sombra {meta}"
+            ok, dato = foto["muertes6"] <= meta, f"Marca 6 · {foto['muertes6']} muerte{'' if foto['muertes6'] == 1 else 's'} · sombra {meta}"
         elif m == 10 and meta is not None and _cs(foto) is not None and not tarde:
             ok, dato = _cs(foto) >= meta, f"Marca 10 · {foto['cs']} CS · sombra {meta}"
         elif m == 14 and not tarde and (o := foto.get("oro") or {}).get("tu") is not None and o.get("rival") is not None:

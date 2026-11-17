@@ -7,6 +7,7 @@ datos/meta/
 Companion.exe
 datos/cache/
 datos/salud/
+datos/bitacora/
 dist/
 build/
 *.spec

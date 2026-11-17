@@ -131,8 +131,10 @@ AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "avi
                "franja_plan": True,  # la franja muestra el match, tu regla y tu nota los primeros 90 s
                "franja_muerto": True,  # al morir la franja se expande con el marcador de objetivos y tu regla
                "franja_build": True,  # la franja muestra tu próximo ítem al morir o al comprar
+               "franja_estilo": "sombra",  # Sombra (3 zonas: regla, sombra, marcas) o la pastilla clásica, una versión más
+               "solo_marcas": False,  # Sombra sin interrupciones: solo las marcas y el panel al morir
                "franja_pos": "arriba", "franja_x": 0.22, "franja_y": 0.0}  # esquina de la franja: único ajuste que no es booleano
-OPCIONES = {"franja_pos": ("arriba", "abajo", "libre")}  # lista blanca de los ajustes de texto
+OPCIONES = {"franja_pos": ("arriba", "abajo", "libre"), "franja_estilo": ("sombra", "clasica")}  # lista blanca de los ajustes de texto
 FRACCIONES = ("franja_x", "franja_y")  # posición libre de la franja: fracción del juego (0–1), la eligió el usuario arrastrándola
 
 
@@ -322,6 +324,11 @@ def registrar_franja(txt):
     except OSError: pass
 
 
+def calentar_sombra():
+    try: import sombra; sombra.series()
+    except Exception: pass  # sin partidas o sin disco: el guion saldrá «Sin sombra aún»
+
+
 def plan_partida(campeon, rival, pos):
     """Lo de la franja al empezar, una vez por partida y con tu historial: tu récord y WR contra
     ese rival con ese campeón, tu regla con su meta y tu dato, y tu nota del matchup. None si no hay datos o cuenta ajena."""
@@ -347,7 +354,12 @@ DRAFT = threading.Lock()  # el reload de draft (hilo post-partida) no debe pisar
 POST = []  # el hilo post-partida vivo, si hay
 
 
-SONDEO_VIVO = 10  # s entre fotos en vivo: < 1 ms de cálculo por foto (medido); menos no aporta al coaching (plan en partida)
+SONDEO_VIVO = 10  # s entre fotos en vivo con la franja clásica: < 1 ms de cálculo por foto (medido)
+SONDEO_SOMBRA = 1  # con Sombra: una muerte o una compra en pantalla en ≤ 1,5 s, y la vida propia para no hablar en una pelea
+
+
+def sondeo(aj):
+    return SONDEO_SOMBRA if aj.get("overlay", True) is not False and aj.get("franja_estilo") == "sombra" else SONDEO_VIVO
 
 
 def aviso(texto, tipo="error", minuto=None):
@@ -443,11 +455,12 @@ def trabajador(q):
     ult_disco = 0  # la foto se lee cada SONDEO_VIVO s (F4: ver la muerte a tiempo) pero al disco va cada 30 s
     error = foto = nl = tab_ant = None  # nl: championId -> alias del cliente, para el tablero de Draft
     while True:
-        fase = None  # si lcu() lanza, cuenta como cliente caído
+        fase, jugando = None, False  # si lcu() lanza, cuenta como cliente caído
         try:
             fase = companion.lcu("/lol-gameflow/v1/gameflow-phase")
             if fase != fase_ant and fase == "ChampSelect":  # metas de CS (F9): ~4 s la primera vez; en selección no frena la partida
                 threading.Thread(target=companion.metas_auto, daemon=True).start()
+                threading.Thread(target=calentar_sombra, daemon=True).start()  # las series de Sombra al índice: el guion sale en ~50 ms
             if fase != fase_ant and fase == "ChampSelect":  # LP fresco del cliente (sin key); ya asentado tras la partida anterior
                 q.put(("rango", companion.rango(companion.lcu("/lol-ranked/v1/current-ranked-stats"))))
             if fase != fase_ant: q.put(("fase", fase))
@@ -471,7 +484,7 @@ def trabajador(q):
                     q.put(("draft", pos, recomendaciones(pos, nombres), ocultos) if nombres else ("pos", pos))  # [] : su jungla o support, no tu rival
                 elif not ids and pos and visto != pos: q.put(("pos", pos)); visto = pos  # bans y picks antes del rival
             elif fase != "ChampSelect": visto = tab_ant = None
-            if jugando and time.time() - ult >= SONDEO_VIVO:
+            if jugando and time.time() - ult >= sondeo(aj := ajustes()) - 0.05:
                 d = companion.unir_eventos(companion.vivo(), foto if archivo else None); ult = time.time(); foto = d or foto  # Reconnect reinicia los eventos; sin archivo es otra partida (revisión del asistente, 12)
                 if ult - ult_disco >= 30: archivo, ult_disco = companion.capturar(archivo, d), ult
                 mf, avs = companion.paso_vivo(d, estado, ajustes())  # Ajustes_Vino: cada aviso se puede apagar
@@ -485,7 +498,7 @@ def trabajador(q):
                         estado["plan"], estado["plan_t"] = plan_partida(mf.get("campeon"), mf.get("rival"), mf.get("pos")), time.time()
                     if (mf.get("t") or 0) < 120: mf["plan"] = estado["plan"]
                     mf["dato"] = (estado.get("plan") or {}).get("dato")  # la frase top del matchup, para la expandida al morir
-                if mf: q.put(("meta", mf))
+                if mf: mf["avisos"] = [(c, getattr(x, "corto", x)) for c, x, _ in avs]; q.put(("meta", mf))  # Sombra los vuelve datos (momentos.py)
                 for _, txt, minuto in avs: q.put(aviso(txt, "consejo", minuto))
             elif not jugando and fase != "Reconnect": archivo = None; estado["avisado"] = set(); [estado.pop(k, None) for k in ("build", "build_t", "plan", "plan_t")]  # al reconectar es la misma partida
             if fase in FIN and real not in FIN:
@@ -500,4 +513,4 @@ def trabajador(q):
             if txt != error: q.put(aviso(txt)); error = txt  # el mismo error cada 3 s no inunda la ventana
         # fuera del try (como companion.main): una excepción no deja la fase vieja ni repite el evento de fase cada 3 s
         fase_ant, real, fallos = fase, fase or real, 0 if fase else fallos + 1
-        time.sleep(1 if fase == "ChampSelect" else companion.espera(fallos))  # en selección, el tablero sigue los hovers al segundo
+        time.sleep(1 if fase == "ChampSelect" or (jugando and sondeo(ajustes()) == SONDEO_SOMBRA) else companion.espera(fallos))  # en selección, el tablero sigue los hovers al segundo

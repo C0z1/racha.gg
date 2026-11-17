@@ -440,7 +440,13 @@ def mostrar(hwnd, im, x, y):
     return bool(ok)
 
 
-def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, guardar=lambda clave, v: None):
+EJEMPLO_SOMBRA = {"regla": {"tope": 2, "apagadas": 0, "etq": "Tu tope", "color": "rosa"},
+                  "sombra": {"num": "+5", "etq": "CS vs sombra", "color": "salvia", "trazo": None},
+                  "marcas": [{"min": m, "estado": None, "proxima": False} for m in (6, 10, 14, 25)],
+                  "renglon": "Arrástrame · se guarda sola", "panel": None, "opacidad": 1.0}
+
+
+def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, guardar=lambda clave, v: None, anotar=lambda notas, marcas: None):
     """Bucle de tkinter (hilo principal): la pastilla en una ventana en capas (alfa por píxel), siempre encima y
     atravesable. leer() -> estado de HTC; seguir() -> False para cerrar; icono(tipo, nombre) -> PNG en bytes o None.
     Solo se repinta cuando cambia lo que muestra (la foto llega cada 10 s)."""
@@ -451,6 +457,7 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
     root.update_idletasks(); atravesable(root)
     hwnd = ctypes.windll.user32.GetParent(root.winfo_id()) if hasattr(ctypes, "windll") else None
     mostrada, ultimo, errores, marcas, tipo_ant, gen = [False], [None], set(), {}, [None], [0]
+    sm = [None]  # estado de momentos.paso (Sombra) entre ticks
     mov = {"on": False, "agarre": None, "pos": None}  # modo mover (Ajustes): arrastrar con el botón izquierdo, se guarda al soltar
 
     def arrastrar():  # solo en modo mover: lee el mouse cada 16 ms mientras el botón izquierdo está apretado sobre la franja
@@ -486,29 +493,41 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         regla = (((s.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy"))  # tu regla, no la del autor
         marcar(marcas, s.get("meta"), ahora)
         oro = (((s.get("rendimiento") or {}).get("resumen") or {}).get("racha_oro14"))
-        e = estado(s.get("meta"), ahora, aj, regla, s.get("aviso"), marcas, oro) if visible(s, ahora) else None
-        if mov["on"] and not e: e = EJEMPLO  # en modo mover se ve aunque no estés en partida
+        meta = s.get("meta") if visible(s, ahora) else None
+        sombra = aj.get("franja_estilo") == "sombra" and (meta or {}).get("modo") != "ARAM"  # ARAM: la pastilla clásica
+        if sombra:
+            import momentos, lienzo
+            e = None
+            if meta:
+                sm[0], e, notas = momentos.paso(sm[0], meta, s.get("guion"), ahora, aj)
+                if notas: anotar(notas, sm[0]["marcas"])
+            if mov["on"] and not e: e = EJEMPLO_SOMBRA
+        else:
+            e = estado(meta, ahora, aj, regla, s.get("aviso"), marcas, oro) if meta else None
+            if mov["on"] and not e: e = EJEMPLO  # en modo mover se ve aunque no estés en partida
         if not e:
             if mostrada[0]: root.withdraw(); mostrada[0] = False
             ultimo[0] = tipo_ant[0] = None; gen[0] += 1; return
-        juego = rect_juego(); esc = escala(juego); alto = round((ALTO_X if e.get("extra") else ALTO) * esc)
+        juego = rect_juego(); esc = escala(juego)
+        ancho = round((lienzo.ANCHO if sombra else 380) * esc)
+        alto = round((lienzo.ALTO if sombra else ALTO_X if e.get("extra") else ALTO) * esc)  # Sombra: la barra no se mueve; renglón y panel cuelgan debajo
         pant = (root.winfo_screenwidth(), root.winfo_screenheight())
-        if aj.get("franja_pos") == "libre": px, py = libre(juego, pant, aj.get("franja_x", x), aj.get("franja_y", 0), round(380 * esc), alto)
-        else: px, py = colocar(juego, pant, alto, x, aj.get("franja_pos"), y, fraccion_util(), round(380 * esc))
+        if aj.get("franja_pos") == "libre": px, py = libre(juego, pant, aj.get("franja_x", x), aj.get("franja_y", 0), ancho, alto)
+        else: px, py = colocar(juego, pant, alto, x, aj.get("franja_pos"), y, fraccion_util(), ancho)
         clave = (repr(e), esc, px, py)
         if clave == ultimo[0] and mostrada[0]: return  # nada cambió: no se repinta
         if not mostrada[0]: root.deiconify(); root.attributes("-topmost", True); mostrada[0] = True  # la ventana en capas solo se ve tras mostrarla
         gen[0] += 1; g = gen[0]  # los pasos de una animación vieja no pisan un estado nuevo ni una franja oculta
-        img = pintar(e, esc, icono)
+        img = lienzo.pintar(e, esc) if sombra else pintar(e, esc, icono)
         if hwnd: mostrar(hwnd, img, px, py)
-        if hwnd and e["tipo"] in ("aviso", "igualaste", "oro14") and e["tipo"] != tipo_ant[0] and animar():  # al entrar: sacudida (aviso) y dos pulsos
+        if hwnd and e.get("tipo") in ("aviso", "igualaste", "oro14") and e["tipo"] != tipo_ant[0] and animar():  # al entrar: sacudida (aviso) y dos pulsos
             imgs = (pintar({**e, "pulso": True}, esc, icono), img)
             vale = lambda: gen[0] == g and mostrada[0]
             for i, p in enumerate(PULSOS): root.after(250 * (i + 1), lambda p=p: vale() and mostrar(hwnd, imgs[0 if p else 1], px, py))
             if e["tipo"] == "aviso":
                 for i, dx in enumerate(SACUDIDA):
                     root.after(60 * (i + 1), lambda dx=dx: vale() and ctypes.windll.user32.SetWindowPos(hwnd, 0, px + round(dx * esc), py, 0, 0, 0x15))  # NOSIZE|NOZORDER|NOACTIVATE
-        tipo_ant[0] = e["tipo"]
+        tipo_ant[0] = e.get("tipo")
         ultimo[0] = clave
 
     tick(); root.mainloop()
