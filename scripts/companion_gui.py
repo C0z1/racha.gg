@@ -103,7 +103,7 @@ def ultima_partida(archivo=None):
     try:
         puuid = json.loads((RAW / "perfil.json").read_text())["account"]["puuid"]
         f = RAW / f"{archivo}.json" if archivo else max(RAW.glob("*_*.json"), key=lambda p: int(p.stem.split("_")[1]))
-        info = json.loads(f.read_text())["info"]; ps = info["participants"]
+        import score; info = (score.cargar_partida(f) or {})["info"]; ps = info["participants"]  # sin partida legible: KeyError → {}
         me = next(p for p in ps if p["puuid"] == puuid)
         opp = next((p for p in ps if p["teamPosition"] == me["teamPosition"] and p["teamId"] != me["teamId"]), None)
         out = dict(kda=f"{me['kills']}/{me['deaths']}/{me['assists']}", min=info["gameDuration"] // 60,
@@ -111,7 +111,7 @@ def ultima_partida(archivo=None):
     except (OSError, ValueError, KeyError, StopIteration): return {}
     try:  # revisión post-partida (postpartida.py): 3 momentos clave y muertes sin objetivo, si hay timeline
         import postpartida
-        m, tl = json.loads(f.read_text()), json.loads((RAW / "timeline" / f.name).read_text())
+        m, tl = score.cargar_partida(f), json.loads((RAW / "timeline" / f.name).read_text())
         libres = postpartida.muertes_sin_objetivo(m, tl, puuid)
         out.update(momentos=[x["texto"] for x in postpartida.momentos(m, tl, puuid)], estela=postpartida.estela(m, tl, puuid),
                    muertes=[x["texto"] for x in postpartida.muertes(m, tl, puuid)],

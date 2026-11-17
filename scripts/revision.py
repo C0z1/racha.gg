@@ -34,7 +34,8 @@ assert [round(v, 3) for v in wilson(5, 10)] == [0.237, 0.763]
 
 games = []
 for f in RAW.glob("*_*.json"):
-    m = json.loads(f.read_text())["info"]
+    if not (m := score.cargar_partida(f)): print(f"(saltada {f.stem}: archivo dañado)", file=sys.stderr); continue
+    m = m["info"]
     if m["gameDuration"] < 300 or m.get("gameEndedInEarlySurrender"): continue
     ps = m["participants"]
     zs = score.z_partida(m)

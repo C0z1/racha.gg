@@ -125,13 +125,21 @@ def _prueba():
 _prueba()
 
 
+def cargar_partida(f):
+    """Una partida de datos/raw ({matchId}.json, formato Match-V5; lo del cliente ya viene traducido por cliente_v5) como
+    dict, o None si el archivo falta, está cortado o no trae info.participants. Toda lectura de partidas pasa por aquí."""
+    try: m = json.loads(pathlib.Path(f).read_text(encoding="utf-8"))
+    except (OSError, ValueError): return None
+    return m if isinstance(m, dict) and isinstance(m.get("info"), dict) and isinstance(m["info"].get("participants"), list) else None
+
+
 def partidas(raw=None):
     """(gs, med, yo): tus partidas de la Grieta en orden (dicts con t, win, champ, rol, kda, zs y lo de `de`)."""
     raw = pathlib.Path(raw or os.environ.get("DATOS_DIR") or pathlib.Path(__file__).resolve().parent.parent / "datos" / "raw")
     yo = json.loads((raw / "perfil.json").read_text())["account"]["puuid"]
     gs = []
     for f in raw.glob("*_*.json"):
-        try: info = json.loads(f.read_text())["info"]; zs = z_partida(info)
+        try: info = cargar_partida(f)["info"]; zs = z_partida(info)
         except (OSError, ValueError, KeyError, TypeError): continue  # una partida dañada no vacía todo el rendimiento
         me = next((p for p in info["participants"] if p["puuid"] == yo), None)
         if zs and me: gs.append(dict(t=info["gameCreation"], cola=info.get("queueId"), fin=info["gameCreation"] + (info.get("gameDuration") or 0) * 1000, win=me["win"], champ=me["championName"], rol=me["teamPosition"],
