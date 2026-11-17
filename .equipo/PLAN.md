@@ -123,4 +123,4 @@ En Master se ganan y pierden unos 18–20 LP por partida (estimado; depende de t
 
 ## Metas semanales
 - Semana 1: cortar la racha. 55% o más de WR, oro ≥ 0 al 14 en más de la mitad de las partidas, pool cerrado.
-- Después: 58% o más sostenido, con oro ≥ 0 al 14 en más del 55% y ≤ 2 muertes del 14 al 25. Revisa los números cada domingo con `scripts/revision.py` (y, para el detalle, `scripts/analizar.py` y `scripts/timeline.py`) (antes corre `scripts/descargar.py` para bajar las partidas nuevas y sus timelines).
+- Después: 58% o más sostenido, con oro ≥ 0 al 14 en más del 55% y ≤ 2 muertes del 14 al 25. Revisa los números cada domingo con `scripts/revision.py` (antes corre `scripts/descargar.py` para bajar las partidas nuevas y sus timelines).

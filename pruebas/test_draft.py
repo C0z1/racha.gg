@@ -1,4 +1,4 @@
-"""python -m unittest discover scripts  (sin red ni key; draft.py lee datos/raw/perfil.json al importarse)"""
+"""python -m unittest discover pruebas  (sin red ni key; draft.py lee datos/raw/perfil.json al importarse)"""
 import contextlib, io, os, pathlib, subprocess, sys, unittest
 from unittest import mock
 

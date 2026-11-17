@@ -58,6 +58,8 @@ Llevar a `cozi#1134` (LAN) de **Master 15 LP a Challenger** (~1,750 LP). Para lo
 - **Actualizado:** 2026-11-10
 
 ## Mapa del repo
+Carpetas (reorganizado el 2026-11-16): `scripts/` la app, `pruebas/` las pruebas, `herramientas/` utilidades de desarrollo (replay, salud, dev_*), `instalador/` build + humo, `.equipo/archivo/` planes cerrados.
+
 | Archivo | Qué es | Dueño |
 |---|---|---|
 | `.equipo/PLAN.md` | Plan de acción vigente | Opus |
@@ -68,23 +70,23 @@ Llevar a `cozi#1134` (LAN) de **Master 15 LP a Challenger** (~1,750 LP). Para lo
 | `scripts/companion.py` | Lee el cliente de LoL (solo lectura): en champ select corre `draft.py` contra tu rival; al terminar, `descargar.py 5` + `revision.py 1`; en partida, avisos de nivel (5–7), minions (10) y muertes desde el 14 (2+ antes del 25); al terminar, una línea de la última foto en vivo (`resumen_fin()`, sin key). `rango()` da tu LP del cliente (sin key). `--fixture <carpeta>` para probar | Opus |
 | `scripts/companion_web.py` | Companion con UI web local (diseño del canvas): servidor en 127.0.0.1 con `/api/estado`, íconos de Data Dragon en caché; abre Edge `--app`. `--demo`, `--no-abrir` | Opus |
 | `scripts/web/index.html` | La página del companion (champ select del canvas; polling a `/api/estado`) | Opus |
-| `scripts/humo_exe.py` | Humo de la build: corre `Companion.exe --demo --no-abrir`, busca su puerto y comprueba `/api/estado`; sale 0 si responde | Opus |
-| `scripts/test_vistas.py` | Pruebas de `vistas.errores` (pelea perdida sin ti, frame sin tu id) con timelines sintéticos | Opus |
-| `scripts/test_companion_web.py` | Pruebas del servidor web (estado JSON, HTTP, Host, imágenes) sin red ni navegador | Opus |
+| `instalador/humo_exe.py` | Humo de la build: corre `Companion.exe --demo --no-abrir`, busca su puerto y comprueba `/api/estado`; sale 0 si responde | Opus |
+| `pruebas/test_vistas.py` | Pruebas de `vistas.errores` (pelea perdida sin ti, frame sin tu id) con timelines sintéticos | Opus |
+| `pruebas/test_companion_web.py` | Pruebas del servidor web (estado JSON, HTTP, Host, imágenes) sin red ni navegador | Opus |
 | `datos/vivo/` | Fotos en vivo de la Live Client Data API que guarda `companion.py` (una línea JSON cada 30 s; en `.gitignore`) | Opus |
 | `scripts/fixtures/` | JSON de ejemplo de la LCU (gameflow-phase, champ-select session) | Opus |
 | `scripts/fixtures/vivo/allgamedata.json` | Foto sintética de la Live Client Data API (min 6, Ekko 5 contra Zed 6; nombres inventados) | Opus |
-| `scripts/test_companion.py` | Pruebas sin red: `python -m unittest discover scripts` (incluye `Robusto`: lockfile, timeouts, JSON cortado, reinicio a media partida) | Opus |
+| `pruebas/test_companion.py` | Pruebas sin red: `python -m unittest discover pruebas` (incluye `Robusto`: lockfile, timeouts, JSON cortado, reinicio a media partida) | Opus |
 | `scripts/score.py` | Score por partida contra tu equipo y la partida (8 componentes en z contra los 10, corregido por rol; 50 = típico): tendencia, V/D, duelo con tu rival de línea, por campeón, qué te baja: `score.py [N]`; `score.resumen(n)` lo da como dict; `score.tilt()` da hoy, racha y WR tras 2 derrotas seguidas | Opus |
 | `scripts/builds.py` | Build de los mejores (Challenger/GM de la1 y kr, Riot API) y la tuya (`datos/raw`): `builds.py <Campeón> [rol]` o `--pool`; `guardado_dict()` la da como dict para la GUI | Opus |
 | `datos/meta/` | Caché de Riot API y Data Dragon, y `builds.json` que lee `draft.py` (en `.gitignore`) | Opus |
-| `scripts/test_builds.py` | Pruebas de `builds.py` con la Riot API simulada | Opus |
-| `scripts/test_score.py` | Pruebas de `score.py` y de la columna Score de `revision.py` | Opus |
-| `scripts/test_ds_*.py` | Pruebas de casos borde que escribe DeepSeek | DeepSeek |
-| `scripts/test_flujo.py` | Humo del companion de punta a punta sin cliente (champ select, partida, post-partida); corre en el CI | Opus |
-| `scripts/test_draft.py` | Pruebas de `draft.py` (funciones y recomendación con partidas sintéticas) y humo de `revision.py 1` | Opus |
+| `pruebas/test_builds.py` | Pruebas de `builds.py` con la Riot API simulada | Opus |
+| `pruebas/test_score.py` | Pruebas de `score.py` y de la columna Score de `revision.py` | Opus |
+| `pruebas/test_ds_*.py` | Pruebas de casos borde que escribe DeepSeek | DeepSeek |
+| `pruebas/test_flujo.py` | Humo del companion de punta a punta sin cliente (champ select, partida, post-partida); corre en el CI | Opus |
+| `pruebas/test_draft.py` | Pruebas de `draft.py` (funciones y recomendación con partidas sintéticas) y humo de `revision.py 1` | Opus |
 | `scripts/fixtures/datos/` | Perfil y una partida mínima: `test_draft` los usa si no hay `datos/raw` (CI, clon nuevo) | Opus |
-| `.github/workflows/pruebas.yml` | CI: `python -m unittest discover scripts` en Ubuntu y Windows | Opus |
+| `.github/workflows/pruebas.yml` | CI: `python -m unittest discover pruebas` en Ubuntu y Windows | Opus |
 | `docs/config.ejemplo.json` | Ejemplo (cozi) de `config.json`: pool y meta `minions10` para `revision.py`; `config.json` va en `.gitignore` | Opus |
 | `.equipo/notas-equipo.md` | Detalle de cada turno y de cada revisión | Ambos (solo agregar) |
 | `.equipo/BITACORA.md` | Sesiones jugadas por el usuario | DeepSeek |

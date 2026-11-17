@@ -1,4 +1,4 @@
-"""python -m unittest discover scripts  (sin red, sin cliente y sin abrir ventana)"""
+"""python -m unittest discover pruebas  (sin red, sin cliente y sin abrir ventana)"""
 import json, os, pathlib, sys, unittest
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent / "scripts"
