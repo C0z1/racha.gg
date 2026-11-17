@@ -4,6 +4,8 @@ Una línea por versión, en palabras de jugador. Lo más nuevo arriba.
 
 ## Sin publicar
 - Un archivo de partida dañado ya no rompe la selección de campeón ni las builds: se salta.
+- Las partidas que se guardaron desde el cliente de LoL se cambian por la versión completa de Riot, con compras de ítems y habilidades. Las de práctica se quedan como están.
+- Más seguridad: una página web cualquiera ya no puede pedirle nada al Racha que corre en tu PC.
 - Inicio más claro: tu regla de hoy arriba, tu racha y tu sesión lado a lado, y la versión junto a «Actualizar» en vez de tapar los atajos.
 - En ranked, Racha ya no toma como tu rival al primer enemigo que elige: espera al que juega tu línea, según el rol de cada campeón en Master+.
 - Arreglo: en la Herramienta de práctica salía «Error: AttributeError» por los muñecos sin ítems.

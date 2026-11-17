@@ -677,6 +677,10 @@ class H(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         # contra DNS rebinding: otra web no puede leer el estado aunque resuelva su dominio a 127.0.0.1
         if self.headers.get("Host", "").split(":")[0] not in ("127.0.0.1", "localhost"): return self.enviar(403, b"", "text/plain")
+        # una página de otro sitio ni siquiera recibe 200; sin el header (http.client: otro_htc, humo, salud) pasa como antes.
+        # /oauth es la vuelta de Google (navegación cross-site); su state de un solo uso la protege
+        if self.headers.get("Sec-Fetch-Site", "none") not in ("same-origin", "none") and not self.path.startswith("/oauth?"):
+            return self.enviar(403, b"", "text/plain")
         VIVO[0] = time.time()
         if self.path == "/": return self.enviar(200, (WEB / "index.html").read_bytes(), "text/html; charset=utf-8")
         if m := re.fullmatch(r"/fonts/(mulish|inter)\.woff2", self.path):  # empaquetadas (OFL): la CSP no deja cargar Google Fonts

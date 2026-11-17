@@ -140,6 +140,12 @@ league = get(f"https://{PLATAFORMA}.api.riotgames.com/lol/league/v4/entries/by-p
 MARCA = RAW / "historial.json"  # {"completo": true}: el historial entero ya se bajó una vez
 completo = MARCA.exists()
 conocidos = {f.stem for f in RAW.glob("*_*.json")}
+# Match-V5 es la fuente canónica: lo guardado desde el cliente (cliente_v5.a_v5, sin dataVersion) se cambia por la versión
+# de Riot. Las que Riot no tiene (Herramienta de práctica, personalizadas: 404) se anotan para no pedirlas en cada corrida.
+SOLO_CLIENTE = RAW / "solocliente.json"  # sin «_» en el nombre: no es una partida para los glob("*_*.json")
+try: solo_cliente = set(json.loads(SOLO_CLIENTE.read_text()))
+except (OSError, ValueError, TypeError): solo_cliente = set()
+del_cliente = {f.stem for f in RAW.glob("*_*.json") if b'"dataVersion"' not in f.read_bytes()} - solo_cliente
 
 
 def num(mid): return int(mid.rsplit("_", 1)[-1]) if mid.rsplit("_", 1)[-1].isdigit() else 0
@@ -154,7 +160,7 @@ for cola in COLAS:
         ids += pag
         if len(pag) < c or (completo and any(m in conocidos for m in pag)): break  # sin más, o ya llegamos a lo que tenías
         start += c
-ids = sorted(set(ids), key=num, reverse=True)  # lo más nuevo primero: un corte deja lo reciente ya bajado
+ids = sorted(set(ids) | del_cliente, key=num, reverse=True)  # lo más nuevo primero: un corte deja lo reciente ya bajado
 
 TL = RAW / "timeline"
 TL.mkdir(exist_ok=True)
@@ -163,10 +169,12 @@ for i, mid in enumerate(ids):
     base = f"https://{RUTA}.api.riotgames.com/lol/match/v5/matches/{mid}"
     pares = ((RAW / f"{mid}.json", base), (TL / f"{mid}.json", base + "/timeline")) if i < RECIENTES else ((RAW / f"{mid}.json", base),)
     faltan = [(f, url) for f, url in pares if not f.exists()]
+    if mid in del_cliente: faltan = [(TL / f"{mid}.json", base + "/timeline"), (RAW / f"{mid}.json", base)]  # timeline primero: un corte la deja del cliente y se reintenta
     try:
         datos = [(f, get(url)) for f, url in faltan]  # las recientes, partida y timeline juntas; las viejas, la partida (timeline en la 2.ª pasada)
     except urllib.error.HTTPError as e:
         if e.code != 404: raise
+        if mid in del_cliente: solo_cliente.add(mid); continue  # Riot no la tiene: se queda la del cliente
         pendientes.append(mid)  # Riot aún no procesa la partida recién terminada: queda para la próxima corrida
         continue
     for f, data in datos:
@@ -179,6 +187,7 @@ for j, mid in enumerate(viejas):
     except urllib.error.HTTPError as e:
         if e.code != 404: raise
     decir(f"detalles {j + 1}/{len(viejas)}", end="\r")
+if solo_cliente: SOLO_CLIENTE.write_text(json.dumps(sorted(solo_cliente)))
 import cliente_v5  # noqa: E402  (el perfil quedó con el puuid de la API: las partidas guardadas desde el cliente lo adoptan)
 if (rep := cliente_v5.unificar(RAW)): decir(f"reparadas {rep} partidas con tu otro puuid (las guardadas desde el cliente)")
 if pendientes: decir(f"Riot dio 404 en {len(pendientes)} (aún sin procesar, se bajan la próxima vez): {' '.join(pendientes)}", err=True)

@@ -3,7 +3,7 @@ import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve
 import http.server, json, os, pathlib, subprocess, sys, tempfile, threading, unittest
 
 DIR = pathlib.Path(__file__).resolve().parent.parent / "scripts"
-PARTIDA = {"metadata": {"matchId": "LA1_9"}, "info": {"participants": []}}
+PARTIDA = {"metadata": {"dataVersion": "2", "matchId": "LA1_9"}, "info": {"participants": []}}  # como Riot: con dataVersion
 
 
 class Falso(http.server.BaseHTTPRequestHandler):
