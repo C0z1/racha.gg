@@ -248,6 +248,14 @@ class PostPartida(unittest.TestCase):
         self.assertEqual(self.corre([0, 0]), ["descargar.py", "revision.py"])
 
 
+class MunecoDePractica(unittest.TestCase):
+    def test_items_con_error_no_truena(self):  # Herramienta de práctica: el muñeco trae "items": {"error": ...}
+        d = foto(); d["allPlayers"][-1].update(items={"error": "Unable to find player"}, scores={"error": "Unable to find player"})
+        with self.assertRaises(AttributeError): companion.paso_vivo(foto() | {"allPlayers": d["allPlayers"]}, {"avisado": set()}, {})
+        mf, _ = companion.paso_vivo(companion.limpia(d), {"avisado": set()}, {})
+        self.assertIsNotNone(mf)
+
+
 class Robusto(unittest.TestCase):
     """Cliente que se reinicia, lockfile nuevo o a medias, timeouts y JSON cortado (urlopen simulado, sin red)."""
     def setUp(self):
