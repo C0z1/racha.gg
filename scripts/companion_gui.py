@@ -276,9 +276,9 @@ def hay_key():
     except (AttributeError, OSError): return False
 
 
-def rivales_linea(pos, nombres):
+def rivales_linea(pos, nombres, umbral=0.25):
     """En ranked Riot oculta el rol de los enemigos: de los ya elegidos, el que más juega tu posición según las builds
-    Master+ (datos/meta/builds.json, cuota de partidas en ese rol ≥ 20 %); empate, tu historial. [] si ninguno la juega:
+    Master+ (datos/meta/builds.json, cuota de partidas en ese rol ≥ 25 %, elegido con herramientas/dev_umbral.py); empate, tu historial. [] si ninguno la juega:
     tu rival aún no elige. Sin ese archivo, como antes: el que más fue tu rival en tus partidas, o todos."""
     nombres = [n for n in nombres if n]
     try: import draft; hist = collections.Counter(g["opp"] for g in draft.games if g.get("pos") == pos)
@@ -293,7 +293,7 @@ def rivales_linea(pos, nombres):
         mejor = max(nombres, key=hist.__getitem__, default=None)
         return nombres if len(nombres) < 2 or not hist[mejor] else [mejor]
     cuota = lambda n: mio[builds.norm(n)] / tot[builds.norm(n)] if tot[builds.norm(n)] else None
-    if cand := [n for n in nombres if (cuota(n) or 0) >= 0.2]: return [max(cand, key=lambda n: (cuota(n), hist[n]))]
+    if cand := [n for n in nombres if (cuota(n) or 0) >= umbral]: return [max(cand, key=lambda n: (cuota(n), hist[n]))]
     sin = [n for n in nombres if cuota(n) is None and hist[n]]  # campeón sin builds del ladder: tu historial decide
     return [max(sin, key=hist.__getitem__)] if sin else []
 
