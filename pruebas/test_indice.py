@@ -1,6 +1,6 @@
 """indice.py: lo calculado por partida se guarda en SQLite y vale mientras no cambien la partida, su timeline ni la versión."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
-import json, os, pathlib, tempfile, unittest
+import json, os, pathlib, sys, tempfile, unittest
 
 import indice
 
@@ -59,6 +59,28 @@ class Indice(unittest.TestCase):
         a = pathlib.Path(self.tmp.name) / "m.py"; a.write_text("x = 1")
         v1 = indice.version(a, "puuid"); a.write_text("x = 2")
         self.assertNotEqual(v1, indice.version(a, "puuid")); self.assertNotEqual(indice.version(a, "otro"), indice.version(a, "puuid"))
+
+
+class CarpetaConBasura(unittest.TestCase):
+    """Partida cortada, archivos que no son partidas y un timeline roto: nada se cae y la partida buena cuenta."""
+    def test_nada_se_cae(self):
+        import shutil, subprocess
+        fix = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "fixtures" / "datos"
+        with tempfile.TemporaryDirectory() as d:
+            d = pathlib.Path(d); (d / "timeline").mkdir()
+            for n in ("perfil.json", "XX_1.json"): shutil.copy(fix / n, d / n)
+            (d / "XX_2.json").write_text((fix / "XX_1.json").read_text(encoding="utf-8")[:400], encoding="utf-8")  # cortada
+            (d / "XX_3.json").write_text("[]"); (d / "XX_4.json").write_text("")
+            (d / "timeline" / "XX_1.json").write_text('{"info": {"frames": "roto"}}')
+            prog = ("import sys; sys.path.insert(0, sys.argv[1]); import draft, score, companion_gui as g; "
+                    "print(len(draft.games), len(score.partidas()[0]), g.ultima_partida()['kda'])")
+            env = {**os.environ, "DATOS_DIR": str(d), "RACHA_INDICE": str(d / "i.db"), "PYTHONIOENCODING": "utf-8"}
+            scripts = str(fix.parent.parent)
+            for vuelta in ("frío", "caliente"):
+                r = subprocess.run([sys.executable, "-c", prog, scripts], env=env, capture_output=True, text=True, encoding="utf-8", timeout=60)
+                self.assertEqual(r.returncode, 0, r.stderr); self.assertTrue(r.stdout.startswith("1 1 "), (vuelta, r.stdout))
+            r = subprocess.run([sys.executable, str(fix.parent.parent / "revision.py"), "1"], env=env, capture_output=True, text=True, encoding="utf-8", timeout=60)
+            self.assertEqual(r.returncode, 0, r.stderr)
 
 
 if __name__ == "__main__":

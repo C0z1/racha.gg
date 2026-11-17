@@ -102,8 +102,10 @@ def ultima_partida(archivo=None):
     (los id de partida crecen con el tiempo) o de `archivo` («LA1_123», la que elegiste en Partidas)."""
     try:
         puuid = json.loads((RAW / "perfil.json").read_text())["account"]["puuid"]
-        f = RAW / f"{archivo}.json" if archivo else max(RAW.glob("*_*.json"), key=lambda p: int(p.stem.split("_")[1]))
-        import score; info = (score.cargar_partida(f) or {})["info"]; ps = info["participants"]  # sin partida legible: KeyError → {}
+        import score
+        f = RAW / f"{archivo}.json" if archivo else next((p for p in sorted(RAW.glob("*_*.json"), key=lambda p: int(p.stem.split("_")[1]), reverse=True)
+                                                           if score.cargar_partida(p)), RAW / "-.json")  # la más nueva que se pueda leer
+        info = (score.cargar_partida(f) or {})["info"]; ps = info["participants"]  # sin partida legible: KeyError → {}
         me = next(p for p in ps if p["puuid"] == puuid)
         opp = next((p for p in ps if p["teamPosition"] == me["teamPosition"] and p["teamId"] != me["teamId"]), None)
         out = dict(kda=f"{me['kills']}/{me['deaths']}/{me['assists']}", min=info["gameDuration"] // 60,

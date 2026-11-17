@@ -53,19 +53,22 @@ def _juego(f):
              enemies=sorted({p["championName"] for p in ps if p["teamId"] != me["teamId"]}), gd14=None, t=m["gameCreation"])
     tf = RAW / "timeline" / f.name
     if opp and tf.exists():
-        fr = json.loads(tf.read_text())["info"]["frames"]
-        yo, el = str(me["participantId"]), str(opp["participantId"])
-        dif = lambda i, f: f(fr[i]["participantFrames"][yo]) - f(fr[i]["participantFrames"][el])
-        if len(fr) > 14:
-            g["gd14"] = dif(14, lambda p: p["totalGold"])
-            g["xp14"] = dif(14, lambda p: p["xp"])
-            g["cs14"] = dif(14, lambda p: p["minionsKilled"] + p["jungleMinionsKilled"])
-        if len(fr) > 6: g["nivel6"] = dif(6, lambda p: p["level"])
-        if len(fr) > 10: g["min10"] = fr[10]["participantFrames"][yo]["minionsKilled"]
-        if len(fr) > 25: g["m25"] = sum(e.get("type") == "CHAMPION_KILL" and e.get("victimId") == me["participantId"]
-                                        and 14 * 60000 <= e["timestamp"] < 25 * 60000 for f in fr for e in f["events"])
-        g["muertes6"] = sum(e.get("type") == "CHAMPION_KILL" and e.get("victimId") == me["participantId"] and e["timestamp"] < 360000
-                            for f in fr for e in f["events"])
+        base = dict(g)
+        try:
+            fr = json.loads(tf.read_text())["info"]["frames"]
+            yo, el = str(me["participantId"]), str(opp["participantId"])
+            dif = lambda i, f: f(fr[i]["participantFrames"][yo]) - f(fr[i]["participantFrames"][el])
+            if len(fr) > 14:
+                g["gd14"] = dif(14, lambda p: p["totalGold"])
+                g["xp14"] = dif(14, lambda p: p["xp"])
+                g["cs14"] = dif(14, lambda p: p["minionsKilled"] + p["jungleMinionsKilled"])
+            if len(fr) > 6: g["nivel6"] = dif(6, lambda p: p["level"])
+            if len(fr) > 10: g["min10"] = fr[10]["participantFrames"][yo]["minionsKilled"]
+            if len(fr) > 25: g["m25"] = sum(e.get("type") == "CHAMPION_KILL" and e.get("victimId") == me["participantId"]
+                                            and 14 * 60000 <= e["timestamp"] < 25 * 60000 for f in fr for e in f["events"])
+            g["muertes6"] = sum(e.get("type") == "CHAMPION_KILL" and e.get("victimId") == me["participantId"] and e["timestamp"] < 360000
+                                for f in fr for e in f["events"])
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError): g = base  # timeline roto: la partida sin sus datos de minuto
     return g
 
 

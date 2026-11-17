@@ -47,20 +47,23 @@ def _juego(f):
              lm10=me.get("challenges", {}).get("laneMinionsFirst10Minutes") if M10 and me["championName"] == M10["campeon"] else None)
     tf = RAW / "timeline" / f.name
     if tf.exists():
-        fr = json.loads(tf.read_text())["info"]["frames"]; pid = me["participantId"]
-        if opp and len(fr) > 14:
-            a, b = fr[14]["participantFrames"][str(pid)], fr[14]["participantFrames"][str(opp["participantId"])]
-            g["gd14"] = a["totalGold"] - b["totalGold"]
-            g["cd14"] = a["minionsKilled"] + a["jungleMinionsKilled"] - b["minionsKilled"] - b["jungleMinionsKilled"]
-            g["xd14"] = a["xp"] - b["xp"]
-            a6, b6 = fr[6]["participantFrames"][str(pid)], fr[6]["participantFrames"][str(opp["participantId"])]
-            g["lv6"] = a6["level"] - b6["level"]  # foto del minuto 6, como el aviso en vivo de companion.py
-        mins = [e["timestamp"] / 60000 for x in fr for e in x["events"] if e["type"] == "CHAMPION_KILL" and e["victimId"] == pid]
-        g["d14"] = sum(t < 14 for t in mins); g["d25"] = sum(14 <= t < 25 for t in mins)
-        if me["teamPosition"] in NOMBRE:  # sin jungla: no tiene "tu línea"
-            g["rio14"] = sum(pasado(zone(e["position"]["x"], e["position"]["y"], me["teamId"]), NOMBRE[me["teamPosition"]])
-                             for x in fr for e in x["events"]
-                             if e["type"] == "CHAMPION_KILL" and e["victimId"] == pid and e["timestamp"] < 14 * 60000)
+        base = dict(g)
+        try:
+            fr = json.loads(tf.read_text())["info"]["frames"]; pid = me["participantId"]
+            if opp and len(fr) > 14:
+                a, b = fr[14]["participantFrames"][str(pid)], fr[14]["participantFrames"][str(opp["participantId"])]
+                g["gd14"] = a["totalGold"] - b["totalGold"]
+                g["cd14"] = a["minionsKilled"] + a["jungleMinionsKilled"] - b["minionsKilled"] - b["jungleMinionsKilled"]
+                g["xd14"] = a["xp"] - b["xp"]
+                a6, b6 = fr[6]["participantFrames"][str(pid)], fr[6]["participantFrames"][str(opp["participantId"])]
+                g["lv6"] = a6["level"] - b6["level"]  # foto del minuto 6, como el aviso en vivo de companion.py
+            mins = [e["timestamp"] / 60000 for x in fr for e in x["events"] if e["type"] == "CHAMPION_KILL" and e["victimId"] == pid]
+            g["d14"] = sum(t < 14 for t in mins); g["d25"] = sum(14 <= t < 25 for t in mins)
+            if me["teamPosition"] in NOMBRE:  # sin jungla: no tiene "tu línea"
+                g["rio14"] = sum(pasado(zone(e["position"]["x"], e["position"]["y"], me["teamId"]), NOMBRE[me["teamPosition"]])
+                                 for x in fr for e in x["events"]
+                                 if e["type"] == "CHAMPION_KILL" and e["victimId"] == pid and e["timestamp"] < 14 * 60000)
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError): g = base  # timeline roto: la partida sin sus datos de minuto
     return g
 
 
