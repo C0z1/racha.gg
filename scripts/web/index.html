@@ -85,6 +85,7 @@ details summary{cursor:pointer;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.tuboH i,.tuboH i::after{animation:none}}
 .atajo{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--dark2);color:var(--txt);font:600 15px Mulish,'Segoe UI',sans-serif;cursor:pointer;text-align:left}
 .atajo:hover{border-color:var(--acc)}
+@media (max-height:820px){aside{gap:18px}.atajo{padding:10px 16px}}
 nav .abajo{margin-top:auto}
 details.otras{position:relative}details.otras summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:10px 14px;white-space:nowrap}details.otras summary::after{content:" ⌄"}
 details.otras[open]>div{background:var(--dark2);border-radius:10px;padding:8px 12px}
@@ -183,7 +184,6 @@ nav button:hover{transform:translateX(2px)}.btn:hover{transform:translateY(-1px)
 .act button{height:34px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:rgba(11,7,9,.72);color:var(--txt);font:800 13px Mulish,'Segoe UI',sans-serif;cursor:pointer;transition:transform .12s var(--sal),border-color .12s}
 .act button:hover{border-color:var(--acc)}.act button:active{transform:scale(.97)}.act button.nueva{background:var(--estela);color:#1E0E16;border:none}
 .act span{font-size:12px;color:var(--muted);max-width:260px;text-align:right}
-.ver{position:fixed;right:12px;bottom:8px;z-index:60;font:600 11px Inter,'Segoe UI',sans-serif;color:var(--soft);opacity:.75;pointer-events:none}
 .heroe{font-size:72px;line-height:1;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;background:linear-gradient(180deg,#FFFFFF,var(--e3));-webkit-background-clip:text;background-clip:text;color:transparent}
 .etq{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--e3)}
 .vacio-e{display:flex;align-items:center;gap:18px}.vacio-e svg{flex-shrink:0;opacity:.35}
@@ -203,7 +203,6 @@ main>:nth-child(4),aside>:nth-child(4){animation-delay:.18s}main>:nth-child(5),a
 </head>
 <body>
 <div id="act" class="act" aria-live="polite"></div>
-<span id="ver" class="ver" aria-label="Versión de Racha"></span>
 <div class="app">
 <nav aria-label="Secciones">
 <button id="b-inicio" aria-label="Inicio" aria-current="page" onclick="ver('inicio')"></button>
@@ -596,8 +595,8 @@ function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un bo
   const racha = !g0 ? "" : `<div class="card"><span class="etq">Tu racha</span>
     <div style="display:flex;align-items:flex-end;gap:10px" role="img" aria-label="${rv} ${g0.win ? "victorias" : "derrotas"} seguidas">
       ${g0.win ? Array.from({length: Math.min(rv, 4)}, (_, i) => `<span class="barra-r" style="height:${28 + i * 14}px;background:${BARRAS[i]};animation-delay:${i * .12}s"></span>`).join("")
-        : `<span class="barra-r" style="height:28px;background:var(--dark4)"></span>`}
-      <span class="heroe" style="font-size:56px;margin-left:8px">${rv}</span><span class="sub" style="margin-bottom:6px">${g0.win ? (rv === 1 ? "victoria" : "victorias seguidas") : (rv === 1 ? "derrota" : "derrotas seguidas")}</span></div>
+        : ""}
+      <span class="heroe" style="font-size:56px${g0.win ? ";margin-left:8px" : ""}">${rv}</span><span class="sub" style="margin-bottom:6px">${g0.win ? (rv === 1 ? "victoria" : "victorias seguidas") : (rv === 1 ? "derrota" : "derrotas seguidas")}</span></div>
     <span class="sub" style="font-size:13px">${g0.win ? (rv >= 4 ? "Tu racha más larga en la estela: sigue con tu regla." : "Cada victoria suma una barra de la estela.") : "La próxima victoria abre una racha nueva."}</span></div>`;
   const descanso = !resta ? "" : `<div class="card" style="flex-direction:row;align-items:center;gap:26px;box-shadow:var(--s2),0 0 0 1px rgba(255,138,138,.45) inset">
     <svg aria-hidden="true" width="108" height="108" viewBox="0 0 108 108" style="flex-shrink:0;transform:rotate(-90deg)"><circle cx="54" cy="54" r="46" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="7"/>
@@ -619,9 +618,8 @@ function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un bo
     <span class="sub" style="display:flex;align-items:center;gap:10px;font-size:13px"><span class="luz ${cliente ? "on" : ""}" style="width:28px;height:28px"><i style="width:10px;height:10px"></i></span>${cliente ? "Cliente conectado · " + esc(FASES[s.fase] ?? s.fase) : "Abre el cliente de LoL"}</span></div>
   ${pasos}
   ${descanso}
-  ${racha}
   ${regla}
-  ${sesion}
+  ${racha ? `<div class="dos" style="align-items:stretch">${racha}${sesion}</div>` : sesion}
   ${s.rendimiento ? `<button class="btn principal" style="align-self:flex-start" onclick="ver('draft')">Empezar a subir</button>` : ""}`;
   const base = t && t.base.wr, x = w => Math.max(0, Math.min(100, (w - .45) / .2 * 100));
   // Home_Vino: avatar con aro rosa, región · rol; tarjeta de rango con emblema y la meta; atajos a Qué cambiar, errores y partidas
@@ -1136,9 +1134,8 @@ async function actualizar() {
 function barraAct(s) {  // arriba a la derecha: «Actualizar» (busca, baja e instala sola); con versión nueva, resaltado
   const n = s.nueva, al = s.al_dia && Date.now() / 1000 - s.al_dia < 8;
   const enCurso = n && n.estado && /Buscando|Bajando|Lista/.test(n.estado);
-  document.getElementById("act").innerHTML = (n && n.estado ? `<span>${esc(n.estado)}</span>` : al ? `<span>Racha está al día ✓</span>` : "")
+  document.getElementById("act").innerHTML = (n && n.estado ? `<span>${esc(n.estado)}</span>` : al ? `<span>Racha está al día ✓</span>` : s.version ? `<span>v${esc(s.version)}</span>` : "")
     + (enCurso ? "" : `<button class="${n && n.version ? "nueva" : ""}" onclick="actualizar()" title="Busca la versión nueva y la instala (nunca a mitad de partida)">${n && n.version ? "Actualizar a " + esc(n.version) : "Actualizar"}</button>`);
-  document.getElementById("ver").textContent = s.version ? "Racha v" + s.version : "";
 }
 async function ajuste(clave, on) {
   try { await fetch("/api/ajuste", {method: "POST", headers: {"X-HTC": "1", "Content-Type": "application/json"}, body: JSON.stringify({clave, on})}); } catch (e) {}
