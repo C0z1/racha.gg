@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para companion_gui.lineas_ficha() con `anticipa` (turno 6, iteración 12).
+"""Pruebas de DeepSeek para companion_gui.lineas_ficha() con `anticipa`.
 
 Sin red ni ventana. Cubre los bordes que dejó Opus:
 (a) anticipa=["muertes6"] con muertes6 None → no sale renglón «se repite» ni truena.

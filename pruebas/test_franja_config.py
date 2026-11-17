@@ -29,7 +29,7 @@ class Piezas(unittest.TestCase):
 
     def test_defaults_y_lista_blanca(self):
         a = g.ajustes()
-        self.assertEqual(a["franja_pos"], "arriba"); self.assertTrue(a["franja_linea"] and a["franja_regla"]); self.assertNotIn("franja_objetivos", a)  # timers fuera de la franja (0.17)
+        self.assertEqual(a["franja_pos"], "arriba"); self.assertTrue(a["franja_linea"] and a["franja_regla"]); self.assertNotIn("franja_objetivos", a)  # timers fuera de la franja
         self.assertEqual(g.guardar_ajuste("franja_pos", "abajo")["franja_pos"], "abajo"); self.assertEqual(g.ajustes()["franja_pos"], "abajo")
         for clave, v in (("franja_pos", "lado"), ("franja_pos", True), ("franja_pos", None), ("franja_linea", "abajo"), ("overlay", "arriba")):
             with self.assertRaises(ValueError): g.guardar_ajuste(clave, v)

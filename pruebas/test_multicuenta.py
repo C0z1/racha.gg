@@ -35,7 +35,7 @@ class TestMulticuenta(unittest.TestCase):
         self.assertFalse(gui.usar_cuenta("cozi#1134", "b" * 40))  # misma carpeta: no cambia nada
 
     def test_sin_puuid_o_sin_dueno_queda_la_base(self):
-        self.assertFalse(gui.usar_cuenta("Zeriously#cozi", None)); self.assertTrue(gui.ajeno("Zeriously#cozi"))  # como antes (hallazgo 20)
+        self.assertFalse(gui.usar_cuenta("Zeriously#cozi", None)); self.assertTrue(gui.ajeno("Zeriously#cozi"))  # como antes
         self.assertFalse(gui.usar_cuenta("Otro#1", "../../x"))  # puuid raro: no se usa como carpeta
         (self.base / "perfil.json").unlink()
         self.assertFalse(gui.usar_cuenta("Amigo#LAN", PUUID))  # amigo recién instalado: su historial va a la base

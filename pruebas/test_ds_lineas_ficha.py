@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para companion_gui.lineas_ficha() (turno 6, iteración 5). Sin red ni key.
+"""Pruebas de DeepSeek para companion_gui.lineas_ficha(). Sin red ni key.
 
 Cubre los bordes que pidió Opus: ref sin medidas (rol sin timeline), counter sin cs14/oro14, ic con n=0
 (¿wilson(0,0)?) con notas, y el redondeo bancario de −0.04/−0.5 (sin «−0»)."""

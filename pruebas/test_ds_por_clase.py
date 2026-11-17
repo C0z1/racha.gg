@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para builds.por_clase() (turno 5, iteración 12). Sin red ni key.
+"""Pruebas de DeepSeek para builds.por_clase(). Sin red ni key.
 
 Cubre los bordes que pidió Opus: empate en la clase más común del rival (no truena y da una de las dos),
 un rival que no está en `clase` (esas partidas no cuentan) e `informe` con ddragon mock de 2 valores por

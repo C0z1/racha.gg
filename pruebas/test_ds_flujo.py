@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek del humo del companion (turno 4, iteración 5): dodge y key caducada.
+"""Pruebas de DeepSeek del humo del companion: dodge y key caducada.
 Mismo patrón que test_flujo.py: solo se simulan urlopen, el lockfile, sleep, el reloj y descargar.py."""
 import contextlib, io, json, os, pathlib, subprocess, sys, tempfile, unittest
 

@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para companion.meta_fase y companion_gui.texto_meta (turno 5, iteración 8). Sin red ni ventana.
+"""Pruebas de DeepSeek para companion.meta_fase y companion_gui.texto_meta. Sin red ni ventana.
 
 Cubre los bordes que pidió Opus: activePlayer que no está en allPlayers (→ None), nivel y CS null (→ «?» sin tronar)
 y la meta al 10 que desaparece del texto desde el minuto 11."""

@@ -1,4 +1,4 @@
-"""A1 (ronda 2): companion.unir_eventos(d, previos) y la pausa de overlay.partes. Sin red. Hoy fallan porque aun no existen
+"""A1: companion.unir_eventos(d, previos) y la pausa de overlay.partes. Sin red. Hoy fallan porque aun no existen
 (expectedFailure); cuando Opus los implemente se les quita el decorador.
 unir_eventos(d, previos): d con events.Events unidos por clave (EventName, EventTime); previos = la foto o lista de eventos previa.
 Se asume que `previos` es una foto completa (dict con events.Events); si Opus elige otra forma, ajustar _previos()."""

@@ -1,4 +1,4 @@
-"""Franja 0.20 (PLAN-OVERLAY-2): tu próximo ítem con el oro que falta, al morir (tras 6 s) o al comprar (8 s). Sin red."""
+"""Franja 0.20: tu próximo ítem con el oro que falta, al morir (tras 6 s) o al comprar (8 s). Sin red."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import unittest
 

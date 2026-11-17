@@ -1,4 +1,4 @@
-"""Al salir de la partida se guarda sola (pedido del usuario, 2026-11-12): sin key o con otra cuenta, desde el cliente."""
+"""Al salir de la partida se guarda sola: sin key o con otra cuenta, desde el cliente."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import queue, unittest
 from unittest import mock

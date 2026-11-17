@@ -18,14 +18,14 @@ class Candado(unittest.TestCase):
             r = d.main([orden], lcu=lambda p, m=modo: {"phase": "InProgress", "gameData": {"queue": {"gameMode": m}}}, escribir=lambda *a: escrito.append(a) or True)
             self.assertEqual((r, bool(escrito)), (sale, sale), modo)
 
-    def test_salir_solo_en_partida(self):  # hallazgo 18: modo de práctica en la sesión pero fuera de partida, no escribe
+    def test_salir_solo_en_partida(self):  # modo de práctica en la sesión pero fuera de partida, no escribe
         for fase, sale in (("None", False), ("Lobby", False), ("InProgress", True), ("Reconnect", True)):
             escrito = []
             r = d.main(["reconectar"], lcu=lambda p, f=fase: {"phase": f, "gameData": {"queue": {"gameMode": "PRACTICETOOL"}}},
                        escribir=lambda *a: escrito.append(a) or True)
             self.assertEqual((r, bool(escrito)), (sale, sale), fase)
 
-    def test_espera_antes_de_elegir(self):  # B3 (ronda 4): N s en la selección para capturar las vistas
+    def test_espera_antes_de_elegir(self):  # B3: N s en la selección para capturar las vistas
         fases, dormidas = iter(["None", "InProgress"]), []
         lcu = lambda p: next(fases) if p.endswith("phase") else None
         self.assertTrue(d.main(["245", "--espera", "25"], lcu=lcu, escribir=lambda *a: True, dormir=dormidas.append))

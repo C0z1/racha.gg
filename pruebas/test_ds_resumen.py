@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para score.resumen() (turno 5, iteración 13, afinada en la noche).
+"""Pruebas de DeepSeek para score.resumen().
 
 Cubre los bordes que pidió Opus: 0 partidas (tendencia [] y por_campeon {}), exactamente 20 partidas
 (tendencia de un solo bloque) y `clave` en victorias/derrotas (con positivo/negativo claro, y con todos

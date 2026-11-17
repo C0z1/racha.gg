@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para companion_gui.trabajador (turno 5, iteración 10). Sin red ni ventana.
+"""Pruebas de DeepSeek para companion_gui.trabajador. Sin red ni ventana.
 
 Cubre lo que pidió Opus: (1) el error cambia de texto entre vueltas → salen los dos; (2) error, vuelta sin error,
 el mismo error → sale 2 veces; (3) `lcu` que lanza siempre → las esperas crecen 6, 12, 24 (espera(1..3); la de 3 s

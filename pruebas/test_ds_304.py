@@ -1,4 +1,4 @@
-"""Pruebas del 304 de /api/estado (propuesta de DeepSeek, aplicada por Opus en 50f7bbb):
+"""Pruebas del 304 de /api/estado:
 GET /api/estado?desde=<v> responde 304 sin cuerpo si ESTADO['v'] no cambió; con otro v, sin ?desde o con
 ?desde=basura, 200 con el JSON. Mismo patrón de servidor que pruebas/test_companion_web.py (sin red ni navegador)."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/

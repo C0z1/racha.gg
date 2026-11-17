@@ -54,7 +54,7 @@ class TestBackend(unittest.TestCase):
     def test_todo_solo_y_flex_y_marca(self):
         r, d = self.correr("codigo-ok", "todo")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(sorted(f.stem for f in d.glob("LA1_*.json")), ["LA1_12", "LA1_9"])  # solo Solo/Duo (0.31): sin la Flex
+        self.assertEqual(sorted(f.stem for f in d.glob("LA1_*.json")), ["LA1_12", "LA1_9"])  # solo Solo/Duo: sin la Flex
         self.assertTrue(all("startTime=1767225600&queue=420" in p for p, *_ in Falso.vistos if "/ids?" in p))  # solo la temporada
         self.assertTrue((d / "historial.json").exists())  # historial completo: la próxima vez solo lo nuevo
         r, _ = self.correr("codigo-ok", "todo", str(d))

@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para score.py (turno 5). Sin red: la fórmula de z_partida/de sobre partidas sintéticas."""
+"""Pruebas de DeepSeek para score.py. Sin red: la fórmula de z_partida/de sobre partidas sintéticas."""
 import json, pathlib, sys, tempfile, unittest
 from unittest import mock
 
@@ -54,7 +54,7 @@ class Score(unittest.TestCase):
         self.assertIsNone(score.de(zs, "no-existe", {}))
 
     def test_resumen_con_un_timeline_roto_conserva_los_demas(self):
-        # tarea (a) del turno 7 iter 8: una partida con timeline roto da None solo para ella; las demás siguen con su dato
+        # una partida con timeline roto da None solo para ella; las demás siguen con su dato
         comp = {c: 0.0 for c in score.COMP}
         g = lambda t, f: dict(t=t, win=True, champ="Ekko", kda="1/1/1", score=50.0, puesto=5,
                               puesto_eq=3, linea=None, comp=comp, f=f, pid=3)
@@ -77,7 +77,7 @@ class Score(unittest.TestCase):
         self.assertEqual([p["muertes14_25"] for p in r["partidas"]], [2, None, 1])
 
     def test_resumen_con_partida_sin_rival_de_linea(self):
-        # tarea (b) del turno 7 iter 12: sin rival de línea, unidades["línea"] da 0 y resumen() no truena
+        # sin rival de línea, unidades["línea"] da 0 y resumen() no truena
         ps = [jug("yo", 100, "MIDDLE", True, oro=6000, dano=8000, obj=2000, kills=2, assists=3, deaths=4, vision=20, cs=180)]
         ps += [jug(f"a{i}", 100, p, True, oro=5000, dano=5000, obj=1000, kills=1, assists=2, deaths=3, vision=10, cs=150)
                for i, p in enumerate(("TOP", "JUNGLE", "BOTTOM", "UTILITY"))]

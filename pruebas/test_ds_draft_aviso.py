@@ -1,4 +1,4 @@
-"""Pruebas de DeepSeek para draft.datos_draft / draft.avisos (turno 4, iteración 4). Sin red ni datos reales."""
+"""Pruebas de DeepSeek para draft.datos_draft / draft.avisos. Sin red ni datos reales."""
 import os, pathlib, sys, unittest
 from unittest import mock
 
