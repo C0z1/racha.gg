@@ -110,6 +110,15 @@ def quizas_guion(campeon, rival, pos):
     GUION[0] = True; threading.Thread(target=armar_guion, args=(campeon, rival, pos), daemon=True).start()
 
 
+def guardar_salud(d):
+    """La salud de la franja (latencia foto → pantalla, CPU y RAM de su proceso), un renglón por cada 30 s de partida, un archivo por día."""
+    try:
+        f = gui.REPO / "datos" / "salud" / f"franja-{time.strftime('%Y%m%d')}.jsonl"; f.parent.mkdir(parents=True, exist_ok=True)
+        lim = {k: d.get(k) for k in ("lat_p50", "lat_p95", "cpu", "ram", "n")}
+        with f.open("a", encoding="utf-8") as h: h.write(json.dumps({"t": int(time.time()), "sondeo": gui.sondeo(ESTADO["ajustes"]), **lim}) + chr(10))
+    except OSError: pass
+
+
 def anotar(notas, marcas):
     """La franja Sombra manda lo que mostró (o no) y tus marcas: se juntan para la bitácora de la partida."""
     with LOCK:
@@ -143,6 +152,7 @@ def evento(e):
         if e[1] == "InProgress" and ESTADO["fase"] not in ("InProgress", "Reconnect"): s["sombra"] = None  # bitácora nueva
         if e[1] in ("ChampSelect", "InProgress"): s["pantalla_completa"] = companion.pantalla_completa()  # la franja no se vería
         if e[1] == "InProgress" and ESTADO["ajustes"].get("overlay", True): USADO.add("overlay")
+        if e[1] == "InProgress" and ESTADO["ajustes"].get("overlay", True) and ESTADO["ajustes"].get("franja_estilo") == "sombra": USADO.add("sombra")
         if e[1] == "InProgress" and ESTADO["fase"] not in ("InProgress", "Reconnect"): s["lobby"] = None; threading.Thread(target=armar_lobby, daemon=True).start()
         if e[1] in ("Lobby", "Matchmaking", "ReadyCheck"): s.update(aviso=None, perfil=gui.perfil(ESTADO["rango"], ESTADO["cuenta"]))
     elif tipo == "draft":
@@ -603,7 +613,7 @@ def ping():
     with LOCK: avisos = sum(1 for a in ESTADO.get("avisos") or [] if a.get("franja"))  # F5: cuántos salieron en la franja en la última partida
     with LOCK: resp = dict(SIRVIO)  # respuestas a «¿te sirvieron los avisos?» desde el último ping
     try: companion.backend("POST", "/v1/ping", {"version": VERSION, "region": region or "?", "avisos": avisos, **{f"sirvio_{k}": v for k, v in resp.items()},
-                                                **{k: k in USADO for k in ("overlay", "champ_select", "revision")}}, gui.REPO)
+                                                **{k: k in USADO for k in ("overlay", "champ_select", "revision", "sombra")}}, gui.REPO)
     except Exception: return
     PING[0] = hoy; USADO.clear()
     with LOCK:
@@ -951,6 +961,7 @@ def main(argv=None):
             if m[0] == "anotar" and len(m) == 3: anotar(m[1], m[2])
             elif m[0] == "guardar" and len(m) == 3: guardar_franja(m[1], m[2])
             elif m[0] == "registrar" and len(m) == 2: registrar(str(m[1])[:500])
+            elif m[0] == "salud" and len(m) == 2 and isinstance(m[1], dict): guardar_salud(m[1])
         def caida(): gui.FRANJA_CAIDA[0] = True; registrar("franja: dos caídas, HTC sigue sin franja")  # y vuelve al sondeo de 10 s
         try: import franja; franja.vigilar(leer, recibir, seguir, registrar, caida)  # la franja en su propio proceso (fase 1 de Sombra)
         except Exception as e: registrar(f"sin franja: {e!r}")

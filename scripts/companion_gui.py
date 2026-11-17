@@ -133,6 +133,8 @@ AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "avi
                "franja_build": True,  # la franja muestra tu próximo ítem al morir o al comprar
                "franja_estilo": "sombra",  # Sombra (3 zonas: regla, sombra, marcas) o la pastilla clásica, una versión más
                "solo_marcas": False,  # Sombra sin interrupciones: solo las marcas y el panel al morir
+               "momento_nivel": True, "momento_regreso": True, "momento_pico": True,  # Sombra: cada interrupción se apaga sola
+               "sonido_sello": False,  # Sombra: un «tic» de 120 ms al sellar una marca (apagado por defecto)
                "franja_poco": False,  # Sombra: 1 interrupción por partida (se prende sola tras dos «no» a «¿Te sirvieron?»)
                "franja_pos": "arriba", "franja_x": 0.22, "franja_y": 0.0}  # esquina de la franja: único ajuste que no es booleano
 OPCIONES = {"franja_pos": ("arriba", "abajo", "libre"), "franja_estilo": ("sombra", "clasica")}  # lista blanca de los ajustes de texto

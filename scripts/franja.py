@@ -1,7 +1,8 @@
 """La franja en su propio proceso (plan Sombra, fase 1): HTC.exe --franja <puerto> <token>, el mismo binario.
 Si la franja se traba o se cae, HTC sigue. Habla con HTC por un socket local (127.0.0.1), un JSON por línea:
   HTC → franja: el estado que la franja necesita (fase, foto, ajustes, guion, modo mover), cuando cambia.
-  franja → HTC: ["anotar", notas, marcas] (bitácora), ["guardar", clave, valor] (posición), ["registrar", texto] (errores).
+  franja → HTC: ["anotar", notas, marcas] (bitácora), ["guardar", clave, valor] (posición), ["registrar", texto] (errores),
+  ["salud", {lat_p50, lat_p95, cpu, ram, n}] cada 30 s en partida (datos/salud/franja-<día>.jsonl).
 Un socket y no stdin/stdout: el .exe es --windowed y ahí las tuberías estándar pueden no existir. Si HTC muere o cierra el
 socket, la franja se cierra sola (nunca queda huérfana)."""
 import json, socket, subprocess, sys, threading, time
@@ -137,7 +138,7 @@ def main(argv):
     threading.Thread(target=leer_socket, daemon=True).start()
     import overlay
     overlay.correr(lambda: estado[0], lambda: vivo[0], registrar=lambda t: mandar("registrar", t), icono=icono,
-                   guardar=lambda k, v: mandar("guardar", k, v), anotar=lambda n, m: mandar("anotar", n, m))
+                   guardar=lambda k, v: mandar("guardar", k, v), anotar=lambda n, m: mandar("anotar", n, m), salud=lambda d: mandar("salud", d))
     try: con.close()
     except OSError: pass
     return 0

@@ -1,4 +1,4 @@
-"""Chequeo de salud de Racha (definición de S1–S10: .equipo/archivo/PLAN-ENVIVO.md): mide, registra y nunca arregla solo.
+"""Chequeo de salud de Racha (definición de S1–S10: .equipo/archivo/PLAN-ENVIVO.md; S11: la franja Sombra, latencia ≤ 1,5 s, CPU < 1 %, RAM ≤ 60 MB): mide, registra y nunca arregla solo.
   python herramientas/salud.py                 una pasada; sale con 1 si hay FALLA
   python herramientas/salud.py --cada 60       en bucle (60 s en partida; fuera de partida, cada 300 s)
   python herramientas/salud.py --vistas        además abre las 9 vistas en Edge sin ventana (S10)
@@ -71,6 +71,11 @@ def evaluar(d, ahora):
         res("S8", "FALLA" if alto or (d.get("rss_mb") or 0) > 200 else "AVISO" if c > 1.0 else "OK", {"cpu": round(c, 2), "rss_mb": d.get("rss_mb")}, {"cpu": 1.0, "rss_mb": 200})
     if jugando and v and v[0] and v[0] > 60 and (g := d.get("grabacion")) is not None:  # S9: [edad del .jsonl más nuevo, archivos nuevos en esta partida]
         res("S9", "FALLA" if g[0] is None or g[0] > 45 or g[1] > 1 else "OK", g, [45, 1], "" if g[0] is not None and g[0] <= 45 and g[1] <= 1 else "la grabación se atrasó o se partió")
+    if jugando and (fs := d.get("franja_salud")) and ahora - fs.get("t", 0) < 90:  # S11: la franja Sombra en su proceso (plan Sombra, métricas)
+        malo = [f"latencia p95 {fs['lat_p95']} s > 1,5" for _ in [0] if (fs.get("lat_p95") or 0) > 1.5]
+        aviso = [f"CPU {fs['cpu']} % > 1" for _ in [0] if (fs.get("cpu") or 0) > 1.0] + [f"RAM {fs['ram']} MB > 60" for _ in [0] if (fs.get("ram") or 0) > 60]
+        res("S11", "FALLA" if malo else "AVISO" if aviso else "OK", {k: fs.get(k) for k in ("lat_p50", "lat_p95", "cpu", "ram", "sondeo")},
+            {"lat_p95": 1.5, "cpu": 1.0, "ram": 60}, ", ".join(malo + aviso))
     for nombre, (ok, ms, txt) in (d.get("vistas") or {}).items():
         res("S10", "OK" if ok else "FALLA", {"vista": nombre, "ms": ms}, {"ms": 8000}, txt)
     return r
@@ -201,6 +206,14 @@ def foto(rect, ruta):
 
 # ---------- una pasada ----------
 
+def franja_salud(carpeta):
+    """El último renglón de salud de la franja (franja-<día>.jsonl, lo escribe Racha cada 30 s de partida) o None."""
+    try: f = max(pathlib.Path(carpeta).glob("franja-*.jsonl"))
+    except (ValueError, OSError): return None
+    try: return json.loads(f.read_text(encoding="utf-8").strip().splitlines()[-1])
+    except (OSError, ValueError, IndexError): return None
+
+
 def pasada(args, mem):
     p, app = puerto(); e = leer_estado(p); s = e.get("json") or {}
     d = {"estado": e, "fase_lcu": companion.lcu("/lol-gameflow/v1/gameflow-phase") if companion.LOCK.exists() else None}
@@ -222,6 +235,7 @@ def pasada(args, mem):
     if p and (pid := mem.get("pid") or dueño(p)):
         mem["pid"] = pid; d["cpu_antes"], d["edad_antes"] = mem.get("cpu"), mem.get("edad"); d["cpu"], d["rss_mb"], d["edad_proceso"] = cpu_rss(pid); mem["cpu"], mem["edad"] = d["cpu"], d["edad_proceso"]
         if d["cpu"] is None: mem.pop("pid", None)  # Racha se reinició: otro proceso, se vuelve a buscar en la próxima pasada
+    if jugando: d["franja_salud"] = franja_salud(app / "datos" / "salud")
     if jugando: d["grabacion"] = grabacion(mem.get("partida", time.time()) - 60, app / "datos" / "vivo")
     if args.vistas and p and not jugando: d["vistas"] = vistas(p)  # 9 Edge sin ventana: nunca en partida (le quitan FPS al juego)
     res = evaluar(d, time.time())

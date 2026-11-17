@@ -9,6 +9,7 @@ import indice, score
 MIN_VICTORIAS = 8  # con menos, la mediana es ruido: se usa la del rol, o «Sin sombra aún»
 MAX_VICTORIAS = 30  # las más recientes: tu sombra cambia contigo
 MINUTOS = 36  # curvas del 0 al 35
+SALIDA_MS = 90_000  # las compras de antes son las de inicio; la primera después, tu primer regreso
 MIN_POR_MINUTO = 5  # un minuto con menos victorias que lleguen hasta él no entra en la curva (las partidas largas son pocas)
 
 
@@ -29,8 +30,10 @@ def serie(f, yo):
         pid, aliados = me["participantId"], {p["participantId"] for p in ps if p["teamId"] == me["teamId"]}
         opp = next((p for p in ps if me.get("teamPosition") and p.get("teamPosition") == me["teamPosition"] and p["teamId"] != me["teamId"]), None)
         kills = [e for x in fr for e in x["events"] if e.get("type") == "CHAMPION_KILL"]
+        compras = [e["timestamp"] for x in fr for e in x["events"] if e.get("type") == "ITEM_PURCHASED" and e.get("participantId") == pid and e["timestamp"] > SALIDA_MS]
         out = dict(win=me["win"], champ=me["championName"], pos=me.get("teamPosition") or "", rival=opp["championName"] if opp else None,
-                   t=m["info"]["gameCreation"], cs=[], nivel=[], muertes=[], kp=[], oro14=None)
+                   t=m["info"]["gameCreation"], cs=[], nivel=[], muertes=[], kp=[], oro14=None,
+                   regreso=round(min(compras) / 60000, 1) if compras else None)  # minuto de tu primer regreso a la tienda
         for i, x in enumerate(fr[:MINUTOS]):
             p = x["participantFrames"][str(pid)]
             ks = [e for e in kills if e["timestamp"] <= i * 60000]
@@ -81,8 +84,9 @@ def sombra(ss, campeon, pos):
     for alcance, xs in (("campeon", [s for s in rol if s["champ"] == campeon]), ("rol", rol)):
         if len(xs) >= MIN_VICTORIAS:
             xs = xs[-MAX_VICTORIAS:]
-            return dict(alcance=alcance, n=len(xs), falta=0, **curvas(xs))
-    return dict(alcance=None, n=len(rol), falta=MIN_VICTORIAS - len(rol), cs=[], nivel=[], muertes=[], kp=[])
+            rg = [s["regreso"] for s in xs if s.get("regreso") is not None]
+            return dict(alcance=alcance, n=len(xs), falta=0, regreso=round(st.median(rg), 1) if len(rg) >= MIN_POR_MINUTO else None, **curvas(xs))
+    return dict(alcance=None, n=len(rol), falta=MIN_VICTORIAS - len(rol), regreso=None, cs=[], nivel=[], muertes=[], kp=[])
 
 
 if __name__ == "__main__":

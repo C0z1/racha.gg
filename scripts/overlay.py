@@ -476,7 +476,44 @@ EJEMPLO_SOMBRA = {"regla": {"tope": 2, "apagadas": 0, "etq": "Tu tope", "color":
                   "renglon": "Arrástrame · se guarda sola", "panel": None, "opacidad": 1.0}
 
 
-def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, guardar=lambda clave, v: None, anotar=lambda notas, marcas: None):
+def tic(ms=120, hz=880):
+    """Un «tic» corto y suave al sellar una marca (Sombra, apagado por defecto). Desde un .wav en la carpeta temporal:
+    winsound no reproduce desde memoria en segundo plano (SND_MEMORY con SND_ASYNC lanza RuntimeError)."""
+    try:
+        import math, struct, tempfile, wave, winsound
+        f = pathlib.Path(tempfile.gettempdir()) / f"racha-tic-{ms}-{hz}.wav"
+        if not f.exists():
+            n = 22050 * ms // 1000
+            with wave.open(str(f), "wb") as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(22050)
+                w.writeframes(b"".join(struct.pack("<h", int(6000 * math.sin(2 * math.pi * hz * i / 22050) * min(1, i / 200, (n - i) / 600))) for i in range(n)))
+        winsound.PlaySound(str(f), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
+    except Exception: pass  # sin audio o fuera de Windows: en silencio
+
+
+def ram_mb():
+    """Memoria de este proceso en MB (Windows, psapi); None fuera de Windows."""
+    try:
+        import ctypes, ctypes.wintypes as w
+        class PMC(ctypes.Structure): _fields_ = [("cb", w.DWORD), ("faults", w.DWORD)] + [(n, ctypes.c_size_t) for n in ("pico", "uso", "a", "b", "c", "d", "e", "f")]
+        k = ctypes.windll.kernel32; k.GetCurrentProcess.restype = ctypes.c_void_p
+        m = PMC(); m.cb = ctypes.sizeof(PMC)
+        return round(m.uso / 2 ** 20, 1) if ctypes.windll.psapi.GetProcessMemoryInfo(ctypes.c_void_p(k.GetCurrentProcess()), ctypes.byref(m), m.cb) else None
+    except Exception: return None
+
+
+SALUD_S = 30  # cada cuánto la franja reporta su salud (solo con partida a la vista)
+
+
+def resumen_salud(lat, cpu_s, pared_s):
+    """{lat_p50, lat_p95 (s de foto recibida a pantalla), cpu (% de un núcleo), ram (MB), n} o None sin repintados."""
+    if not lat or pared_s <= 0: return None
+    xs = sorted(lat); p = lambda q: round(xs[min(len(xs) - 1, int(q * len(xs)))], 3)
+    return {"lat_p50": p(0.5), "lat_p95": p(0.95), "cpu": round(100 * cpu_s / pared_s, 2), "ram": ram_mb(), "n": len(xs)}
+
+
+def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, guardar=lambda clave, v: None, anotar=lambda notas, marcas: None,
+           salud=lambda d: None):
     """Bucle de tkinter (hilo principal): la pastilla en una ventana en capas (alfa por píxel), siempre encima y
     atravesable. leer() -> estado de HTC; seguir() -> False para cerrar; icono(tipo, nombre) -> PNG en bytes o None.
     Solo se repinta cuando cambia lo que muestra (la foto llega cada 10 s)."""
@@ -490,6 +527,8 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
     sm = [None]  # estado de momentos.paso (Sombra) entre ticks
     hud = [None, 0]  # escala de HUD del juego y cuándo se leyó
     carga = [None]  # desde cuándo se ve la carta de la pantalla de carga
+    sonado = [None]  # la última marca que sonó (un tic por sello)
+    med = {"lat": [], "ult": None, "t": time.time(), "cpu": time.process_time()}  # salud: latencia foto → pantalla, CPU y RAM
     rapido = [False]  # Sombra: tick de 250 ms (lo decide el último dibujar que sí leyó el estado)
     mov = {"on": False, "agarre": None, "pos": None}  # modo mover (Ajustes): arrastrar con el botón izquierdo, se guarda al soltar
 
@@ -512,6 +551,9 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
 
     def tick():
         if not seguir(): root.destroy(); return
+        if time.time() - med["t"] >= SALUD_S:
+            if (d := resumen_salud(med["lat"], time.process_time() - med["cpu"], time.time() - med["t"])): salud(d)
+            med.update(lat=[], t=time.time(), cpu=time.process_time())
         try: dibujar()
         except Exception:  # un dato raro no congela la franja el resto de la partida
             if (txt := traceback.format_exc(limit=2).strip().splitlines()[-1]) not in errores: errores.add(txt); registrar(txt)
@@ -540,6 +582,9 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
                 if ahora - carga[0] < CARTA_S and (c := momentos.carta_carga(s["guion"])): e = {"carta": c}
             else: carga[0] = None
             if mov["on"] and not e: e = EJEMPLO_SOMBRA
+            if e and e.get("brillo") is not None and e["brillo"] != sonado[0]:  # una marca recién sellada
+                sonado[0] = e["brillo"]
+                if aj.get("sonido_sello"): tic()
             if e and e.get("brillo") is not None and not animar(): e = {**e, "brillo": None}  # Windows sin animaciones: sin brillo
         else:
             e = estado(meta, ahora, aj, regla, s.get("aviso"), marcas, oro) if meta else None
@@ -569,6 +614,7 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         gen[0] += 1; g = gen[0]  # los pasos de una animación vieja no pisan un estado nuevo ni una franja oculta
         img = lienzo.pintar(e, esc) if sombra else pintar(e, esc, icono)
         if hwnd: mostrar(hwnd, img, px, py)
+        if meta and (r := meta.get("recibido")) and r != med["ult"]: med["lat"].append(time.time() - r); med["ult"] = r
         if hwnd and sombra and e.get("brillo") is not None and mostrada[0]:  # el brillo del sello se apaga a los 600 ms
             quieta = lienzo.pintar({**e, "brillo": None}, esc); vale = lambda: gen[0] == g and mostrada[0]
             root.after(int(momentos.BRILLO_S * 1000), lambda: vale() and mostrar(hwnd, quieta, px, py))

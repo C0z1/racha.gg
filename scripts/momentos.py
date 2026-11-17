@@ -160,11 +160,16 @@ def paso(estado, foto, guion, ahora, aj=None):
     nota = lambda i, clase, dato, mostrado, motivo=None: notas.append(dict(t=round(t), id=i, clase=clase, dato=dato, mostrado=mostrado, motivo=motivo))
 
     for m, ok, dato in _sellar(e, foto, g, t):  # sellar no es interrupción: lugar y minuto conocidos
-        nota(f"marca{m}", "sello", dato, bool(dato) and not foto.get("muerto"), None if dato else "sin dato")
+        nota(f"marca{m}", "sello", dato, bool(dato) and not foto.get("muerto"), "sin dato" if not dato else "muerto" if foto.get("muerto") else None)
         if dato and not foto.get("muerto"): e["renglon"] = [dato, ahora + SELLO_S, "sello"]; e["brillo"] = [m, ahora + BRILLO_S]
 
     items = [str(i[0]) for i in foto.get("items") or []]
-    if e["items"] is not None and items != e["items"] and (p := foto.get("proximo")) and (aj.get("franja_build", True) is not False):
+    if e["items"] is not None and items != e["items"] and t >= ARRANQUE and not e.get("regreso"):  # tu primer regreso contra el de tu sombra
+        e["regreso"] = True
+        if (r := ((g.get("sombra") or {}).get("regreso"))) is not None:
+            dato = f"Primer regreso · sombra: min {r:g}".replace(".", ",")
+            nota("regreso1", "compra", f"{dato} (tú: min {t / 60:.1f})".replace(".", ","), True); e["renglon"] = [dato, ahora + COMPRA_S, "compra"]
+    if e["items"] is not None and items != e["items"] and (p := foto.get("proximo")) and (aj.get("franja_build", True) is not False)             and not (e["renglon"] and e["renglon"][0].startswith("Primer regreso") and ahora < e["renglon"][1]):
         dato = f"{p['nombre']} · faltan {p['falta']}"[:RENGLON_MAX]
         nota("compra", "compra", dato, True); e["renglon"] = [dato, ahora + COMPRA_S, "compra"]
     e["items"] = items
