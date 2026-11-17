@@ -40,7 +40,7 @@ class Ciclo(unittest.TestCase):
             w.evento(("meta", meta(6)))  # ya hay un hilo armándolo
             self.assertEqual(T.call_count, 1)
         w.GUION[0] = False
-        with mock.patch("guion.armar", return_value={"campeon": "Sylas", "regla": {"tope": 2}}), mock.patch.object(gui, "es_base", return_value=True):
+        with mock.patch("guion.armar", return_value={"campeon": "Sylas", "rival": "Zed", "regla": {"tope": 2}}), mock.patch.object(gui, "es_base", return_value=True):
             w.armar_guion("Sylas", "Zed", "MIDDLE")
         self.assertEqual(w.ESTADO["guion"]["campeon"], "Sylas")
         with mock.patch.object(w.threading, "Thread") as T:
@@ -73,3 +73,46 @@ class Dibujo(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Etapa2(unittest.TestCase):
+    def test_dos_no_bajan_a_una_interrupcion(self):
+        with tempfile.TemporaryDirectory() as d:
+            orig, gui.SIRVIO_F = gui.SIRVIO_F, pathlib.Path(d) / "s.json"
+            try: self.assertEqual([gui.contar_sirvio(v) for v in ("no", "no_vi", "no", "no", "si")], [None, None, None, True, False])
+            finally: gui.SIRVIO_F = orig
+        e = momentos.nuevo(); e["interrupciones"] = 1
+        self.assertEqual(momentos.puede_tocar(e, {"t": 400}, 1000, {"franja_poco": True}), (False, "sin presupuesto"))
+
+    def test_escala_de_hud(self):
+        import json, overlay
+        self.assertEqual(overlay.hud_y(None), overlay.HUD_Y); self.assertAlmostEqual(overlay.hud_y(0.4), overlay.HUD_Y)
+        self.assertLess(overlay.hud_y(1.0), overlay.hud_y(0.4)); self.assertGreater(overlay.hud_y(0.0), overlay.hud_y(0.4))  # HUD más grande: la franja sube
+        with tempfile.TemporaryDirectory() as d:
+            f = pathlib.Path(d) / "p.json"
+            f.write_text(json.dumps({"files": [{"name": "Game.cfg", "sections": [{"name": "HUD", "settings": [{"name": "GlobalScale", "value": "0.7500"}]}]}]}))
+            self.assertEqual(overlay.escala_hud(f), 0.75)
+            f.write_text("{roto"); self.assertIsNone(overlay.escala_hud(f))
+
+    def test_brillo_dura_600_ms(self):
+        g = {"marcas": {"6": {"meta": 1}}, "regla": {"tope": 2}, "sombra": {}}
+        f = {"t": 361, "muertes6": 0, "cs": 40, "items": []}
+        e, esc, _ = momentos.paso(None, f, g, 100.0)
+        self.assertEqual(esc["brillo"], 6)
+        self.assertIsNone(momentos.paso(e, {**f, "t": 362}, g, 100.7)[1]["brillo"])
+        self.assertEqual(lienzo.pintar(esc).size, (340, 88))
+
+    def test_carta_de_carga(self):
+        self.assertEqual(lienzo.pintar_carta(["Sylas vs Zed · 6 de 11 tuyas", "Tope 2", "Marcas 6/10: 8 · 5 de 10"]).size, (lienzo.CARTA_W, lienzo.CARTA_H))
+
+    def test_guion_al_fijar_campeon(self):
+        viejo = dict(w.ESTADO)
+        try:
+            w.ESTADO.update(ajustes={**w.ESTADO["ajustes"], "franja_estilo": "sombra"}, guion=None); w.GUION[0] = False
+            with mock.patch.object(w.threading, "Thread") as T:
+                w.quizas_guion("Sylas", None, "MIDDLE"); self.assertEqual(T.call_args.kwargs["args"], ("Sylas", None, "MIDDLE"))
+            w.GUION[0] = False; w.ESTADO["guion"] = {"campeon": "Sylas", "rival": None}
+            with mock.patch.object(w.threading, "Thread") as T:
+                w.quizas_guion("Sylas", None, "MIDDLE"); T.assert_not_called()  # nada nuevo
+                w.quizas_guion("Sylas", "Zed", "MIDDLE"); T.assert_called_once()  # llegó el rival
+        finally: w.ESTADO.clear(); w.ESTADO.update(viejo); w.GUION[0] = False

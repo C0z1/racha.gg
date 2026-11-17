@@ -9,6 +9,7 @@ import copy
 MARCAS = (6, 10, 14, 25)
 ARRANQUE, LINEA, PELEAS = 90, 840, 1500  # s de juego: arranque, línea (0–14), peleas (14–25), tarde
 SELLO_S, COMPRA_S, INTERRUPCION_S = 4, 8, 6  # cuánto dura cada renglón
+BRILLO_S = 0.6  # sellar una marca: un brillo de 600 ms en su punto (nada parpadea más de una vez)
 MAX_INTERRUPCIONES, ENTRE_INTERRUPCIONES = 3, 120  # contrato de atención: por partida y s entre una y otra
 CAIDA_VIDA, CAIDA_S, KILL_S = 0.08, 3, 8  # pelea: tu vida bajó 8 % en 3 s, o hubo un ChampionKill hace menos de 8 s
 CALMA_S, ESPERA_MAX = 6, 45  # una interrupción espera hasta 45 s a tener 6 s seguidos de calma
@@ -160,7 +161,7 @@ def paso(estado, foto, guion, ahora, aj=None):
 
     for m, ok, dato in _sellar(e, foto, g, t):  # sellar no es interrupción: lugar y minuto conocidos
         nota(f"marca{m}", "sello", dato, bool(dato) and not foto.get("muerto"), None if dato else "sin dato")
-        if dato and not foto.get("muerto"): e["renglon"] = [dato, ahora + SELLO_S, "sello"]
+        if dato and not foto.get("muerto"): e["renglon"] = [dato, ahora + SELLO_S, "sello"]; e["brillo"] = [m, ahora + BRILLO_S]
 
     items = [str(i[0]) for i in foto.get("items") or []]
     if e["items"] is not None and items != e["items"] and (p := foto.get("proximo")) and (aj.get("franja_build", True) is not False):
@@ -193,7 +194,7 @@ def paso(estado, foto, guion, ahora, aj=None):
     escena = {"regla": _zona_regla(foto, g), "sombra": _zona_sombra(e, foto, g, t),
               "marcas": [{"min": m, "estado": ("sin" if e["marcas"][str(m)] is None else e["marcas"][str(m)]) if str(m) in e["marcas"] else None,
                           "proxima": m == proxima and m * 60 - 60 <= t < m * 60} for m in MARCAS],
-              "renglon": renglon, "panel": panel, "opacidad": OPACIDAD_TARDE if t >= TARDE_S else 1.0}
+              "renglon": renglon, "panel": panel, "brillo": b[0] if (b := e.get("brillo")) and ahora < b[1] else None, "opacidad": OPACIDAD_TARDE if t >= TARDE_S else 1.0}
     return e, escena, notas
 
 
@@ -203,7 +204,9 @@ def carta_carga(g):
     mu, r, mk = g.get("matchup") or {}, g.get("regla") or {}, g.get("marcas") or {}
     l1 = f"{g['campeon']} vs {g['rival']} · {mu['v']} de {mu['n']} tuyas" if mu.get("n") else f"{g['campeon']} vs {g.get('rival') or '?'}"
     l2 = (f"{r['corta']} · la cumples {r['ok']} de {r['n']}" if r.get("n") else r["corta"]) if r.get("corta") else None
-    l3 = " · ".join(f"{m}: {x['ok']}/{x['n']}" for m, x in mk.items() if x.get("n")) or None
+    xs = [(m, x) for m, x in mk.items() if x.get("n")]
+    if xs and len({x["n"] for _, x in xs}) == 1: l3 = f"Marcas {'/'.join(m for m, _ in xs)}: {' · '.join(str(x['ok']) for _, x in xs)} de {xs[0][1]['n']}"
+    else: l3 = " · ".join(f"marca {m}: {x['ok']} de {x['n']}" for m, x in xs) or None
     if r.get("racha"): l3 = (l3 + " · " if l3 else "") + f"racha {r['racha']}"
     return [x for x in (l1, l2, l3) if x]
 

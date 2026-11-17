@@ -101,6 +101,15 @@ def armar_guion(campeon, rival, pos):
     with LOCK: ESTADO.update(guion=g or {"campeon": campeon, "rival": rival, "pos": pos}, v=ESTADO["v"] + 1); GUION[0] = False
 
 
+def quizas_guion(campeon, rival, pos):
+    """Arma el guion de Sombra en un hilo si falta o cambió el campeón o el rival (al fijar en champ select y al llegar la
+    primera foto en partida). Sin rival nuevo se queda el que había."""
+    g = ESTADO.get("guion") or {}
+    if not campeon or ESTADO["ajustes"].get("franja_estilo") != "sombra" or GUION[0]: return
+    if (g.get("campeon"), g.get("rival")) == (campeon, rival or g.get("rival")): return
+    GUION[0] = True; threading.Thread(target=armar_guion, args=(campeon, rival, pos), daemon=True).start()
+
+
 def anotar(notas, marcas):
     """La franja Sombra manda lo que mostró (o no) y tus marcas: se juntan para la bitácora de la partida."""
     with LOCK:
@@ -139,13 +148,12 @@ def evento(e):
     elif tipo == "draft":
         s = {"draft": {**draft_json(e[1], e[2]), "probable": bool(e[3]) if len(e) > 3 else False}}
         s.update(poner_pick(mi_pick(ESTADO.get("tablero"), s["draft"])))  # llegó el rival: runas del matchup, sin volver a traer la ventana
+        if (mp := s.get("mi_pick")) and mp.get("fijo"): quizas_guion(mp["champ"], mp.get("rival"), mp.get("pos"))  # la carta de carga
     elif tipo == "meta":  # el mismo gameTime que la foto anterior: juego en pausa (práctica, custom): los timers se congelan
         antes = (ESTADO.get("meta") or {}).get("t")
         pausa = e[1].get("t") is not None and antes is not None and abs(e[1]["t"] - antes) <= companion.TEMBLOR
         s = {"meta": {**e[1], "texto": gui.texto_meta(e[1]), "recibido": time.time(), "pausa": pausa}}  # «recibido»: el overlay descuenta los timers
-        c = e[1].get("campeon")
-        if c and e[1].get("modo") != "ARAM" and ESTADO["ajustes"].get("franja_estilo") == "sombra" and (ESTADO.get("guion") or {}).get("campeon") != c and not GUION[0]:
-            GUION[0] = True; threading.Thread(target=armar_guion, args=(c, e[1].get("rival"), e[1].get("pos")), daemon=True).start()
+        if e[1].get("modo") != "ARAM": quizas_guion(e[1].get("campeon"), e[1].get("rival"), e[1].get("pos"))  # el rival real ya se ve en partida
     elif tipo == "fin":  # el tope de tu coach (F12) también en la línea final; y el ping sale aunque no llegue la revisión de Riot
         tope = ((((ESTADO.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy")) or {}).get("tope", 2)
         s = {"fin": {**e[1], "texto": companion.linea_fin(e[1], tope)}}
@@ -171,6 +179,7 @@ def evento(e):
     elif tipo == "crono": s = {"crono": e[1]}
     elif tipo == "tablero":
         s = {"tablero": e[1], **poner_pick(mi_pick(e[1], ESTADO.get("draft")))}  # fijaste campeón: Racha al frente con sus runas
+        if (mp := s.get("mi_pick")) and mp.get("fijo"): quizas_guion(mp["champ"], mp.get("rival"), mp.get("pos"))  # la carta de carga
     elif tipo == "comentario": s = {"comentario": e[1]}
     elif tipo == "aviso":  # F8: los consejos de la partida se guardan todos (el nuevo ya no borra al anterior)
         s = {"aviso": e[1]}
@@ -801,6 +810,9 @@ class H(http.server.BaseHTTPRequestHandler):
             with LOCK:
                 if (ESTADO.get("fin") or {}).get("sirvio"): return self.enviar(409, b"", "text/plain")
                 SIRVIO[v] += 1; ESTADO.update(fin={**(ESTADO.get("fin") or {}), "sirvio": v}, v=ESTADO["v"] + 1)
+            if (poco := gui.contar_sirvio(v)) is not None and poco != ESTADO["ajustes"].get("franja_poco"):  # dos «no»: Sombra habla 1 vez
+                aj = gui.guardar_ajuste("franja_poco", poco)
+                with LOCK: ESTADO.update(ajustes=aj, v=ESTADO["v"] + 1)
             return self.enviar(200, b"{}", "application/json")
         if self.path == "/api/cuenta":  # tu Riot ID y región, para usar Racha sin el cliente de LoL abierto
             try: d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 300)))
@@ -894,6 +906,8 @@ class Servidor(http.server.ThreadingHTTPServer):
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["--franja"]:  # el proceso hijo de la franja (franja.py): ni servidor ni instancia única
+        import franja; return franja.main(argv[1:])
     unico = not ({"--demo", "--no-abrir"} & set(argv))  # las pruebas y la demo no tocan al HTC real
     if unico and (url := otro_htc()):
         if "--fondo" not in argv: pedir_abrir(url)
@@ -933,8 +947,13 @@ def main(argv=None):
                 f = gui.REPO / "datos" / "salud" / "franja.log"; f.parent.mkdir(parents=True, exist_ok=True)
                 with f.open("a", encoding="utf-8") as h: h.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {txt}\n")
             except OSError: pass
-        try: import overlay; overlay.correr(leer, seguir, registrar=registrar, icono=imagen, guardar=guardar_franja, anotar=anotar)  # franja en partida; ocupa el hilo principal (tkinter)
-        except Exception as e: registrar(f"sin franja: {e!r}")  # sin tkinter o sin pantalla: HTC sigue sin overlay
+        def recibir(m):  # lo que manda el proceso de la franja
+            if m[0] == "anotar" and len(m) == 3: anotar(m[1], m[2])
+            elif m[0] == "guardar" and len(m) == 3: guardar_franja(m[1], m[2])
+            elif m[0] == "registrar" and len(m) == 2: registrar(str(m[1])[:500])
+        def caida(): gui.FRANJA_CAIDA[0] = True; registrar("franja: dos caídas, HTC sigue sin franja")  # y vuelve al sondeo de 10 s
+        try: import franja; franja.vigilar(leer, recibir, seguir, registrar, caida)  # la franja en su propio proceso (fase 1 de Sombra)
+        except Exception as e: registrar(f"sin franja: {e!r}")
     while seguir(): time.sleep(2)
     ventana.cerrar(); srv.shutdown()
 

@@ -4,6 +4,7 @@ Recibe la escena de momentos.paso y no decide nada: solo dibuja."""
 from overlay import ROSA, ROSA2, ROJO, SALVIA, ORO, TXT, ETQ, _fuente
 
 ANCHO, ALTO, RENGLON, PANEL, SEP = 340, 56, 28, 50, 4
+CARTA_W, CARTA_H = 420, 104  # la carta de la pantalla de carga: 3 renglones al centro abajo
 Z1, Z2 = 104, 256  # bordes de las zonas: regla 0–104, sombra 104–256, marcas 256–340
 FONDO = (36, 12, 22, 224)  # vino oscuro al 88 %
 GRIS = ETQ
@@ -46,6 +47,8 @@ def pintar(escena, esc=1.0):
     for i, m in enumerate(escena["marcas"]):
         cx, cy, rr = k(Z2 + 13 + i * 19), k(21), k(6)
         caja = (cx - rr, cy - rr, cx + rr, cy + rr)
+        if escena.get("brillo") == m["min"]:  # recién sellada: un halo que se va a los 600 ms
+            h = rr * 2; d.ellipse((cx - h, cy - h, cx + h, cy + h), fill=(SALVIA if m["estado"] is True else ORO) + (70,))
         if m["estado"] is True: d.ellipse(caja, fill=SALVIA + (255,))
         elif m["estado"] is False: d.ellipse(caja, outline=(GRIS if roja else ROJO) + (255,), width=k(2))
         elif m["estado"] == "sin": d.line((cx - rr / 2, cy, cx + rr / 2, cy), fill=GRIS + (200,), width=k(2))
@@ -75,3 +78,15 @@ def _trazo(d, puntos, caja, k):
     for j, col in ((1, GRIS), (0, ROSA2)):
         xy = [(x0 + i * paso, y1 - (p[j] - lo) / (hi - lo) * (y1 - y0)) for i, p in enumerate(puntos) if p[j] is not None]
         if len(xy) >= 2: d.line(xy, fill=col + (255,), width=k(2 if j == 0 else 1.5), joint="curve")
+
+
+def pintar_carta(lineas, esc=1.0):
+    """La carta de la pantalla de carga (momentos.carta_carga): el match, tu regla y la tasa de tus marcas."""
+    from PIL import Image, ImageDraw
+    S = 2; k = lambda v: round(v * esc * S)
+    W, H = round(CARTA_W * esc), round(CARTA_H * esc)
+    im = Image.new("RGBA", (W * S, H * S), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((0, 0, W * S - 1, H * S - 1), radius=k(16), fill=FONDO, outline=ROSA + (90,), width=max(1, k(1)))
+    for i, t in enumerate(lineas[:3]):
+        d.text((k(CARTA_W / 2), k(26 + i * 26)), t, font=_fuente(k(16 if i == 0 else 12)), fill=(TXT if i == 0 else GRIS) + (255,), anchor="mm")
+    return im.resize((W, H), Image.LANCZOS)

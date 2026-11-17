@@ -20,6 +20,7 @@ UninstallDisplayIcon={app}\HTC.exe
 Source: "..\dist\HTC\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 Source: "..\scripts\*.py"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "..\scripts\web\*"; DestDir: "{app}\scripts\web"; Flags: recursesubdirs ignoreversion
+Source: "..\scripts\fuentes\*"; DestDir: "{app}\scripts\fuentes"; Flags: ignoreversion
 Source: "..\scripts\fixtures\*"; DestDir: "{app}\scripts\fixtures"; Flags: recursesubdirs ignoreversion
 Source: "..\docs\config.ejemplo.json"; DestDir: "{app}"; Flags: ignoreversion
 

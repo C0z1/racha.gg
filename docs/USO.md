@@ -110,6 +110,7 @@ La app vive en `scripts/`; las herramientas de desarrollo, en `herramientas/`.
 | `overlay.py` | Franja en partida siempre encima, sin timers. La ventana, su posición y la pastilla clásica. |
 | `momentos.py` | Franja Sombra: qué se muestra en cada foto (3 zonas, 4 marcas, máx. 3 interrupciones, nunca en pelea). |
 | `lienzo.py` | El dibujo de la franja Sombra. |
+| `franja.py` | La franja en su propio proceso (`HTC.exe --franja`): si se traba o se cae, HTC sigue. |
 | `sombra.py` | Tu sombra: la mediana minuto a minuto de tus victorias con ese campeón. `<campeón> <ROL>`. |
 | `guion.py` | Lo que la franja Sombra precalcula al empezar la partida. `<campeón> <rival> <ROL>`. |
 | `bitacora.py` | Lo que la franja mostró (o no, y por qué) en cada partida, para la revisión. |

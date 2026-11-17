@@ -192,15 +192,18 @@ def textos(e):
     return [str(x) for x in out if x not in (None, "")]
 
 
-FUENTE = pathlib.Path(r"C:\Windows\Fonts\segoeuib.ttf")
+FUENTES = [d / "fuentes" / "Roboto-Bold.ttf" for d in (pathlib.Path(__file__).resolve().parent, pathlib.Path(getattr(__import__("sys"), "_MEIPASS", ".")))]
+FUENTES.append(pathlib.Path(r"C:\Windows\Fonts\segoeuib.ttf"))  # Roboto (OFL, en el instalador): cifras de ancho fijo, los números no bailan
 _CACHE = {}
 
 
 def _fuente(px):
     from PIL import ImageFont
     if ("f", px) not in _CACHE:
-        try: _CACHE[("f", px)] = ImageFont.truetype(str(FUENTE), px)
-        except OSError: _CACHE[("f", px)] = ImageFont.load_default(px)  # fuera de Windows (CI en Ubuntu)
+        for f in FUENTES:
+            try: _CACHE[("f", px)] = ImageFont.truetype(str(f), px); break
+            except OSError: continue
+        else: _CACHE[("f", px)] = ImageFont.load_default(px)  # sin ninguna: la de Pillow
     return _CACHE[("f", px)]
 
 
@@ -330,13 +333,39 @@ ABAJO_X, HUD_Y = 0.30, 0.85  # «abajo»: a la derecha del chat y encima de la b
 TOPE_DERECHO = 0.76  # el marcador del juego (kills, KDA, CS, reloj) empieza en ~0,78 del ancho
 
 
-def colocar(juego, pantalla, alto_franja, x=0.22, pos=None, margen=6, util=1.0, ancho_franja=0):
+HUD_REF, HUD_MIN = 0.40, 0.6  # HUD_Y se midió con la escala de HUD 0,40; a escala 0 el HUD mide ~0,6 de lo que mide a 1
+
+
+def hud_y(escala_hud):
+    """Dónde empieza el HUD de abajo (fracción del alto) según la escala de HUD del juego (0–1); HUD_Y sin dato.
+    shortcut: modelo lineal medido en un solo punto (0,40); con capturas a escala 0 y 1, ajustar HUD_MIN."""
+    if escala_hud is None: return HUD_Y
+    alto = lambda e: HUD_MIN + (1 - HUD_MIN) * max(0.0, min(1.0, e))
+    return 1 - (1 - HUD_Y) * alto(escala_hud) / alto(HUD_REF)
+
+
+def escala_hud(cfg=None):
+    """HUD/GlobalScale del juego (Config/PersistedSettings.json junto al lockfile), 0–1; None si no está. Solo lectura."""
+    try:
+        import json, companion
+        d = json.loads(pathlib.Path(cfg or companion.LOCK.parent / "Config" / "PersistedSettings.json").read_text(encoding="utf-8"))
+        for f in d.get("files") or []:
+            for sec in f.get("sections") or []:
+                if f.get("name") == "Game.cfg" and sec.get("name") == "HUD":
+                    for x in sec.get("settings") or []:
+                        if x.get("name") == "GlobalScale": return max(0.0, min(1.0, float(x["value"])))
+    except (OSError, ValueError, TypeError, AttributeError, KeyError): pass
+    return None
+
+
+def colocar(juego, pantalla, alto_franja, x=0.22, pos=None, margen=6, util=1.0, ancho_franja=0, hud=None):
     """(x, y) de la franja: relativa a la ventana del juego si se conoce (otro monitor, modo ventana); si no, a la pantalla
     principal sin la barra de tareas. Si no cabe antes del marcador (pantallas chicas, escala alta), se corre a la izquierda."""
     if juego: x0, y0, x1, y1 = juego
     else: x0, y0, (x1, y1) = 0, 0, pantalla
     if pos == "abajo":  # abajo: a la derecha del chat (x < 0,25) y encima de la barra de habilidades (y > 0,85), sin pisar el HUD
-        x, y_hud = max(x, ABAJO_X), int(y0 + (y1 - y0) * (HUD_Y if juego else min(HUD_Y, util)))
+        hy = hud_y(hud)
+        x, y_hud = max(x, ABAJO_X), int(y0 + (y1 - y0) * (hy if juego else min(hy, util)))
         px = max(x0 + margen, min(int(x0 + (x1 - x0) * x), int(x0 + (x1 - x0) * TOPE_DERECHO) - ancho_franja))
         return px, max(y0, y_hud - alto_franja - margen)
     px = max(x0 + margen, min(int(x0 + (x1 - x0) * x), int(x0 + (x1 - x0) * TOPE_DERECHO) - ancho_franja))
@@ -440,6 +469,7 @@ def mostrar(hwnd, im, x, y):
     return bool(ok)
 
 
+CARTA_S = 25  # s como mucho de la carta de carga (luego la tapa la partida o ya no hace falta)
 EJEMPLO_SOMBRA = {"regla": {"tope": 2, "apagadas": 0, "etq": "Tu tope", "color": "rosa"},
                   "sombra": {"num": "+5", "etq": "CS vs sombra", "color": "salvia", "trazo": None},
                   "marcas": [{"min": m, "estado": None, "proxima": False} for m in (6, 10, 14, 25)],
@@ -458,6 +488,9 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
     hwnd = ctypes.windll.user32.GetParent(root.winfo_id()) if hasattr(ctypes, "windll") else None
     mostrada, ultimo, errores, marcas, tipo_ant, gen = [False], [None], set(), {}, [None], [0]
     sm = [None]  # estado de momentos.paso (Sombra) entre ticks
+    hud = [None, 0]  # escala de HUD del juego y cuándo se leyó
+    carga = [None]  # desde cuándo se ve la carta de la pantalla de carga
+    rapido = [False]  # Sombra: tick de 250 ms (lo decide el último dibujar que sí leyó el estado)
     mov = {"on": False, "agarre": None, "pos": None}  # modo mover (Ajustes): arrastrar con el botón izquierdo, se guarda al soltar
 
     def arrastrar():  # solo en modo mover: lee el mouse cada 16 ms mientras el botón izquierdo está apretado sobre la franja
@@ -482,7 +515,7 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         try: dibujar()
         except Exception:  # un dato raro no congela la franja el resto de la partida
             if (txt := traceback.format_exc(limit=2).strip().splitlines()[-1]) not in errores: errores.add(txt); registrar(txt)
-        root.after(1000, tick)
+        root.after(250 if rapido[0] else 1000, tick)  # Sombra: la foto llega cada 1 s
 
     def dibujar():
         s = leer() or {}; ahora = time.time(); aj = s.get("ajustes") or {}
@@ -494,14 +527,20 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         marcar(marcas, s.get("meta"), ahora)
         oro = (((s.get("rendimiento") or {}).get("resumen") or {}).get("racha_oro14"))
         meta = s.get("meta") if visible(s, ahora) else None
+        rapido[0] = aj.get("franja_estilo") == "sombra"
         sombra = aj.get("franja_estilo") == "sombra" and (meta or {}).get("modo") != "ARAM"  # ARAM: la pastilla clásica
         if sombra:
             import momentos, lienzo
             e = None
             if meta:
-                sm[0], e, notas = momentos.paso(sm[0], meta, s.get("guion"), ahora, aj)
+                sm[0], e, notas = momentos.paso(sm[0], meta, s.get("guion"), ahora, aj); carga[0] = None
                 if notas: anotar(notas, sm[0]["marcas"])
+            elif s.get("fase") == "InProgress" and aj.get("overlay", True) is not False and (s.get("guion") or {}).get("sombra"):
+                carga[0] = carga[0] or ahora  # pantalla de carga: la Live Client Data aún no responde
+                if ahora - carga[0] < CARTA_S and (c := momentos.carta_carga(s["guion"])): e = {"carta": c}
+            else: carga[0] = None
             if mov["on"] and not e: e = EJEMPLO_SOMBRA
+            if e and e.get("brillo") is not None and not animar(): e = {**e, "brillo": None}  # Windows sin animaciones: sin brillo
         else:
             e = estado(meta, ahora, aj, regla, s.get("aviso"), marcas, oro) if meta else None
             if mov["on"] and not e: e = EJEMPLO  # en modo mover se ve aunque no estés en partida
@@ -509,17 +548,30 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
             if mostrada[0]: root.withdraw(); mostrada[0] = False
             ultimo[0] = tipo_ant[0] = None; gen[0] += 1; return
         juego = rect_juego(); esc = escala(juego)
+        if e.get("carta"):  # al centro abajo, sobre la pantalla de carga; nada que mover ni animar
+            x0, y0, x1, y1 = juego or (0, 0, root.winfo_screenwidth(), root.winfo_screenheight())
+            w, h = round(lienzo.CARTA_W * esc), round(lienzo.CARTA_H * esc); px, py = x0 + (x1 - x0 - w) // 2, y0 + int((y1 - y0) * 0.80) - h
+            if (clave := (repr(e), esc, px, py)) == ultimo[0] and mostrada[0]: return
+            if not mostrada[0]: root.deiconify(); root.attributes("-topmost", True); mostrada[0] = True
+            gen[0] += 1
+            if hwnd: mostrar(hwnd, lienzo.pintar_carta(e["carta"], esc), px, py)
+            ultimo[0] = clave; return
         ancho = round((lienzo.ANCHO if sombra else 380) * esc)
         alto = round((lienzo.ALTO if sombra else ALTO_X if e.get("extra") else ALTO) * esc)  # Sombra: la barra no se mueve; renglón y panel cuelgan debajo
         pant = (root.winfo_screenwidth(), root.winfo_screenheight())
         if aj.get("franja_pos") == "libre": px, py = libre(juego, pant, aj.get("franja_x", x), aj.get("franja_y", 0), ancho, alto)
-        else: px, py = colocar(juego, pant, alto, x, aj.get("franja_pos"), y, fraccion_util(), ancho)
+        else:
+            if time.time() - hud[1] > 30: hud[:] = [escala_hud(), time.time()]  # el archivo cambia solo si tocas la escala en el juego
+            px, py = colocar(juego, pant, alto, x, aj.get("franja_pos"), y, fraccion_util(), ancho, hud[0])
         clave = (repr(e), esc, px, py)
         if clave == ultimo[0] and mostrada[0]: return  # nada cambió: no se repinta
         if not mostrada[0]: root.deiconify(); root.attributes("-topmost", True); mostrada[0] = True  # la ventana en capas solo se ve tras mostrarla
         gen[0] += 1; g = gen[0]  # los pasos de una animación vieja no pisan un estado nuevo ni una franja oculta
         img = lienzo.pintar(e, esc) if sombra else pintar(e, esc, icono)
         if hwnd: mostrar(hwnd, img, px, py)
+        if hwnd and sombra and e.get("brillo") is not None and mostrada[0]:  # el brillo del sello se apaga a los 600 ms
+            quieta = lienzo.pintar({**e, "brillo": None}, esc); vale = lambda: gen[0] == g and mostrada[0]
+            root.after(int(momentos.BRILLO_S * 1000), lambda: vale() and mostrar(hwnd, quieta, px, py))
         if hwnd and e.get("tipo") in ("aviso", "igualaste", "oro14") and e["tipo"] != tipo_ant[0] and animar():  # al entrar: sacudida (aviso) y dos pulsos
             imgs = (pintar({**e, "pulso": True}, esc, icono), img)
             vale = lambda: gen[0] == g and mostrada[0]

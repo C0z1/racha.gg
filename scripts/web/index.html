@@ -576,6 +576,13 @@ function oroCard(r) {  // «Racha de oro al 14»: de tus últimas 5, cuántas ll
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><span class="forma" style="margin:0">${m.map(([c, t]) => `<i class="${c}" role="img" aria-label="${t}" title="${t}"${c == "s" ? ' style="background:var(--dark4)"' : ""}></i>`).join("")}</span>
     <span>En <b>${r.ok} de ${r.n}</b> partidas llegaste al 14 con oro igual o mayor que tu rival.${r.ok < r.n / 2 ? " Si vas abajo, prioriza XP y farm." : ""}</span></div></div>`;
 }
+function cicloRegla(V) {  // Sombra: la racha de tu regla (partidas seguidas cumpliéndola) y cuánto falta para graduarla (8 de 10)
+  const rh = V && V.regla_hoy, gr = Object.entries((V && V.ciclo) || {}).filter(([, x]) => x.graduada).map(([m]) => m);
+  if (!rh || rh.racha == null) return "";
+  const NOM = {muertes: "muertes del 14 al 25", nivel: "nivel al 6"};
+  return `<span class="sub" style="font-size:13px;padding:0 4px">Racha de tu regla: <b style="color:var(--txt)">${rh.racha}</b> seguida${rh.racha === 1 ? "" : "s"} · ${rh.falta ? `te faltan ${rh.falta} de 10 para graduarla` : "lista para graduarse"}${gr.length ? ` · graduada${gr.length > 1 ? "s" : ""}: ${gr.map(m => NOM[m] || m).join(", ")}` : ""}</span>`;
+}
+
 function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un botón; rango, pick de hoy, oro y atajos al costado
   const R = s.rendimiento, t = R && R.tilt, ps = R ? R.resumen.partidas : [], [id, ...resto] = String(s.perfil || "").split(" · ");
   const nombre = id.includes("#") ? id.split("#")[0] : "", cliente = enCliente(s.fase);
@@ -608,7 +615,7 @@ function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un bo
     ${hoy.length ? `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${hoy.slice(-6).map(g => `<div class="mini">${img("champion", g.campeon, "item", g.campeon)}<b class="${g.win ? "v" : "d"}">${g.win ? "V" : "D"}</b>${esc(g.fecha || "")}</div>`).join("")}</div>`
       : `<span class="sub">Aún no juegas hoy. ${t && t.tras2 && t.tras2.n ? `Si llegas a 2 derrotas seguidas, Racha te muestra tu dato de descanso.` : ""}</span>`}</div>`;
   const regla = VS(s) && VS(s).reglas.length ? `<div class="card"><div class="cab2"><h2>Tu regla de hoy</h2><span class="sub" style="font-size:12px">la que más te cuesta</span></div>
-    ${reglaCumple(VS(s).reglas[0], 0)}</div>` : `<div class="card"><div class="cab2"><h2>Tu regla de hoy</h2><span class="sub" style="font-size:12px">del plan, con tus últimas partidas</span></div>
+    ${reglaCumple(VS(s).reglas[0], 0)}${cicloRegla(VS(s))}</div>` : `<div class="card"><div class="cab2"><h2>Tu regla de hoy</h2><span class="sub" style="font-size:12px">del plan, con tus últimas partidas</span></div>
     <div class="fila2" style="border:none"><span class="ic red">${ic("muertes")}</span>
       <div class="txt"><b>2 muertes o menos del 14 al 25</b><small>Morir a mitad de partida regala los objetivos.</small></div>
       ${d25.length ? `<span class="sub" style="font-size:12px">Cumples <b style="color:var(--txt)">${ok}/${d25.length}</b></span>` : '<span class="sub">Sin partidas aún</span>'}</div></div>`;

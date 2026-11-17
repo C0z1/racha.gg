@@ -12,4 +12,4 @@ Sombra solo muestra datos tuyos o conteos que se ven con Tab. Lee el cliente (LC
 | Información dinámica en tiempo real, con recelo | Comparación solo contra tu propio historial; máx. 3 interrupciones, nunca en pelea, nada después del 25; cada momento se apaga en Ajustes | `test_momentos.Contrato` (6 pruebas) |
 | Scouting de los 10 jugadores | No hay: solo tú y, en el panel al morir, el marcador de objetivos que se ve con Tab | — |
 
-Pendiente (Fase 0, del dueño de Racha): confirmar el estado del registro en el Developer Portal (`riot.txt`) y preguntar por escrito por 3 puntos: la comparación en vivo con el historial propio, la carta en la pantalla de carga y el uso de la vida propia para callar la franja. Plan B si Riot objeta la comparación en vivo: la sombra solo al morir, en la carga y al terminar.
+Fase 0: Racha está registrada (app 904596). Falta enviar por la pestaña *Messages* de la app la pregunta por 3 puntos: la comparación en vivo con el historial propio, la carta en la pantalla de carga y el uso de la vida propia para callar la franja. Plan B si Riot objeta la comparación en vivo: la sombra solo al morir, en la carga y al terminar.

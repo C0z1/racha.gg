@@ -133,6 +133,7 @@ AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "avi
                "franja_build": True,  # la franja muestra tu próximo ítem al morir o al comprar
                "franja_estilo": "sombra",  # Sombra (3 zonas: regla, sombra, marcas) o la pastilla clásica, una versión más
                "solo_marcas": False,  # Sombra sin interrupciones: solo las marcas y el panel al morir
+               "franja_poco": False,  # Sombra: 1 interrupción por partida (se prende sola tras dos «no» a «¿Te sirvieron?»)
                "franja_pos": "arriba", "franja_x": 0.22, "franja_y": 0.0}  # esquina de la franja: único ajuste que no es booleano
 OPCIONES = {"franja_pos": ("arriba", "abajo", "libre"), "franja_estilo": ("sombra", "clasica")}  # lista blanca de los ajustes de texto
 FRACCIONES = ("franja_x", "franja_y")  # posición libre de la franja: fracción del juego (0–1), la eligió el usuario arrastrándola
@@ -141,6 +142,20 @@ FRACCIONES = ("franja_x", "franja_y")  # posición libre de la franja: fracción
 def valido(clave, v):
     if clave in FRACCIONES: return isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1
     return v in OPCIONES[clave] if clave in OPCIONES else isinstance(v, bool)
+
+
+SIRVIO_F = REPO / "datos" / "cache" / "sirvio.json"
+
+
+def contar_sirvio(v):
+    """Guarda la respuesta a «¿Te sirvieron?» y dice si Sombra debe hablar menos: True tras dos «no» seguidos, False con
+    un «sí», None si no cambia (no los vi)."""
+    try: ult = json.loads(SIRVIO_F.read_text(encoding="utf-8"))[-1:]
+    except (OSError, ValueError, TypeError, KeyError): ult = []
+    ult = [x for x in ult if x in ("si", "no", "no_vi")] + [v]
+    try: SIRVIO_F.parent.mkdir(parents=True, exist_ok=True); SIRVIO_F.write_text(json.dumps(ult), encoding="utf-8")
+    except OSError: pass
+    return True if ult == ["no", "no"] else False if v == "si" else None
 
 
 def ajustes():
@@ -358,8 +373,11 @@ SONDEO_VIVO = 10  # s entre fotos en vivo con la franja clásica: < 1 ms de cál
 SONDEO_SOMBRA = 1  # con Sombra: una muerte o una compra en pantalla en ≤ 1,5 s, y la vida propia para no hablar en una pelea
 
 
+FRANJA_CAIDA = [False]  # el proceso de la franja cayó dos veces: sin franja, sin prisa
+
+
 def sondeo(aj):
-    return SONDEO_SOMBRA if aj.get("overlay", True) is not False and aj.get("franja_estilo") == "sombra" else SONDEO_VIVO
+    return SONDEO_SOMBRA if aj.get("overlay", True) is not False and aj.get("franja_estilo") == "sombra" and not FRANJA_CAIDA[0] else SONDEO_VIVO
 
 
 def aviso(texto, tipo="error", minuto=None):
