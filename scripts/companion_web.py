@@ -789,7 +789,10 @@ class H(http.server.BaseHTTPRequestHandler):
                 refrescar()
                 with LOCK: ESTADO.update(descarga="Listo: tus estadísticas están al día.", v=ESTADO["v"] + 1)
             threading.Thread(target=recargar, daemon=True).start(); return self.enviar(200, b"{}", "application/json")
-        if self.path not in ("/api/autoarranque", "/api/ajuste", "/api/mover_franja"): return self.enviar(404, b"", "text/plain")
+        if self.path not in ("/api/autoarranque", "/api/ajuste", "/api/mover_franja"):
+            try: self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 4096))  # como el 403: sin leer, Windows corta
+            except (ValueError, OSError): pass
+            return self.enviar(404, b"", "text/plain")
         try: d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 200))); on = d["on"]
         except (ValueError, KeyError, TypeError): return self.enviar(400, b"", "text/plain")
         if self.path in ("/api/autoarranque", "/api/mover_franja") and not isinstance(on, bool): return self.enviar(400, b"", "text/plain")

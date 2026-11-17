@@ -3,6 +3,7 @@
 Una línea por versión, en palabras de jugador. Lo más nuevo arriba.
 
 ## Sin publicar
+- Inicio más claro: tu regla de hoy arriba, tu racha y tu sesión lado a lado, y la versión junto a «Actualizar» en vez de tapar los atajos.
 - En ranked, Racha ya no toma como tu rival al primer enemigo que elige: espera al que juega tu línea, según el rol de cada campeón en Master+.
 - Arreglo: en la Herramienta de práctica salía «Error: AttributeError» por los muñecos sin ítems.
 - Repo reorganizado: la app queda sola en `scripts/`, las pruebas en `pruebas/`, las herramientas de desarrollo en `herramientas/` y los planes terminados en `.equipo/archivo/`. Se quitó la ventana tkinter vieja, que ya no se usaba. Para quien juega no cambia nada.
