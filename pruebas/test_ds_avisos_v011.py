@@ -5,6 +5,9 @@
 Los expectedFailure llevan «pasa cuando Opus aplique avisos-v011.md». Sin red.
 """
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
+import os as _os
+if not (_p.Path(_os.environ.get("DATOS_DIR") or _p.Path(__file__).resolve().parent.parent / "datos" / "raw") / "perfil.json").exists():
+    _os.environ["DATOS_DIR"] = str(_p.Path(__file__).resolve().parent.parent / "scripts" / "fixtures" / "datos")  # clon nuevo o CI, como test_flujo
 import re, unittest
 
 import companion

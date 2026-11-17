@@ -205,7 +205,7 @@ class TestEstado(unittest.TestCase):
     def test_refrescar_sube_v(self):
         fake = {"resumen": {"partidas": []}, "tilt": {"base": {"n": 0}}}
         before = web.ESTADO["v"]
-        with mock.patch.object(web, "rendimiento_rapido", return_value=fake), mock.patch.object(web, "tus_builds"),                 mock.patch.object(web, "vistas_previas"), mock.patch.object(web, "sync_nube"):
+        with mock.patch.object(web, "rendimiento_rapido", return_value=fake), mock.patch.object(web, "tus_builds"),                 mock.patch.object(web, "vistas_previas"), mock.patch.object(web, "sync_nube"), mock.patch.object(web, "builds_del_backend"):  # sin red
             web.refrescar()
         self.assertEqual(web.ESTADO["v"], before + 1)
         self.assertIs(web.ESTADO["rendimiento"], fake)
