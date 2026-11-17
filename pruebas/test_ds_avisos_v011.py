@@ -154,13 +154,6 @@ class ReglasSinImperativos(unittest.TestCase):
         for r in (draft.R_NIVEL6, draft.R_MUERTES, draft.R_RIO):
             with self.subTest(regla=r["texto"]): self.assertEqual(self._malas(r["texto"]), [], r["texto"])
 
-    def test_regla_de_muertes_en_index_html(self):
-        import pathlib
-        html = (pathlib.Path(__file__).resolve().parent.parent / "scripts" / "web" / "index.html").read_text(encoding="utf-8")
-        m = re.search(r'muertes: \["Muertes".*?"(≤ 2 muertes[^"]*)"\]', html)
-        self.assertIsNotNone(m, "no encontre la cadena de la regla de muertes en index.html")
-        self.assertEqual(self._malas(m.group(1)), [], m.group(1))
-
     def test_reglas_por_campeon_de_draft(self):
         import draft
         for c, rs in draft.REGLAS_CHAMP.items():

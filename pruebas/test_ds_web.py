@@ -105,17 +105,8 @@ class TestServidor(unittest.TestCase):
         self.assertIn(b"n: r.tu ? r.tu.n : 0", cuerpo)
         self.assertIn("sin dato tuyo".encode("utf-8"), cuerpo)
 
-    def test_fallo_unidades_vacio_y_componente_desconocido(self):  # turno 9 (b): sin unidades cae a «contra tu rol» con z
+    def test_signo_usa_menos_unario(self):
         _, _, cuerpo = self.s.get("/")
-        self.assertIn("contra tu rol".encode("utf-8"), cuerpo)
-        self.assertIn(b"signo(z, 2)", cuerpo)                      # sin unidades: muestra la desviación z
-        self.assertIn(b'COMP[c] || [c, "alerta", v => v, "", ""]', cuerpo)  # componente fuera de COMP no truena
-        self.assertIn(b"DEC[c] ?? 1", cuerpo)
-
-    def test_fallo_muertes_signo_alineado(self):  # turno 9 iter 4 (b): el número de Muertes lleva el signo de la flecha
-        _, _, cuerpo = self.s.get("/")
-        self.assertIn(b'(c === "muertes" ? -1 : 1)', cuerpo)  # menos es mejor: se niega para seguir a ▼/▲
-        self.assertIn(b"muertes: 1", cuerpo)                  # 1 decimal → «−2.0» y no «−2»
         self.assertIn(b'v < 0 ? "\xe2\x88\x92"', cuerpo)      # signo usa el menos unario − (U+2212)
 
 

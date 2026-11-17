@@ -51,11 +51,8 @@ h1{margin:0;font-size:28px}h2{margin:0;font-size:20px}
 aside[hidden]{display:none}
 aside{flex:1 1 560px;background:var(--dark);color:#fff;border-radius:40px 0 0 40px;padding:44px 36px 36px;display:flex;flex-direction:column;gap:24px}
 aside .sub{color:var(--muted)}
-.tile{height:82px;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;color:var(--txt)}
-.tile img{width:44px;height:44px;border-radius:8px}.tile span{font-size:12px;color:var(--muted)}
 .est{border-radius:10px;background:var(--dark2);padding:20px;display:flex;flex-direction:column;gap:14px}
 .barra{position:relative;height:14px;border-radius:25px;background:linear-gradient(90deg,#9A2E3A,#9A8290,#3E7A62);margin-top:8px}
-.marca{position:absolute;top:-4px;width:2px;height:22px;background:#fff}
 .punto{position:absolute;top:-12px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#fff}
 .escala{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
 .counters{display:flex;gap:14px;flex-wrap:wrap}
@@ -65,7 +62,6 @@ aside .sub{color:var(--muted)}
 details summary{cursor:pointer;color:var(--muted)}
 .fila{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}
 .aviso{padding:12px 16px;border-radius:10px;font-weight:700}
-.vacio{color:var(--muted)}
 .ic{flex-shrink:0;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center}
 .fila2{display:flex;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line);line-height:1.4}
 .fila2:first-of-type{border-top:none}
@@ -149,8 +145,8 @@ details.alt summary{cursor:pointer;color:var(--muted);font-size:14px;padding:6px
 .falla .ic{width:36px;height:36px;border-radius:8px}.falla .txt{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.falla small{font-size:12px;color:var(--muted)}
 .btn{background:var(--acc);color:#24111A;border:none;border-radius:10px;padding:12px 16px;font:700 14px Mulish,'Segoe UI',sans-serif;cursor:pointer}
 /* Estela (0.18.0, PLAN-REINVENCION.md): la racha como una estela de luz. Solo se anima transform, opacity y
-   stroke-dashoffset; nada se mueve en partida, con la ventana oculta ni con «Reducir movimiento». Sin bucles infinitos
-   salvo el cometa de carga: cualquier bucle visible hace que Edge redibuje toda la ventana (medido: 15–20 % de un núcleo
+   stroke-dashoffset; nada se mueve en partida, con la ventana oculta ni con «Reducir movimiento». Sin bucles infinitos:
+   cualquier bucle visible hace que Edge redibuje toda la ventana (medido: 15–20 % de un núcleo
    contra 0,4 % quieta), así que la aurora es fija y los adornos dan 1–2 vueltas al entrar a la vista. */
 :root{--bg:#1E0E16;--e1:#A33A63;--e2:#F28DB0;--e3:#F8C3D6;--e4:#A8D8C0;--oro:#F2C46B;
 --estela:linear-gradient(90deg,var(--e1),var(--e2),var(--e3),var(--e4));
@@ -191,10 +187,8 @@ nav button:hover{transform:translateX(2px)}.btn:hover{transform:translateY(-1px)
 .heroe{font-size:72px;line-height:1;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;background:linear-gradient(180deg,#FFFFFF,var(--e3));-webkit-background-clip:text;background-clip:text;color:transparent}
 .etq{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--e3)}
 .vacio-e{display:flex;align-items:center;gap:18px}.vacio-e svg{flex-shrink:0;opacity:.35}
-.carga{display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px 0}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.32s;animation-timing-function:var(--sal)}
 .cometa-r{animation:cometa 3.2s var(--pasa) 2}
-.carga .cometa{animation:cometa 1.6s var(--pasa) infinite}
 @keyframes cometa{from{stroke-dashoffset:0}to{stroke-dashoffset:-1000}}
 @keyframes entra{from{opacity:0;transform:translateY(14px)}}
 main:not(.repinta)>*,aside:not(.repinta)>*{animation:entra .8s var(--sal) both}
@@ -386,26 +380,6 @@ function otraFase(s) {  // en partida, al terminar y esperando
   if (s.espera) bloques.push(`<div class="card"><span class="sub">${esc(s.espera)}</span></div>`);
   if (bloques.length === 1) bloques.push(`<div class="card"><span class="sub">${EN_PARTIDA.includes(s.fase) ? "Esperando los datos en vivo: salen cuando carga el mapa." : enCliente(s.fase) ? "Aún no estás en partida: al empezar, Racha cambia aquí solo." : "Abre el cliente de LoL: aquí verás tu pick en champ select y la revisión al terminar."}</span></div>`);
   return bloques.join("");
-}
-
-// nombre, ícono, cómo leer tus unidades y la acción de una línea (del PLAN cuando la hay)
-const COMP = {
-  "daño": ["Daño a campeones", "dano", pct, "% del daño de tu equipo", "Pelea junto a tu equipo y los objetivos, no sola en tu línea."],
-  oro: ["Oro", "oro", pct, "% del oro de tu equipo", "Cuida el farm aunque pierdas la línea: no más de 10 CS abajo al 14."],
-  kp: ["Participación en kills", "kp", pct, "de las kills de tu equipo", "Con ventaja, rota al objetivo con tu jungla en vez de farmear en mid."],
-  muertes: ["Muertes", "muertes", v => v.toFixed(1), "por partida", "≤ 2 muertes del 14 al 25; antes de un dragón, heraldo o barón, no pelear si no hace falta."],
-  "visión": ["Visión", "vision", v => v.toFixed(2), "de visión por minuto", "Usa el trinket cada vez que esté listo: es visión gratis."],
-  cs: ["CS", "cs", v => v.toFixed(1), "CS por minuto", "No tradees ni roamees a costa de oleadas antes del 10."],
-  objetivos: ["Objetivos", "objetivos", pct, "del daño a objetivos de tu equipo", "Parejo o abajo, llega al objetivo con tu equipo."],
-  "línea": ["Línea", "linea", v => signo(v, 0), "oro por minuto contra tu rival", "No salgas del 6 con un nivel abajo: tradea, pero no pierdas la carrera al 6."],
-};
-const DEC = {muertes: 1, "visión": 2, cs: 1, "línea": 0};  // decimales de la diferencia; los % van en puntos
-function fallo(c, z, u) {  // Perfil.dc: ícono, nombre, «Tú X · típico Y» y etiqueta con la diferencia (flecha = si te baja o te sube)
-  const [nom, i, f, , accion] = COMP[c] || [c, "alerta", v => v, "", ""], mal = z < 0;
-  const dif = u ? (f === pct ? signo((u.tu - u.rol) * 100, 0) + " pts" : signo((u.tu - u.rol) * (c === "muertes" ? -1 : 1), DEC[c] ?? 1)) : signo(z, 2);  // muertes: menos es mejor, el signo sigue a la flecha
-  return `<div title="${esc(accion)}"><span class="ic ${mal ? "red" : "teal"}">${ic(i, 20)}</span>
-    <div class="txt"><b style="font-size:14px">${esc(nom)}</b><small>${u ? `Tú ${esc(f(u.tu))} · típico ${esc(f(u.rol))}` : "contra tu rol"}</small></div>
-    <span class="tag ${mal ? "red" : "ok"}" role="img" aria-label="${mal ? "Te baja" : "Te sube"}: ${esc(dif)}">${mal ? "▼" : "▲"} ${esc(dif)}</span></div>`;
 }
 
 function cuentaCab(s) {  // Home_Vino/Perfil_Vino: ícono de invocador con aro rosa, Riot ID y región · rol
@@ -677,7 +651,6 @@ const EN_PARTIDA = ["GameStart", "InProgress", "Reconnect", "WaitingForStats", "
 const VS = s => (s.rendimiento && s.rendimiento.vistas) || null;
 let SIN_HIST = "";  // sin historial: el porqué que manda el servidor (cuenta ajena, descargando); vacío, el texto de siempre
 const LOGO = (n = 56) => `<svg aria-hidden="true" width="${n}" height="${n}" viewBox="0 0 256 256"><rect x="34" y="150" width="38" height="56" rx="9" fill="#A33A63"/><rect x="80" y="114" width="38" height="92" rx="9" fill="#F28DB0"/><rect x="126" y="78" width="38" height="128" rx="9" fill="#F8C3D6"/><rect x="172" y="42" width="38" height="164" rx="9" fill="#A8D8C0"/></svg>`;
-const CARGA = t => `<div class="carga" role="status"><svg aria-hidden="true" width="260" height="40" viewBox="0 0 260 40" fill="none" style="overflow:visible"><defs><linearGradient id="ec" x1="0" x2="1"><stop offset="0" stop-color="#A33A63"/><stop offset=".33" stop-color="#F28DB0"/><stop offset=".67" stop-color="#F8C3D6"/><stop offset="1" stop-color="#A8D8C0"/></linearGradient></defs><path d="M6 30 C 70 30, 90 8, 150 10 S 230 6, 254 4" stroke="url(#ec)" stroke-width="3" stroke-linecap="round" opacity=".35"/><path class="cometa" d="M6 30 C 70 30, 90 8, 150 10 S 230 6, 254 4" stroke="#fff" stroke-width="3" stroke-linecap="round" pathLength="1000" stroke-dasharray="90 910"/></svg><span class="sub" style="font-size:13px">${esc(t)}</span></div>`;
 const sinDatosCard = () => `<div class="card vacio-e">${LOGO()}<span class="sub">${SIN_HIST ? esc(SIN_HIST) : `Aún no tienes partidas aquí: Racha arma esta vista con tu historial. Si no lo tienes, ve a <a href="#" onclick="ver('ajustes');return false" style="color:var(--acc);font-weight:700">Ajustes</a>, pega tu código de acceso y dale a Descargar.`}</span></div>`;
 const sinDatos = (t, sub) => [`<div><h1>${t}</h1><span class="sub">${esc(sub || "")}</span></div>${sinDatosCard()}`, ""];
 const fmin = v => v == null ? "–" : signo(v, 0);
