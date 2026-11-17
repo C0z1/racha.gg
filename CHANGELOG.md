@@ -3,6 +3,7 @@
 Una línea por versión, en palabras de jugador. Lo más nuevo arriba.
 
 ## Sin publicar
+- En ranked, Racha ya no toma como tu rival al primer enemigo que elige: espera al que juega tu línea, según el rol de cada campeón en Master+.
 - Repo reorganizado: la app queda sola en `scripts/`, las pruebas en `pruebas/`, las herramientas de desarrollo en `herramientas/` y los planes terminados en `.equipo/archivo/`. Se quitó la ventana tkinter vieja, que ya no se usaba. Para quien juega no cambia nada.
 
 ## 13 de noviembre de 2026

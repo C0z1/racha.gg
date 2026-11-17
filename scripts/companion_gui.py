@@ -278,15 +278,26 @@ def hay_key():
     except (AttributeError, OSError): return False
 
 
-def rival_probable(pos, nombres):
-    """En ranked Riot oculta el rol de los enemigos: de los ya elegidos, el que más veces fue tu rival en esa posición
-    (tus partidas). None si ninguno sale en tus partidas o no hay datos: entonces se muestran todos."""
-    try: import draft
-    except Exception: return None
-    from collections import Counter
-    c = Counter(g["opp"] for g in draft.games if g.get("pos") == pos)
-    mejor = max((n for n in nombres if n), key=lambda n: c.get(n, 0), default=None)
-    return mejor if mejor and c.get(mejor, 0) > 0 else None
+def rivales_linea(pos, nombres):
+    """En ranked Riot oculta el rol de los enemigos: de los ya elegidos, el que más juega tu posición según las builds
+    Master+ (datos/meta/builds.json, cuota de partidas en ese rol ≥ 20 %); empate, tu historial. [] si ninguno la juega:
+    tu rival aún no elige. Sin ese archivo, como antes: el que más fue tu rival en tus partidas, o todos."""
+    nombres = [n for n in nombres if n]
+    try: import draft; hist = collections.Counter(g["opp"] for g in draft.games if g.get("pos") == pos)
+    except Exception: hist = collections.Counter()
+    try:
+        import builds; d = json.loads((builds.META / "builds.json").read_text(encoding="utf-8"))
+        tot, mio = collections.Counter(), collections.Counter()
+        for k, v in d.items():
+            if k.count("|") == 1 and isinstance(v, dict) and v.get("n"):
+                c, p = k.split("|"); tot[builds.norm(c)] += v["n"]; mio[builds.norm(c)] += v["n"] if p == pos else 0
+    except (OSError, ValueError, AttributeError):  # sin builds.json (instalación nueva) o cortado
+        mejor = max(nombres, key=hist.__getitem__, default=None)
+        return nombres if len(nombres) < 2 or not hist[mejor] else [mejor]
+    cuota = lambda n: mio[builds.norm(n)] / tot[builds.norm(n)] if tot[builds.norm(n)] else None
+    if cand := [n for n in nombres if (cuota(n) or 0) >= 0.2]: return [max(cand, key=lambda n: (cuota(n), hist[n]))]
+    sin = [n for n in nombres if cuota(n) is None and hist[n]]  # campeón sin builds del ladder: tu historial decide
+    return [max(sin, key=hist.__getitem__)] if sin else []
 
 
 def recomendaciones(pos, rivales):
@@ -449,16 +460,17 @@ def trabajador(q):
                 if isinstance(tm.get("adjustedTimeLeftInPhase"), (int, float)):
                     q.put(("crono", {"fase": tm.get("phase"), "ms": tm["adjustedTimeLeftInPhase"], "t": time.time()}))
                 tab = companion.tablero(s, nl := nl or companion.nombres_lcu() or companion.nombres() or dict(NOMBRES))
+                ocultos = not any(p.get("assignedPosition") for p in s.get("theirTeam") or [])  # ranked: ids son todos sus picks
                 if tab != tab_ant:
                     q.put(("tablero", tab)); tab_ant = tab
-                    rv = [nl.get(i) for i in ids]  # tu rival de línea: el único de tu rol, o el más probable (Riot oculta roles)
-                    rv = rv[0] if len(rv) == 1 else rival_probable(pos, rv) if rv else None
-                    q.put(("comentario", comentario(tab, pos, rv)))
+                    rv = [nl.get(i) for i in ids]  # tu rival de línea: el único de tu rol, o el más probable por rol
+                    if ocultos: rv = rivales_linea(pos, rv)
+                    q.put(("comentario", comentario(tab, pos, rv[0] if len(rv) == 1 else None)))
                 if ids and (pos, ids) != visto:
                     m = m or companion.nombres() or dict(NOMBRES); visto = (pos, ids)
                     nombres = [m.get(i) for i in ids]
-                    if len(nombres) > 1 and (p := rival_probable(pos, nombres)): nombres = [p]  # el rival de línea más probable
-                    q.put(("draft", pos, recomendaciones(pos, nombres), len(ids) > 1))
+                    if ocultos: nombres = rivales_linea(pos, nombres)
+                    q.put(("draft", pos, recomendaciones(pos, nombres), ocultos) if nombres else ("pos", pos))  # [] : su jungla o support, no tu rival
                 elif not ids and pos and visto != pos: q.put(("pos", pos)); visto = pos  # bans y picks antes del rival
             elif fase != "ChampSelect": visto = tab_ant = None
             if jugando and time.time() - ult >= SONDEO_VIVO:
