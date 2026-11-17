@@ -3,6 +3,7 @@
 Una línea por versión, en palabras de jugador. Lo más nuevo arriba.
 
 ## Sin publicar
+- Franja nueva, **Sombra**: en partida juegas contra tu sombra, la mediana de tus victorias con ese campeón minuto a minuto. Tres zonas que nunca cambian de lugar: tu tope de muertes, tu CS (o tus peleas desde el 14) contra tu sombra y tus 4 marcas (minutos 6, 10, 14 y 25). Se actualiza cada segundo, habla 3 veces por partida como mucho y nunca en una pelea. Al terminar ves lo que mostró y por qué calló. La pastilla de antes sigue en Ajustes como «Clásica».
 - En ranked, Racha se equivoca menos al adivinar a tu rival de línea antes de que se revelen los roles: con 386 de tus partidas, el ajuste nuevo baja los errores de 23 % a 22 % (prefiere esperar a que tu rival elija antes que señalar al equivocado).
 - En partida, el nivel «10 · 10» ya no se parte en dos líneas cuando aparece «Puedes tradear».
 - Un timeline dañado ya no tumba la selección de campeón ni la revisión post-partida, y «Tu última partida» se salta un archivo roto en vez de quedar vacía.

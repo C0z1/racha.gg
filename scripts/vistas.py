@@ -209,10 +209,10 @@ def pick_hoy(games, pos, base):
 EN_VIVO = ("muertes", "nivel")  # reglas que la partida en vivo puede contar (muertes 14–25 y nivel al 6)
 
 
-def regla_hoy(reglas):
+def regla_hoy(reglas, graduadas=()):
     """F3: tu regla de hoy en partida = de las que se cuentan en vivo, la que más fallas en tus últimas 20 (reglas ya viene
-    ordenada así por reglas_perfil). None sin datos: la franja usa entonces la de muertes como consejo."""
-    r = next((x for x in reglas or [] if x.get("metrica") in EN_VIVO and x.get("n")), None)
+    ordenada así por reglas_perfil), sin las graduadas (ciclo.py). None sin datos: la franja usa entonces la de muertes como consejo."""
+    r = next((x for x in reglas or [] if x.get("metrica") in EN_VIVO and x.get("n") and x["metrica"] not in graduadas), None)
     return {k: r[k] for k in ("metrica", "texto", "numero", "ok", "n")} if r else None
 
 
@@ -222,7 +222,11 @@ def todo(resumen):
     pos = Counter(g["pos"] for g in draft.games[-50:]).most_common(1)[0][0]
     cs = campeones()
     rg = reglas_perfil([p["comp"] for p in resumen["partidas"]])
-    return dict(campeones=cs, hoy=pick_hoy(draft.games, pos, draft.base), reglas=rg, regla_hoy=regla_hoy(rg),
+    import ciclo
+    cl = ciclo.actualizar(sorted(draft.games, key=lambda g: g["t"]), {r["metrica"]: (r["campo"], r["ok"]) for r in (draft.R_MUERTES, draft.R_NIVEL6)})
+    rh = regla_hoy(rg, {m for m, x in cl.items() if x["graduada"]})
+    if rh and (c := cl.get(rh["metrica"])): rh.update(racha=c["racha"], falta=c["falta"])  # Sombra: tu racha y cuánto falta para graduarla
+    return dict(campeones=cs, hoy=pick_hoy(draft.games, pos, draft.base), reglas=rg, regla_hoy=rh, ciclo=cl,
                 draft={p: draft_rol(p) for p in ("TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY")}, pos=pos, errores=(e := errores(gs)), por_partida=por_partida(resumen, e),
                 total=len(draft.games), ultima=max(g["t"] for g in draft.games))
 
