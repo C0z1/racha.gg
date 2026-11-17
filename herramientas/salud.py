@@ -1,11 +1,11 @@
 """Chequeo de salud de Racha (plan En vivo, .equipo/PLAN-ENVIVO.md): mide, registra y nunca arregla solo.
-  python scripts/salud.py                 una pasada; sale con 1 si hay FALLA
-  python scripts/salud.py --cada 60       en bucle (60 s en partida; fuera de partida, cada 300 s)
-  python scripts/salud.py --vistas        además abre las 9 vistas en Edge sin ventana (S10)
-  python scripts/salud.py --foto          en FALLA, guarda una captura del monitor del juego
+  python herramientas/salud.py                 una pasada; sale con 1 si hay FALLA
+  python herramientas/salud.py --cada 60       en bucle (60 s en partida; fuera de partida, cada 300 s)
+  python herramientas/salud.py --vistas        además abre las 9 vistas en Edge sin ventana (S10)
+  python herramientas/salud.py --foto          en FALLA, guarda una captura del monitor del juego
 Log: datos/salud/salud.jsonl (una línea por pasada) y datos/salud/fallo-<ts>.json en cada FALLA."""
 import json, os, pathlib, subprocess, sys, time, urllib.request
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import companion
 
 REPO = pathlib.Path(__file__).resolve().parent.parent

@@ -1,9 +1,9 @@
 """Repite una partida grabada (datos/vivo/*.jsonl) por companion.paso_vivo y la pastilla (overlay.estado), sin LoL ni red.
-Uso: python scripts/replay.py <archivo.jsonl> [--validar] [--precios]
+Uso: python herramientas/replay.py <archivo.jsonl> [--validar] [--precios]
 Cada foto: «mm:ss | franja: … | aviso: …». --validar comprueba invariantes y sale con 1 si alguna falla.
 Por defecto no usa Data Dragon (sin pieza de Oro ni aviso de pico) para que la salida sea idéntica en cualquier máquina; --precios lo activa."""
 import argparse, contextlib, json, pathlib, re, sys
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import companion, overlay
 
 MAX_PIEZAS = 9  # textos de la pastilla: número y etiqueta ×2, flecha, chip, y al morir el marcador y tu regla

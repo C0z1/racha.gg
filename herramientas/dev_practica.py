@@ -1,10 +1,10 @@
 """Solo desarrollo (no va en el .exe): abre una Herramienta de práctica para probar Racha en una partida real.
-  python scripts/dev_practica.py [campeónId, 245 = Ekko] [--seco] [--espera N]   lobby → selección (N s antes de elegir) → elige y confirma → espera InProgress
-  python scripts/dev_practica.py salir                              termina la partida de práctica
-  python scripts/dev_practica.py reconectar                         vuelve a la partida de práctica (prueba de Reconnect)
+  python herramientas/dev_practica.py [campeónId, 245 = Ekko] [--seco] [--espera N]   lobby → selección (N s antes de elegir) → elige y confirma → espera InProgress
+  python herramientas/dev_practica.py salir                              termina la partida de práctica
+  python herramientas/dev_practica.py reconectar                         vuelve a la partida de práctica (prueba de Reconnect)
 Nunca toca colas ranked/normales ni el ready-check: se niega fuera de las fases None/Lobby."""
 import sys, time
-sys.path.insert(0, __import__("os").path.dirname(__file__))
+sys.path.insert(0, __import__("os").path.join(__import__("os").path.dirname(__file__), "..", "scripts"))  # la app vive en scripts/
 import companion as c
 
 LOBBY = {"customGameLobby": {"configuration": {"gameMode": "PRACTICETOOL", "gameMutator": "", "gameServerRegion": "", "mapId": 11,

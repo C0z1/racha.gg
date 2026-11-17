@@ -1,6 +1,7 @@
 """dev_practica: nunca escribe al cliente fuera de None/Lobby, y --seco no escribe nada."""
 import pathlib, sys, unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))
+import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "herramientas"))  # replay, salud, dev_*
 import dev_practica as d
 
 

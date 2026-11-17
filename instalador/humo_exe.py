@@ -1,5 +1,5 @@
 """Humo de la build: arranca Companion.exe --demo --no-abrir, busca su puerto y pide /api/estado.
-  python scripts/humo_exe.py [ruta.exe]   sale con 0 si responde JSON con 'fase'."""
+  python instalador/humo_exe.py [ruta.exe]   sale con 0 si responde JSON con 'fase'."""
 import json, pathlib, re, subprocess, sys, time, urllib.request
 
 exe = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parent.parent / "dist" / "HTC" / "HTC.exe")

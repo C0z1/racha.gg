@@ -1,5 +1,6 @@
 """Overlay en partida: los estados de la pastilla, su dibujo, cuándo se ve, dónde va y que la ventana abre y cierra."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
+import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "herramientas"))  # replay, salud, dev_*
 import unittest
 
 import overlay

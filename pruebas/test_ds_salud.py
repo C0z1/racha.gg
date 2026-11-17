@@ -1,6 +1,7 @@
 """D-a del PLAN-ENVIVO: pruebas de borde de salud.evaluar (pura). Sin red ni Win32.
 Los falsos positivos y negativos hallados (S2, S3, S6) ya estan arreglados y sus pruebas pasan."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
+import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "herramientas"))  # replay, salud, dev_*
 import unittest
 
 import salud

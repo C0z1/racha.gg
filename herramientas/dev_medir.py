@@ -1,8 +1,8 @@
 """Solo desarrollo (no va en el .exe): capturas de cada vista con Edge headless y el tiempo del primer pintado de Inicio
 (plan de reinvención, 0.18). Levanta un Racha propio sin ventana ni franja (--no-abrir) sobre tus datos.
-  python scripts/dev_medir.py [carpeta]   (por defecto datos/salud/estela)"""
+  python herramientas/dev_medir.py [carpeta]   (por defecto datos/salud/estela)"""
 import json, pathlib, re, subprocess, sys, time, urllib.request
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import ventana
 
 VISTAS = ("inicio", "draft", "companion", "envivo", "perfil", "partidas", "campeones", "errores", "ajustes")
@@ -17,7 +17,7 @@ def edge(*args, timeout=60):
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     out = pathlib.Path(argv[0] if argv else pathlib.Path(__file__).resolve().parent.parent / "datos" / "salud" / "estela").resolve(); out.mkdir(parents=True, exist_ok=True)  # absoluta: Edge resuelve otra carpeta
-    srv = subprocess.Popen([sys.executable, str(pathlib.Path(__file__).with_name("companion_web.py")), "--no-abrir"], stdout=subprocess.PIPE, text=True)
+    srv = subprocess.Popen([sys.executable, str(pathlib.Path(__file__).resolve().parent.parent / "scripts" / "companion_web.py"), "--no-abrir"], stdout=subprocess.PIPE, text=True)
     try:
         url = srv.stdout.readline().strip()
         for _ in range(120):  # que refrescar() termine de calcular el rendimiento (con la caché vieja puede tardar)
