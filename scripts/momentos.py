@@ -67,16 +67,18 @@ def puede_tocar(e, foto, ahora, aj):
 
 
 def candidatas(e, foto, g):
-    """Interrupciones que esta foto propone: [(id, dato)]. Solo datos; cada id sale una vez por partida."""
+    """Interrupciones que esta foto propone: [(id, dato, dibujo)]. Solo datos; cada id sale una vez por partida. dibujo: lo que
+    lienzo pinta en el renglón en vez del texto (los niveles de esta foto, para que no contradiga al texto si espera)."""
     t, out = foto.get("t") or 0, []
     nv, nvr, rival = foto.get("nivel"), foto.get("nivel_rival"), foto.get("rival")
     if rival and nv is not None and nvr is not None and nvr > nv:
-        if 300 <= t <= 420: out.append(("nivel", f"Nivel {nv - nvr:+d} vs {rival}"))
-        elif 600 <= t < LINEA: out.append(("regreso", f"Nivel {nv - nvr:+d} vs {rival} · min {int(t // 60)}"))
+        dib = {"tipo": "nivel", "tu": nv, "rival": nvr, "campeon": rival}
+        if 300 <= t <= 420: out.append(("nivel", f"Nivel {nv - nvr:+d} vs {rival}", dib))
+        elif 600 <= t < LINEA: out.append(("regreso", f"Nivel {nv - nvr:+d} vs {rival} · min {int(t // 60)}", dib))
     for clave, corto in foto.get("avisos") or []:  # los del trabajador que siguen siendo datos (pico de ítems del rival)
-        if clave.startswith("pico:"): out.append((clave, corto))
+        if clave.startswith("pico:"): out.append((clave, corto, None))
     vistos = set(e["vistos"]) | {p["id"] for p in e["pendientes"]}
-    return [(i, d) for i, d in out if i not in vistos]
+    return [x for x in out if x[0] not in vistos]
 
 
 def lista(g):
@@ -104,7 +106,8 @@ def _fija(m, foto, g, tarde):
         return _cs(foto) >= meta, f"Marca 10 · ≈{_cs(foto)} CS · sombra {meta}"  # ≈: el CS en vivo llega de 10 en 10
     if m == 14 and not tarde and (o := foto.get("oro") or {}).get("tu") is not None and o.get("rival") is not None:
         d = round((o["tu"] - o["rival"]) / 50) * 50
-        return d >= 0, f"Marca 14 · {d:+d} de oro en ítems"
+        largo = f"{d:+d} oro en ítems vs {foto.get('rival')}"  # el «14» lo dice la moneda que lienzo dibuja delante
+        return d >= 0, largo if foto.get("rival") and len(largo) <= RENGLON_MAX else f"{d:+d} oro en ítems"
     if m == 25 and foto.get("muertes14_25") is not None:
         tope = ((g or {}).get("regla") or {}).get("tope", 2)
         return foto["muertes14_25"] <= tope, f"Marca 25 · {foto['muertes14_25']} de {tope} · tu tope"
@@ -238,7 +241,9 @@ def paso(estado, foto, guion, ahora, aj=None):
         if clase == "error": nota(nombre, "sello", dato, False, "sin interrumpir"); continue  # el punto se pone rojo y ya
         ver = bool(dato) and not foto.get("muerto") and not puesto
         nota(nombre, "sello", dato, ver, None if ver else "sin dato" if not dato else "muerto" if foto.get("muerto") else "otro sello")
-        if ver: e["renglon"] = [dato, ahora + SELLO_S, "sello"]; e["brillo"] = [k, ahora + BRILLO_S]; puesto = True
+        if ver:
+            dib = {"tipo": "oro", "min": 14, "num": dato.split(" ")[0]} if k == "14" else None  # solo el valor de ítems (Tab)
+            e["renglon"] = [dato, ahora + SELLO_S, "sello", dib]; e["brillo"] = [k, ahora + BRILLO_S]; puesto = True
     if not foto.get("muerto") and (not e["renglon"] or ahora >= e["renglon"][1]) and (f := _fase(e, g, t)):  # al empezar cada fase de tu plan
         e["renglon"] = [f, ahora + INTERRUPCION_S, "fase"]; nota("fase", "fase", f, True)
 
@@ -253,27 +258,27 @@ def paso(estado, foto, guion, ahora, aj=None):
         nota("compra", "compra", dato, True); e["renglon"] = [dato, ahora + COMPRA_S, "compra"]
     e["items"] = items
 
-    for i, dato in candidatas(e, foto, g):
+    for i, dato, dib in candidatas(e, foto, g):
         if aj.get(f"momento_{i.split(':')[0]}", True) is False: e["vistos"].append(i); nota(i, "interrupcion", dato, False, "apagado"); continue
-        e["pendientes"].append({"id": i, "dato": dato, "desde": ahora})
+        e["pendientes"].append({"id": i, "dato": dato, "desde": ahora, "dibujo": dib})
     quedan = []
     for p in e["pendientes"]:
         ok, motivo = puede_tocar(e, foto, ahora, aj)
         renglon_libre = not e["renglon"] or ahora >= e["renglon"][1]
         if ok and renglon_libre:
             e["interrupciones"] += 1; e["ult_interrupcion"] = ahora; e["vistos"].append(p["id"])
-            e["renglon"] = [p["dato"], ahora + INTERRUPCION_S, "interrupcion"]; nota(p["id"], "interrupcion", p["dato"], True)
+            e["renglon"] = [p["dato"], ahora + INTERRUPCION_S, "interrupcion", p.get("dibujo")]; nota(p["id"], "interrupcion", p["dato"], True)
         elif ahora - p["desde"] >= ESPERA_MAX or motivo in ("sin presupuesto", "después del 25", "solo marcas"):
             e["vistos"].append(p["id"]); nota(p["id"], "interrupcion", p["dato"], False, motivo or "renglón ocupado")
         else: quedan.append(p)
     e["pendientes"] = quedan
 
-    renglon = None
-    if e["renglon"] and ahora < e["renglon"][1]: renglon = e["renglon"][0]
+    renglon = dibujo = None
+    if e["renglon"] and ahora < e["renglon"][1]: renglon, dibujo = e["renglon"][0], (e["renglon"][3:] or [None])[0]
     elif t < ARRANQUE and (mu := g.get("matchup")):
         renglon = mu["nota"][:RENGLON_MAX] if mu.get("nota") else f"vs {g.get('rival')} · {mu['v']} de {mu['n']} tuyas" if mu.get("n") else None
     panel = _panel(e, foto, g, t)
-    if panel and renglon: panel, renglon = panel[:1] + [renglon], None  # muerto: el renglón pasa al panel
+    if panel and renglon: panel, renglon, dibujo = panel[:1] + [renglon], None, None  # muerto: el renglón pasa al panel (como texto)
     ms = lista(g)
     proxima = next((m["id"] for m in ms if m["id"] not in e["marcas"] and m["tipo"] != "error"), None)
     cerca = lambda m: m["id"] == proxima and m["min"] - 60 <= t < m["min"]
@@ -281,7 +286,7 @@ def paso(estado, foto, guion, ahora, aj=None):
               "marcas": [{"id": m["id"], "min": m["min"] // 60, "etq": m["etq"], "error": m["tipo"] == "error",
                           "estado": ("sin" if e["marcas"][m["id"]] is None else e["marcas"][m["id"]]) if m["id"] in e["marcas"] else None,
                           "proxima": cerca(m), "late": cerca(m) and ahora % LATIDO_CADA < LATIDO_S} for m in ms],
-              "renglon": renglon, "panel": panel, "brillo": b[0] if (b := e.get("brillo")) and ahora < b[1] else None, "opacidad": OPACIDAD_TARDE if t >= TARDE_S else 1.0}
+              "renglon": renglon, "dibujo": dibujo, "panel": panel, "brillo": b[0] if (b := e.get("brillo")) and ahora < b[1] else None, "opacidad": OPACIDAD_TARDE if t >= TARDE_S else 1.0}
     return e, escena, notas
 
 

@@ -32,6 +32,24 @@ class Contrato(unittest.TestCase):
         e, out = correr([foto(t, nivel=5, nivel_rival=6) for t in range(300, 330)])
         self.assertEqual([a["dato"] for a in mostradas(out)], ["Nivel -1 vs Zed"])
 
+    def test_dibujo_de_nivel_con_los_niveles_de_cuando_se_propuso(self):
+        fs = [foto(t, nivel=5, nivel_rival=6, vida=1.0 - 0.05 * (t - 296)) for t in range(296, 306)]  # pelea: espera
+        fs += [foto(t, nivel=6, nivel_rival=6, vida=0.7) for t in range(306, 320)]  # mientras, subiste de nivel
+        e, out = correr(fs)
+        esc = next(x for x, _ in out if x["renglon"])
+        self.assertEqual(esc["renglon"], "Nivel -1 vs Zed")
+        self.assertEqual(esc["dibujo"], {"tipo": "nivel", "tu": 5, "rival": 6, "campeon": "Zed"})  # no contradice al texto
+        self.assertIsNone(out[-1][0]["dibujo"] if not out[-1][0]["renglon"] else None)
+
+    def test_marca14_oro_en_items_con_moneda(self):
+        oro = lambda out: next(x for x, _ in out if "oro" in (x["renglon"] or ""))  # 6 y 10 se sellan antes: llegaste tarde
+        e, out = correr([foto(t, oro={"tu": 3500, "rival": 4800}) for t in range(838, 845)])
+        esc = oro(out)
+        self.assertEqual(esc["renglon"], "-1300 oro en ítems vs Zed")
+        self.assertEqual(esc["dibujo"], {"tipo": "oro", "min": 14, "num": "-1300"})
+        e, out = correr([foto(t, rival="Nunu y Willump", oro={"tu": 3500, "rival": 4800}) for t in range(838, 845)])
+        self.assertEqual(oro(out)["renglon"], "-1300 oro en ítems · sin cumplir")  # con el rival no cabe en 34
+
     def test_nunca_en_pelea_espera_la_calma(self):
         fs = [foto(t, nivel=5, nivel_rival=6, vida=1.0 - 0.05 * (t - 296)) for t in range(296, 306)]  # perdiendo vida: pelea
         fs += [foto(t, nivel=5, nivel_rival=6, vida=0.7) for t in range(306, 320)]

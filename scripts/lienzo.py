@@ -25,7 +25,9 @@ def pintar(escena, esc=1.0, icono=None):
     S = 2; k = lambda v: round(v * esc * S)
     W, H = round(ANCHO * esc), round(alto(escena) * esc)
     im = Image.new("RGBA", (W * S, H * S), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-    d.rounded_rectangle((0, 0, W * S - 1, k(ALTO) - 1), radius=k(14), fill=FONDO, outline=ROSA + (89,), width=max(1, k(1)))
+    roja = escena["regla"]["color"] == "rojo"  # pasaste tu tope: borde rojo fijo (sin sacudida); anillo, número y borde son un solo rojo
+    d.rounded_rectangle((0, 0, W * S - 1, k(ALTO) - 1), radius=k(14), fill=FONDO, outline=ROJO + (255,) if roja else ROSA + (89,),
+                        width=k(2) if roja else max(1, k(1)))
     for x in (Z1, Z2): d.line((k(x), k(10), k(x), k(ALTO - 10)), fill=(255, 255, 255, 31), width=max(1, k(1)))
     f10 = _fuente(k(10))
 
@@ -34,7 +36,7 @@ def pintar(escena, esc=1.0, icono=None):
     cx, n = k(30), max(1, min(5, r["tope"]))
     caja = (cx - R, cy - R, cx + R, cy + R); paso = 360 / n
     d.ellipse(caja, outline=(255, 255, 255, 20), width=k(3))
-    roja = r["color"] == "rojo"; c1, c2 = COLORES.get(r["color"], COLORES["rosa"])
+    c1, c2 = COLORES.get(r["color"], COLORES["rosa"])
     vivos = Image.new("L", im.size, 0); dv = ImageDraw.Draw(vivos)  # los tramos vivos, en degradado claro→oscuro como en el lienzo
     for i in range(n):
         a0, a1 = -90 + i * paso + (6 if n > 1 else 0), -90 + (i + 1) * paso - (6 if n > 1 else 0)
@@ -87,10 +89,36 @@ def pintar(escena, esc=1.0, icono=None):
             d.text((k(14), y + k(16 + i * 18)), t, font=_fuente(k(13 if i == 0 else 11)), fill=(TXT if i == 0 else GRIS) + (255,), anchor="lm")
     elif escena.get("renglon"):
         d.rounded_rectangle((0, y, W * S - 1, y + k(RENGLON) - 1), radius=k(12), fill=FONDO)
-        d.text((k(14), y + k(RENGLON / 2)), escena["renglon"], font=_fuente(k(12)), fill=TXT + (255,), anchor="lm")
+        _renglon(im, d, escena, y + k(RENGLON / 2), k, icono, roja)
     im = im.resize((W, H), Image.LANCZOS)
     if (o := escena.get("opacidad", 1.0)) < 1: im.putalpha(im.getchannel("A").point(lambda a: int(a * o)))
     return im
+
+
+def _renglon(im, d, escena, cy, k, icono, roja):
+    """El renglón: texto, o los dibujos del lienzo para el oro del 14 (moneda) y el nivel contra tu rival (medallones y flecha).
+    Solo dibuja lo que ya dice el texto (que es lo que se valida); el resto del texto sigue a la derecha."""
+    t, dib, f = escena["renglon"], escena.get("dibujo") or {}, _fuente(k(12))
+    x = k(14)
+    if dib.get("tipo") == "oro":
+        R = k(10); cx = x + R
+        d.ellipse((cx - R, cy - R, cx + R, cy + R), fill=ORO + (255,), outline=(156, 106, 28, 255), width=k(1.5))
+        d.text((cx, cy), str(dib["min"]), font=_fuente(k(9)), fill=(107, 68, 16, 255), anchor="mm")
+        x = cx + R + k(8); num = dib["num"]
+        d.text((x, cy), num, font=_fuente(k(13)), fill=ORO + (255,), anchor="lm")  # en oro aunque sea negativo: el rojo es de tu tope
+        x += d.textlength(num, font=_fuente(k(13))) + k(5); t = t[len(num):].strip()
+    elif dib.get("tipo") == "nivel":
+        for i, (campeon, nivel, c) in enumerate(((escena.get("campeon"), dib["tu"], ROSA2), (dib["campeon"], dib["rival"], ROJO))):
+            px = k(20); im.alpha_composite(_retrato(campeon, px, icono), (round(x), round(cy - px / 2)))
+            _medalla(d, str(nivel), (x + px + k(10), cy + k(6.5)), c, k); x += px + k(24)
+            if i == 0:  # la flecha del lienzo con la diferencia; en oro si tu regla ya está en rojo (un solo rojo)
+                col = (ORO if roja else ROJO) + (255,); a, b = x, x + k(16)
+                d.line((a, cy, b, cy), fill=col, width=k(2)); d.line((b - k(5), cy - k(5), b, cy, b - k(5), cy + k(5)), fill=col, width=k(2), joint="curve")
+                dif = f"{dib['tu'] - dib['rival']:+d}"; d.text((b + k(4), cy), dif, font=_fuente(k(12)), fill=col, anchor="lm")
+                x = b + k(8) + d.textlength(dif, font=_fuente(k(12))) + k(6)
+        t = t.split(" vs ", 1)[1] if " vs " in t else ""
+        t = "vs " + t if t else t
+    d.text((x, cy), t, font=f, fill=TXT + (255,), anchor="lm")
 
 
 ESPADAS = (((14.5, 17.5), (3, 6), (3, 3), (6, 3), (17.5, 14.5)), ((13, 19), (19, 13)), ((16, 16), (20, 20)),

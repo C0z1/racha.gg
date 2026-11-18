@@ -35,6 +35,10 @@ MOMENTOS = {  # una escena fija por momento del plan (las capturas de la Fase 4,
                 "marcas": [{"id": "cs10", "min": 10, "etq": "10", "estado": True, "proxima": False}, {"id": "muertes14_25", "min": 25, "etq": "25", "estado": None, "proxima": False},
                            {"id": "sin_objetivo", "min": 26, "etq": "E1", "error": True, "estado": False, "proxima": False},
                            {"id": "abajo_6", "min": 7, "etq": "E2", "error": True, "estado": None, "proxima": False}]},
+    "nivel": {"regla": R(0, "rosa"), "sombra": {"num": "+5", "etq": "CS vs sombra", "color": "salvia", "trazo": TR}, "marcas": M(True, None, None, None),
+              "renglon": "Nivel -1 vs Zed · min 10", "dibujo": {"tipo": "nivel", "tu": 5, "rival": 6, "campeon": "Zed"}},
+    "oro14": {"regla": R(1, "rosa"), "sombra": {"num": "+12%", "etq": "peleas vs sombra", "color": "salvia", "trazo": None}, "marcas": M(True, True, True, None),
+              "renglon": "-1300 oro en ítems vs Zed", "dibujo": {"tipo": "oro", "min": 14, "num": "-1300"}, "brillo": 14},
     "tarde": {"regla": R(2, "rojo"), "sombra": {"num": "+20%", "etq": "peleas vs sombra", "color": "salvia", "trazo": None}, "marcas": M(True, False, True, False),
               "opacidad": momentos.OPACIDAD_TARDE},
 }
@@ -59,6 +63,22 @@ class Referencias(unittest.TestCase):
     def test_la_fuente_incluida_se_usa(self):
         self.assertTrue(overlay.FUENTES[0].exists())
         self.assertEqual(overlay._fuente(20).getname()[0], "Roboto")
+
+
+def es_rojo(p): return p[3] > 100 and p[0] > 200 and p[0] - p[1] > 80 and abs(p[1] - p[2]) < 12  # el tono de ROJO, con antialias y opacidad
+
+
+class Rojo(unittest.TestCase):
+    def test_borde_rojo_fijo_solo_sobre_el_tope(self):
+        borde = lambda k: es_rojo(dibujar(k).getpixel((lienzo.ANCHO // 2, 0)))
+        self.assertTrue(borde("tarde"))  # pasaste tu tope
+        for k in ("muerto", "linea"): self.assertFalse(borde(k))  # en el tope (oro) o debajo: sin borde rojo
+
+    def test_flecha_de_nivel_en_oro_si_tu_regla_ya_es_roja(self):
+        rojo = lambda reg: sum(1 for p in lienzo.pintar({**MOMENTOS["nivel"], "regla": reg, "panel": None, "opacidad": 1.0}).crop(
+            (40, lienzo.ALTO + lienzo.SEP, 80, lienzo.ALTO + lienzo.SEP + lienzo.RENGLON)).getdata() if es_rojo(p))
+        self.assertGreater(rojo(R(0, "rosa")), 10)
+        self.assertEqual(rojo(R(2, "rojo")), 0)
 
 
 class Geometria(unittest.TestCase):
