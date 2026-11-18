@@ -40,11 +40,20 @@ class Ciclo(unittest.TestCase):
             w.evento(("meta", meta(6)))  # ya hay un hilo armándolo
             self.assertEqual(T.call_count, 1)
         w.GUION[0] = False
-        with mock.patch("guion.armar", return_value={"campeon": "Sylas", "rival": "Zed", "regla": {"tope": 2}}), mock.patch.object(gui, "es_base", return_value=True):
+        with mock.patch("guion.armar", return_value={"campeon": "Sylas", "rival": "Zed", "regla": {"tope": 2}}), mock.patch.object(gui, "ajeno", return_value=False):
             w.armar_guion("Sylas", "Zed", "MIDDLE")
         self.assertEqual(w.ESTADO["guion"]["campeon"], "Sylas")
+        self.assertEqual(w.ESTADO["guion"]["regla"], {"tope": 2})
         with mock.patch.object(w.threading, "Thread") as T:
             w.evento(("meta", meta(7))); T.assert_not_called()
+
+    def test_tu_otra_cuenta_arma_su_guion_y_una_ajena_no(self):
+        with mock.patch("guion.armar", return_value={"campeon": "Zeri", "regla": {"tope": 2}}) as arma,                 mock.patch.object(gui, "es_base", return_value=False), mock.patch.object(gui, "ajeno", return_value=False):
+            w.armar_guion("Zeri", "Aphelios", "BOTTOM")  # Zeriously con su carpeta propia (2026-11-18: la franja salía vacía)
+        arma.assert_called_once(); self.assertEqual(w.ESTADO["guion"]["regla"], {"tope": 2})
+        with mock.patch("guion.armar") as arma, mock.patch.object(gui, "ajeno", return_value=True):
+            w.armar_guion("Zeri", "Aphelios", "BOTTOM")  # historial de otra persona en disco: solo lo básico
+        arma.assert_not_called(); self.assertEqual(w.ESTADO["guion"], {"campeon": "Zeri", "rival": "Aphelios", "pos": "BOTTOM"})
 
     def test_fin_guarda_bitacora_y_carta(self):
         w.ESTADO.update(guion={"campeon": "Sylas", "rival": "Zed", "regla": {"metrica": "muertes", "tope": 2, "racha": 3, "corta": "Tope 2"}}, sombra=None)

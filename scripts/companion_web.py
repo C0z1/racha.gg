@@ -98,7 +98,7 @@ def armar_guion(campeon, rival, pos):
         rh = (((ESTADO.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy")) or None
         V = ((ESTADO.get("rendimiento") or {}).get("vistas") or {})
         er = {"ciclo": V.get("ciclo_errores"), "tipos": (V.get("errores") or {}).get("tipos")}  # Fase 7: tus errores vigilados
-        g = guion.armar(campeon, rival, pos or "MIDDLE", regla=rh, racha=(rh or {}).get("racha", 0), errores=er) if gui.es_base() else None  # cuenta ajena: sin tu historial
+        g = guion.armar(campeon, rival, pos or "MIDDLE", regla=rh, racha=(rh or {}).get("racha", 0), errores=er) if not gui.ajeno(gui.CUENTA[0]) else None  # tu otra cuenta usa su propio historial; uno ajeno, no
     except Exception as x: g = None; gui.registrar_franja(f"guion: {x!r}")
     with LOCK: ESTADO.update(guion=g or {"campeon": campeon, "rival": rival, "pos": pos}, v=ESTADO["v"] + 1); GUION[0] = False
 
@@ -383,7 +383,8 @@ def actualizar(version, url, sha, espera=30):
         with LOCK: fase = ESTADO.get("fase")
         if fase in QUIETO: break
         time.sleep(espera)
-    subprocess.Popen([str(destino), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/RACHA=" + ("--fondo" if FONDO[0] and not ventana.viva() else "")])  # con ventana abierta, vuelve con ventana
+    subprocess.Popen([str(destino), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/RACHA=" + ("--fondo" if FONDO[0] and not ventana.viva() else "")],  # con ventana abierta, vuelve con ventana
+                     env={**os.environ, "DATOS_DIR": str(gui.BASE)})  # no la cuenta activa: Racha reabría con esa como base y anidaba cuentas/ (2026-11-18)
 
 
 ACTUALIZANDO = threading.Lock()  # una sola búsqueda/descarga/instalación a la vez (al arrancar, cada 30 min o con el botón)
@@ -938,6 +939,7 @@ def main(argv=None):
     if unico:
         try: PUERTO.parent.mkdir(parents=True, exist_ok=True); PUERTO.write_text(str(srv.server_port))
         except OSError: pass
+    if unico: gui.rescatar_anidadas()  # antes de refrescar: tus partidas que quedaron en cuentas/*/cuentas/
     q = queue.Queue()
     threading.Thread(target=bombear, args=(q,), daemon=True).start()
     threading.Thread(target=refrescar, daemon=True).start()

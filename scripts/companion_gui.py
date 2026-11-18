@@ -181,6 +181,28 @@ def guardar_ajuste(clave, on):
     return a
 
 
+def rescatar_anidadas():
+    """Copia a su carpeta las partidas que quedaron anidadas en datos/cuentas/<a>/cuentas/<b>/raw (una actualización
+    reabría Racha con la carpeta de otra cuenta como base). Solo copia lo que falta: nunca pisa ni borra. Cuántas copió."""
+    import shutil
+    raiz = BASE.parent / "cuentas"
+    try: yo = json.loads((BASE / "perfil.json").read_text(encoding="utf-8"))["account"]["puuid"]
+    except (OSError, ValueError, KeyError, TypeError): yo = None
+    n = 0
+    for raw in raiz.glob("*/cuentas/**/raw"):
+        try: puuid = json.loads((raw / "perfil.json").read_text(encoding="utf-8"))["account"]["puuid"]
+        except (OSError, ValueError, KeyError, TypeError): continue  # sin dueño claro no se mueve nada
+        destino = BASE if puuid == yo else raiz / puuid / "raw"
+        if destino.resolve() == raw.resolve(): continue
+        for sub in ("", "timeline"):
+            (destino / sub).mkdir(parents=True, exist_ok=True)
+            for f in (raw / sub).glob("*_*.json"):
+                if not (destino / sub / f.name).exists():
+                    try: shutil.copy2(f, destino / sub / f.name); n += 1
+                    except OSError: pass
+    return n
+
+
 NOMBRES = {}  # championId -> nombre del cliente (companion_web.vigilar_cuenta), para quien no tiene partidas descargadas
 CUENTA = [None]  # «gameName#tag» con sesión en el cliente (la pone companion_web.vigilar_cuenta)
 

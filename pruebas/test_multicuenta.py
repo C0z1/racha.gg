@@ -40,6 +40,27 @@ class TestMulticuenta(unittest.TestCase):
         (self.base / "perfil.json").unlink()
         self.assertFalse(gui.usar_cuenta("Amigo#LAN", PUUID))  # amigo recién instalado: su historial va a la base
 
+    def test_rescata_partidas_anidadas_sin_pisar(self):
+        yo, otra = "b" * 40, PUUID
+        (self.base / "perfil.json").write_text(json.dumps({"account": {"gameName": "cozi", "tagLine": "1134", "puuid": yo}}))
+        nido = self.tmp / "cuentas" / otra / "cuentas" / "zz" / "raw"; (nido / "timeline").mkdir(parents=True)
+        (nido / "perfil.json").write_text(json.dumps({"account": {"puuid": yo}}))  # partidas tuyas guardadas dentro de la otra cuenta
+        for n, txt in (("LA1_1.json", "nuevo"), ("LA1_2.json", "dos")): (nido / n).write_text(txt)
+        (nido / "timeline" / "LA1_2.json").write_text("tl")
+        (nido / "historial.json").write_text("{}")
+        self.assertEqual(gui.rescatar_anidadas(), 2)  # LA1_2 y su timeline; LA1_1 ya estaba
+        self.assertEqual((self.base / "LA1_1.json").read_text(), "{}")  # no se pisa
+        self.assertEqual((self.base / "timeline" / "LA1_2.json").read_text(), "tl")
+        self.assertFalse((self.base / "historial.json").exists())
+        self.assertTrue((nido / "LA1_2.json").exists())  # copia: el origen queda
+        self.assertEqual(gui.rescatar_anidadas(), 0)  # otra vez: nada que hacer
+        sin = self.tmp / "cuentas" / otra / "cuentas" / "yy" / "raw"; sin.mkdir(parents=True); (sin / "LA1_9.json").write_text("x")
+        self.assertEqual(gui.rescatar_anidadas(), 0)  # sin perfil.json no se sabe de quién es
+        ajena = self.tmp / "cuentas" / otra / "cuentas" / "ww" / "raw"; ajena.mkdir(parents=True)
+        (ajena / "perfil.json").write_text(json.dumps({"account": {"puuid": "d" * 40}})); (ajena / "LA1_7.json").write_text("y")
+        self.assertEqual(gui.rescatar_anidadas(), 1)
+        self.assertTrue((self.tmp / "cuentas" / ("d" * 40) / "raw" / "LA1_7.json").exists())
+
     def test_recarga_draft(self):
         sys.modules.setdefault("draft", mock.Mock())
         gui.usar_cuenta("Zeriously#cozi", PUUID); self.assertNotIn("draft", sys.modules)

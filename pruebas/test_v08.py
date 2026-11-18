@@ -82,10 +82,11 @@ class AutoActualizar(unittest.TestCase):  # v0.9: baja, verifica sha256 y solo i
         corridas, fases = [], iter(["InProgress", "InProgress", "EndOfGame"])
         def dormir(_): w.ESTADO["fase"] = next(fases)
         w.ESTADO.update(fase="ChampSelect", nueva={"version": "v0.9.0"})
-        with mock.patch.object(w, "bajar_verificado", lambda *a: True), mock.patch.object(w.time, "sleep", dormir),                 mock.patch.object(w.subprocess, "Popen", lambda args: corridas.append((w.ESTADO["fase"], args))):
+        with mock.patch.object(w, "bajar_verificado", lambda *a: True), mock.patch.object(w.time, "sleep", dormir),                 mock.patch.object(w.subprocess, "Popen", lambda args, env=None: corridas.append((w.ESTADO["fase"], args, env))),                 mock.patch.dict(w.os.environ, {"DATOS_DIR": "otra/cuentas/x/raw"}):
             w.actualizar("v0.9.0", "u", self.SHA)
         self.assertEqual(corridas[0][0], "EndOfGame")
         self.assertIn("/VERYSILENT", corridas[0][1])
+        self.assertEqual(corridas[0][2]["DATOS_DIR"], str(w.gui.BASE))  # Racha reabre con tu carpeta base, no la de la cuenta activa
 
     def test_sha_malo_no_instala(self):
         w.ESTADO.update(fase="Lobby", nueva={"version": "v0.9.0"})
