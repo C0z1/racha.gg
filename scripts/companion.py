@@ -520,7 +520,9 @@ def resumen_fin(d):
     # cotejo: con muertes en el marcador y ningún evento con tu nombre, el formato de VictimName no es el esperado
     # y el aviso 14–25 no te cuenta (no se exige igualdad: las fotos de prueba traen eventos parciales)
     cotejo = None if not s.get("deaths") else muertes_en(d, me) > 0
-    return {**mf, "kda": f"{s.get('kills') or 0}/{s.get('deaths') or 0}/{s.get('assists') or 0}", "muertes14_25": muertes14(d, hasta=1500), "cotejo": cotejo}
+    practica = ((d.get("gameData") or {}).get("gameMode")) == "PRACTICETOOL"  # no cuenta para tu regla: sin «cumplida» ni racha +1
+    return {**mf, "kda": f"{s.get('kills') or 0}/{s.get('deaths') or 0}/{s.get('assists') or 0}",
+            "muertes14_25": None if practica else muertes14(d, hasta=1500), "cotejo": cotejo}
 
 
 def linea_fin(r, tope=2):

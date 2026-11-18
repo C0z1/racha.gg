@@ -120,6 +120,8 @@ class AvisoNivel(unittest.TestCase):
         d["gameData"]["gameTime"] = 700; d["allPlayers"][0]["scores"] = None  # acabó antes del 14, scores null
         self.assertEqual(companion.linea_fin(companion.resumen_fin(d)), "Min 11 · Ekko 0/0/0 contra Zed · CS ?")
         for x in (None, {}): self.assertIsNone(companion.linea_fin(companion.resumen_fin(x)))
+        d["gameData"].update(gameTime=1860, gameMode="PRACTICETOOL")  # práctica: no cuenta para tu regla
+        self.assertIsNone(companion.resumen_fin(d)["muertes14_25"])
 
     def test_cotejo_de_muertes_y_homonimo(self):
         d = foto(); d["gameData"]["gameTime"] = 1860; me = d["allPlayers"][0]
