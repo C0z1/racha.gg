@@ -1,6 +1,7 @@
 """Recap 0.19 «tu partida en una estela» (postpartida.estela / estela_vivo), con partidas sintéticas."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
 import unittest
+_s.path.insert(0, str(_p.Path(__file__).resolve().parent))  # importa test_postpartida: también corrida sola
 
 import postpartida as P
 from test_postpartida import MIN, dragon_rival, match, muere, tl

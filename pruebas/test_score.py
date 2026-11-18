@@ -4,6 +4,7 @@ import os, pathlib, subprocess, sys, unittest
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(AQUI))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # importa test_companion_gui: también corrida sola
 import score  # noqa: E402
 
 
