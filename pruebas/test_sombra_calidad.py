@@ -113,6 +113,23 @@ class Salud(unittest.TestCase):
         self.assertEqual(s11({"t": 100, "lat_p95": 9, "cpu": 9, "ram": 99}), [])  # viejo: de otra partida
 
 
+class MedirFranja(unittest.TestCase):
+    def test_peor_por_sondeo_contra_las_metas(self):
+        import json, tempfile
+        sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "herramientas"))
+        import dev_medir
+        with tempfile.TemporaryDirectory() as d:
+            filas = [{"sondeo": 1, "lat_p95": 0.9, "cpu": 0.4, "ram": 41}, {"sondeo": 1, "lat_p95": 1.7, "cpu": 0.6, "ram": 42},
+                     {"sondeo": 3, "lat_p95": 3.1, "cpu": 1.0, "ram": 40}]
+            (pathlib.Path(d) / "franja-20261117.jsonl").write_text("\n".join(map(json.dumps, filas)) + "\n{cortado", encoding="utf-8")
+            r = dev_medir.franja(d)
+            self.assertEqual((r[1]["n"], r[1]["lat_p95"], r[1]["cpu"]), (2, 1.7, 0.6))
+            self.assertEqual(r[1]["fallas"], ["lat_p95 1.7 (meta ≤ 1.5)"])
+            self.assertEqual(len(r[3]["fallas"]), 2)  # 3,1 s y CPU 1,0 (la meta es estrictamente < 1 %)
+            self.assertEqual(dev_medir.main_franja(d), 1)
+            self.assertEqual(dev_medir.franja(pathlib.Path(d) / "no-existe"), {})
+
+
 class PrimerRegreso(unittest.TestCase):
     def test_se_muestra_una_vez_al_primer_cambio_de_items(self):
         g = {"sombra": {"alcance": "campeon", "n": 9, "cs": [], "nivel": [], "muertes": [], "kp": [], "regreso": 3.8}, "marcas": {}, "regla": {"tope": 2}}
