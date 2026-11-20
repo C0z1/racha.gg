@@ -67,7 +67,7 @@ def lcu(path):
 
 
 def lcu_escribir(metodo, path, cuerpo=None):
-    """POST/PUT/DELETE a la API local del cliente; True si respondió 2xx. Solo la usa importar_runas (un clic del jugador)."""
+    """POST/PUT/DELETE a la API local del cliente; True si respondió 2xx. Solo la usa importar_runas (tu clic, o sola al fijar)."""
     try:
         _, _, port, pw, proto = _lock().read_text().split(":")
         auth = base64.b64encode(f"riot:{pw}".encode()).decode()
@@ -93,12 +93,13 @@ def runas_recomendadas(cid, pos, leer=None):
 RESPALDO_RUNAS = DIR.parent / "datos" / "cache" / "runas-respaldo"  # tu página tal como estaba antes de que Racha la usara
 
 
-def importar_runas(nombre, pagina, leer=None, escribir=None, respaldo=None):
+def importar_runas(nombre, pagina, leer=None, escribir=None, respaldo=None, solo_racha=False):
     """Pone en el cliente la página de runas `pagina` ({primaryStyleId, subStyleId, selectedPerkIds[9]}) y la deja activa,
-    como «racha.gg <campeón>». Solo en selección de campeón y solo cuando el jugador pulsa el botón: Racha nunca elige,
-    banea ni acepta por ti. Orden («como Blitz»): 1) reescribe la página de Racha si ya existe («racha.gg …»
-    o «Racha: …» de antes); 2) si hay espacio, crea una; 3) si está lleno, usa tu página seleccionada (editable), guardando
-    antes una copia en datos/cache/runas-respaldo. Nunca borra páginas ni toca las no editables. Devuelve (ok, mensaje)."""
+    como «racha.gg <campeón>». Solo en selección de campeón: cuando pulsas el botón o, con «Poner runas solas al fijar»,
+    una vez al fijar tu campeón. Racha nunca elige, banea ni acepta por ti. Orden («como Blitz»): 1) reescribe la página
+    de Racha si ya existe («racha.gg …» o «Racha: …» de antes); 2) si hay espacio, crea una; 3) si está lleno, usa tu
+    página seleccionada (editable), guardando antes una copia en datos/cache/runas-respaldo; con solo_racha (lo automático)
+    no hay paso 3: tu página nunca se toca. Nunca borra páginas ni toca las no editables. Devuelve (ok, mensaje)."""
     leer, escribir = leer or lcu, escribir or lcu_escribir
     ids = (pagina or {}).get("selectedPerkIds") or []
     if len(ids) != 9 or not all(isinstance(i, int) for i in ids + [pagina.get("primaryStyleId"), pagina.get("subStyleId")]):
@@ -114,6 +115,7 @@ def importar_runas(nombre, pagina, leer=None, escribir=None, respaldo=None):
         if (leer("/lol-perks/v1/inventory") or {}).get("canAddCustomPage", True):  # hay espacio: una página nueva de Racha
             ok = escribir("POST", "/lol-perks/v1/pages", cuerpo)
             return (True, "Listo: la página de runas ya está en tu cliente.") if ok else (False, "El cliente no aceptó la página de runas.")
+        if solo_racha: return False, "Sin espacio para una página de Racha: no toqué nada."
         act = leer("/lol-perks/v1/currentpage")
         destino = tuya = act if editable(act) else next((p for p in pags if editable(p)), None)
         if not destino: return False, "Tu cliente no tiene páginas de runas editables."

@@ -129,6 +129,7 @@ def ultima_partida(archivo=None):
 
 AJUSTES_F = REPO / "datos" / "cache" / "ajustes.json"
 AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "aviso_muertes": True, "aviso_regreso": True, "aviso_pico": True,  # Ajustes_Vino
+               "runas_solas": True,  # al fijar tu campeón, Racha pone sus runas una vez (nunca en tu página ni si las cambiaste)
                "metricas": False,  # métricas anónimas: solo si el amigo las prende
                "grupo": False,  # aparecer en la tabla del grupo (Riot ID y win rate a los demás): solo si lo prende
                "franja_linea": True, "franja_regla": True,  # piezas de la franja en partida

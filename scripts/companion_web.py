@@ -55,7 +55,7 @@ def mi_pick(tab, draft=None):
         try: import matchups; mu = matchups.para_ficha(yo["campeon"], pos, rival)
         except Exception: mu = None  # sin datos de matchup: la build general
     return {"champ": yo["campeon"], "pos": pos, "fijo": fijo, "rival": rival, "build": build_para(yo["campeon"], pos),
-            "matchup": {"runa": mu["runa"], "n": mu["n"]} if mu and mu.get("pagina") and mu.get("runa") else None}
+            "matchup": {"runa": mu["runa"], "n": mu["n"], "estilos": mu.get("estilos") or []} if mu and mu.get("pagina") and mu.get("runa") else None}
 
 
 def build_para(champ, pos):
@@ -70,12 +70,75 @@ def build_para(champ, pos):
 
 
 def poner_pick(mp):
-    """Lo que cambia en ESTADO; al fijar (o cambiar de campeón o rol ya fijado) con runas que mostrar, Racha al frente sin foco.
-    El hover y la llegada del rival solo actualizan la tarjeta."""
+    """Lo que cambia en ESTADO; al fijar (o cambiar de campeón o rol ya fijado) con runas que mostrar, Racha al frente sin foco
+    y, con «Poner runas solas al fijar», sus runas (auto_runas). El hover y la llegada del rival solo actualizan la tarjeta."""
     ant = ESTADO.get("mi_pick") or {}
     if mp and mp["fijo"] and (mp["champ"], mp["pos"], True) != (ant.get("champ"), ant.get("pos"), ant.get("fijo")) and ((mp["build"] or {}).get("pagina_ids") or mp["matchup"]):
         threading.Thread(target=abrir, args=(URL[0], False), daemon=True).start()
+        if ESTADO["ajustes"].get("runas_solas", True): threading.Thread(target=auto_runas, args=(mp,), daemon=True).start()
     return {} if mp is ant or (mp is None and not ant) else {"mi_pick": mp}
+
+
+RUNAS = {"inicio": None, "puesta": None, "hechos": set()}  # por selección: tu página al entrar, la que puso Racha, campeones ya hechos
+ELEGIDAS = gui.REPO / "datos" / "cache" / "runas-elegidas.json"  # {«Campeón|POS»: id del estilo} que elegiste la última vez
+
+
+def firma_runas(p):
+    """Lo que identifica una página de runas (estilos y las 9 runas), sin nombre ni id; None si no es una página."""
+    return (p.get("primaryStyleId"), p.get("subStyleId"), tuple(p.get("selectedPerkIds") or [])) if isinstance(p, dict) else None
+
+
+def leer_inicio():
+    """Al entrar a la selección: tu página de runas actual. Si no se puede leer, inicio queda None y esta vez no se ponen solas."""
+    try: RUNAS["inicio"] = firma_runas(companion.lcu("/lol-perks/v1/currentpage"))
+    except Exception: RUNAS["inicio"] = None
+
+
+def elegidas(champ=None, pos=None, estilo=None):
+    """Lee {«Campeón|POS»: estilo} o, con estilo, guarda tu elección (un fallo de disco no tumba nada)."""
+    try: d = json.loads(ELEGIDAS.read_text(encoding="utf-8"))
+    except (OSError, ValueError): d = {}
+    d = d if isinstance(d, dict) else {}
+    if estilo:
+        d[f"{champ}|{pos}"] = estilo
+        try: ELEGIDAS.parent.mkdir(parents=True, exist_ok=True); ELEGIDAS.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+        except OSError: pass
+    return d
+
+
+def runas_de(mp, estilo=None):
+    """(nombre de la página, página LCU, estilo) para tu pick. Con estilo: ese (del matchup o de la build), o None. Sin él:
+    el que elegiste la última vez > el mejor contra tu rival > el mejor de la build > la página de la build.
+    Nunca la recomendada por Riot (sin datos de WR). None sin nada que poner."""
+    b, mu = mp.get("build") or {}, mp.get("matchup") or {}
+    if b.get("fuente") == "riot": b = {}
+    cands = [(e, True) for e in mu.get("estilos") or [] if e.get("pagina_ids")] + [(e, False) for e in b.get("estilos") or [] if e.get("pagina_ids")]
+    quiero = estilo or elegidas().get(f"{mp['champ']}|{mp['pos']}")
+    e, vs = next(((e, v) for e, v in cands if e["id"] == quiero), None) or (cands[0] if cands and not estilo else (None, False))
+    nom = mp["champ"] + (f" vs {mp['rival']}" if vs and mp.get("rival") else "")
+    if e: return nom, e["pagina_ids"], e["id"]
+    return (nom, b["pagina_ids"], None) if b.get("pagina_ids") and not estilo else None
+
+
+def auto_runas(mp, leer=None):
+    """Al fijar: pone sola la página de runas, una vez por campeón en esta selección, solo en la página de Racha o en un
+    espacio libre (nunca en la tuya) y solo si no cambiaste tus runas desde que entraste (o desde que Racha las puso).
+    El resultado va a ESTADO["runas_auto"] para la tarjeta."""
+    leer = leer or companion.lcu
+    k = f"{mp['champ']}|{mp['pos']}"
+    with LOCK:
+        if k in RUNAS["hechos"]: return
+        RUNAS["hechos"].add(k)
+    def dejar(msg, estilo=None):
+        with LOCK: ESTADO.update(runas_auto={"mensaje": msg, "estilo": estilo}, v=ESTADO["v"] + 1)
+    if RUNAS["inicio"] is None: return  # no se pudo leer tu página al entrar: esta vez no
+    if ((((leer("/lol-gameflow/v1/session") or {}).get("gameData") or {}).get("queue") or {}).get("gameMode")) == "ARAM": return
+    if firma_runas(leer("/lol-perks/v1/currentpage")) not in (RUNAS["inicio"], RUNAS["puesta"]): return dejar("No toqué tus runas: las cambiaste tú.")
+    if not (x := runas_de(mp)): return
+    nom, pag, estilo = x
+    ok, msg = companion.importar_runas(nom, pag, solo_racha=True)
+    if ok: RUNAS["puesta"] = firma_runas(pag); msg = "Racha puso tus runas al fijar."
+    dejar(msg, estilo if ok else None)
 
 
 SIRVIO = {"si": 0, "no": 0, "no_vi": 0}  # «¿te sirvieron los avisos?» : contadores para el ping opt-in, sin identidad
@@ -160,7 +223,9 @@ def evento(e):
             abrir(URL[0])  # el cliente acaba de abrir y no hay ventana de Racha
         if ESTADO["fase"] in ("InProgress", "Reconnect") and e[1] not in ("InProgress", "Reconnect"):  # «Tu última partida» = la que acaba de terminar
             threading.Thread(target=vistas_previas, args=(ESTADO.get("rendimiento"),), daemon=True).start()
-        if e[1] == "ChampSelect": s.update(tablero=None, mi_pick=None, comentario=None, draft=None, fin=None, meta=None, pos=None, avisos=[], guion=None); USADO.add("champ_select")
+        if e[1] == "ChampSelect": s.update(tablero=None, mi_pick=None, comentario=None, draft=None, fin=None, meta=None, pos=None, avisos=[], guion=None, runas_auto=None); USADO.add("champ_select")
+        if e[1] == "ChampSelect" and ESTADO["fase"] != "ChampSelect":  # selección nueva: runas solas desde cero
+            RUNAS.update(inicio=None, puesta=None, hechos=set()); threading.Thread(target=leer_inicio, daemon=True).start()
         if e[1] == "InProgress" and ESTADO["fase"] not in ("InProgress", "Reconnect"): s["sombra"] = None  # bitácora nueva
         if e[1] in ("ChampSelect", "InProgress"): s["pantalla_completa"] = companion.pantalla_completa()  # la franja no se vería
         if e[1] == "InProgress" and ESTADO["ajustes"].get("overlay", True): USADO.add("overlay")
@@ -857,16 +922,26 @@ class H(http.server.BaseHTTPRequestHandler):
             except (ValueError, TypeError): return self.enviar(400, b"", "text/plain")
             ok, msg = buscar_cuenta(str(d.get("riot_id") or ""), str(d.get("region") or ""))
             return self.enviar(200 if ok else 409, json.dumps({"ok": ok, "mensaje": msg}).encode(), "application/json")
-        if self.path == "/api/runas":  # importar la página de runas de la build, solo cuando el jugador pulsa el botón
+        if self.path == "/api/runas":  # importar la página de runas cuando pulsas un botón (un estilo, o la de la build)
             try:
                 d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 300)))
-                b = build_para(str(d["champ"]), str(d["pos"])) or {}
+                champ, pos, estilo = str(d["champ"]), str(d["pos"]), str(d["estilo"]) if d.get("estilo") else None
+                b = build_para(champ, pos) or {}
                 pag = None
-                if d.get("rival"):  # la página del matchup (muchas partidas Master+), si hay datos
-                    try: import matchups; pag = (matchups.para_ficha(str(d["champ"]), str(d["pos"]), str(d["rival"])) or {}).get("pagina")
+                if d.get("rival") and not estilo:  # la página del matchup (muchas partidas Master+), si hay datos
+                    try: import matchups; pag = (matchups.para_ficha(champ, pos, str(d["rival"])) or {}).get("pagina")
                     except Exception: pag = None  # sin datos de matchup: la página de la build
             except (ValueError, KeyError, TypeError): return self.enviar(400, b"", "text/plain")
-            ok, msg = companion.importar_runas(str(d["champ"]) + (f" vs {d['rival']}" if pag else ""), pag or b.get("pagina_ids"))
+            if estilo:  # un estilo de la tarjeta: del matchup o de la build
+                mp = ESTADO.get("mi_pick") or {}
+                x = runas_de(mp if (mp.get("champ"), mp.get("pos")) == (champ, pos) else {"champ": champ, "pos": pos, "build": b}, estilo)
+                if not x: return self.enviar(409, json.dumps({"ok": False, "mensaje": "Ese estilo ya no está en tus datos."}).encode(), "application/json")
+                nom, pag, _ = x
+            else: nom, pag = champ + (f" vs {d['rival']}" if pag else ""), pag or b.get("pagina_ids")
+            ok, msg = companion.importar_runas(nom, pag)
+            if ok:  # tu elección manda: Racha ya no las cambia sola en esta selección y la recuerda para la próxima
+                with LOCK: RUNAS["hechos"].add(f"{champ}|{pos}"); RUNAS["puesta"] = firma_runas(pag); ESTADO.update(runas_auto={"mensaje": msg, "estilo": estilo}, v=ESTADO["v"] + 1)
+                if estilo: elegidas(champ, pos, estilo)
             return self.enviar(200 if ok else 409, json.dumps({"ok": ok, "mensaje": msg}).encode(), "application/json")
         if self.path in ("/api/reporte", "/api/invitar"):
             try:

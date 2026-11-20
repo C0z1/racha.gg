@@ -122,8 +122,35 @@ def build_de(match, timeline, puuid, items):
                 skills=">".join(SKILL[s - 1] for s in orden))
 
 
-def resumir(bs, items, runas):
-    """Lo más común de una lista de builds: dict(n, wr, core [(nombre, %)], botas, runa, pagina, skills) o None."""
+def _pagina(bs):
+    """(piedra más usada y sus partidas, su página más común, la página completa con fragmentos para el cliente o None).
+    Las filas sin fragmentos no cuentan para la página completa."""
+    ks = Counter(b["runas"][1] for b in bs).most_common(1)[0]
+    pag = Counter(tuple(b["runas"][2]) for b in bs if b["runas"][1] == ks[0]).most_common(1)[0][0]
+    frag = Counter(tuple(b["runas"][3]) for b in bs if b["runas"][1] == ks[0] and tuple(b["runas"][2]) == pag and len(b["runas"]) > 3 and None not in b["runas"][3])
+    estilo = next(b["runas"][0] for b in bs if b["runas"][1] == ks[0])
+    ids = dict(primaryStyleId=estilo, subStyleId=pag[4], selectedPerkIds=list(pag[:4]) + list(pag[5:7]) + list(frag.most_common(1)[0][0]))         if frag and len(pag) == 7 else None  # la página completa para importarla al cliente (con un clic del jugador o sola al fijar)
+    return ks, pag, ids
+
+
+def estilos(bs, runas, minimo=30, k=100, maximo=3):
+    """Hasta 3 estilos de juego: grupos por (piedra angular, rama secundaria) con `minimo`+ partidas, ordenados por WR
+    bayesiano encogido al WR de toda la muestra (3/3 no le gana a 60/100). [{id «8010-8400», nombre «Conquistador · Valor»,
+    n, wr, wrb, uso, pagina_ids}]. Las filas pueden venir del JSONL (listas) o de agregar_ladder (tuplas)."""
+    if not bs: return []
+    p0, grupos = sum(bool(b["win"]) for b in bs) / len(bs), {}
+    for b in bs: grupos.setdefault((b["runas"][1], b["runas"][2][4]), []).append(b)
+    out = []
+    for (ks, sub), g in grupos.items():
+        if len(g) < minimo: continue
+        w = sum(bool(b["win"]) for b in g)
+        out.append(dict(id=f"{ks}-{sub}", nombre=f"{runas.get(ks, ks)} · {runas.get(sub, sub)}", n=len(g), wr=round(w / len(g), 3),
+                        wrb=round((w + k * p0) / (len(g) + k), 3), uso=round(len(g) / len(bs), 3), pagina_ids=_pagina(g)[2]))
+    return sorted(out, key=lambda e: (-e["wrb"], -e["n"]))[:maximo]
+
+
+def resumir(bs, items, runas, minimo_estilo=30):
+    """Lo más común de una lista de builds: dict(n, wr, core [(nombre, %)], botas, runa, pagina, skills, estilos) o None."""
     if not bs: return None
     n = len(bs); nom = lambda i: items.get(i, {}).get("name", i)
     core, usados = [], set()
@@ -132,16 +159,12 @@ def resumir(bs, items, runas):
         if not c: break
         i, v = c.most_common(1)[0]; usados.add(i); core.append((nom(i), v / n, i))
     b_ = Counter(b["botas"] for b in bs if b["botas"])
-    ks = Counter(b["runas"][1] for b in bs).most_common(1)[0]
-    pag = Counter(b["runas"][2] for b in bs if b["runas"][1] == ks[0]).most_common(1)[0][0]
+    ks, pag, ids = _pagina(bs)
     sk = Counter(b["skills"] for b in bs).most_common(1)[0]
-    frag = Counter(b["runas"][3] for b in bs if b["runas"][1] == ks[0] and b["runas"][2] == pag and len(b["runas"]) > 3 and None not in b["runas"][3])
-    estilo = next(b["runas"][0] for b in bs if b["runas"][1] == ks[0])
-    ids = dict(primaryStyleId=estilo, subStyleId=pag[4], selectedPerkIds=list(pag[:4]) + list(pag[5:7]) + list(frag.most_common(1)[0][0]))         if frag and len(pag) == 7 else None  # la página completa para importarla al cliente (con un clic del jugador)
     return dict(n=n, pagina_ids=ids, wr=sum(b["win"] for b in bs) / n, core=core,
                 botas=(nom(b_.most_common(1)[0][0]), b_.most_common(1)[0][1] / n) if b_ else None,
                 runa=(runas.get(ks[0], ks[0]), ks[1] / n), pagina=[runas.get(r, r) for r in pag],
-                skills=(sk[0], sk[1] / n))
+                skills=(sk[0], sk[1] / n), estilos=estilos(bs, runas, minimo_estilo))
 
 
 def lineas(r, quien):
@@ -463,7 +486,7 @@ def guardar_tuyas(minimo=10):
     except (OSError, ValueError): d = {}
     n = 0
     for ch, pos in pool(minimo):
-        tu = resumir([build_de(m, t, u, items) for m, t, u in tuyas(ch, pos)], items, runas)
+        tu = resumir([build_de(m, t, u, items) for m, t, u in tuyas(ch, pos)], items, runas, minimo_estilo=10)
         if tu: d[f"{ch}|{pos}|tu"] = tu; n += 1
     if n:
         META.mkdir(parents=True, exist_ok=True)
@@ -482,8 +505,8 @@ def subir():
     except (OSError, ValueError): return 0
     mejores = {k: v for k, v in d.items() if k.count("|") == 1 and v}
     ks = sorted(mejores)
-    for i in range(0, len(ks), 50):  # el Worker corta en 64 KB por petición (~1 KB por build)
-        _backend("PUT", "/v1/builds", {k: mejores[k] for k in ks[i:i + 50]})
+    for i in range(0, len(ks), 30):  # el Worker corta en 64 KB por petición (~2 KB por build con sus estilos)
+        _backend("PUT", "/v1/builds", {k: mejores[k] for k in ks[i:i + 30]})
     return len(mejores)
 
 

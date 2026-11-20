@@ -49,7 +49,7 @@ class Ultima(unittest.TestCase):
     def test_none_a_champselect_0(self):
         vp, hilos = self.evento_fase(None, "ChampSelect")
         self.assertEqual(vp.call_count, 0)
-        self.assertEqual(hilos, [])
+        self.assertEqual([h[0].__name__ for h in hilos], ["leer_inicio"])  # solo tu página de runas al entrar (runas solas)
 
     def test_inprogress_a_endofgame_1(self):
         vp, hilos = self.evento_fase("InProgress", "EndOfGame")

@@ -1025,7 +1025,9 @@ function ajustesV(s) {  // Ajustes_Vino: cuenta, apariencia y avisos en partida 
       ${av("aviso_muertes", "Muertes del 14 al 25", "Al llegar a 2 muertes desde el 14.")}
       ${av("aviso_regreso", "Plan de regreso", "Del min 10 al 14, si vas abajo de nivel: un consejo para igualar.")}
       ${av("aviso_pico", "Pico de poder del rival", "Cuando tu rival termina un ítem completo y te saca ventaja en ítems.")}
-      ${"speechSynthesis" in window ? `<div class="cab2" style="margin-top:14px"><h2>Selección de campeón</h2></div>` + fila("Leer el draft en voz alta", "En champ select, Racha dice en voz alta sus comentarios nuevos.", tog("t-voz", aj.voz === true, false, `ajuste('voz',${aj.voz !== true})`, "Leer el draft en voz alta")) : ""}</div>
+      <div class="cab2" style="margin-top:14px"><h2>Selección de campeón</h2></div>
+      ${fila("Poner runas solas al fijar", "Una vez, al fijar tu campeón: el estilo que elegiste la última vez o el de mejor WR. Solo en la página de Racha o en un espacio libre, nunca en la tuya, y no si ya cambiaste tus runas.", tog("t-runas", aj.runas_solas !== false, false, `ajuste('runas_solas',${aj.runas_solas === false})`, "Poner runas solas al fijar"))}
+      ${"speechSynthesis" in window ? fila("Leer el draft en voz alta", "En champ select, Racha dice en voz alta sus comentarios nuevos.", tog("t-voz", aj.voz === true, false, `ajuste('voz',${aj.voz !== true})`, "Leer el draft en voz alta")) : ""}</div>
     ${ayudaV(s, aj)}
     ${coachV(s)}
     ${glosarioV()}
@@ -1144,20 +1146,26 @@ function matchupCard(fi, pos, s) {  // muchas partidas Master+: datos histórico
 }
 let runasMsg = "";
 let ultPick;
-function miPick(s) {  // tu campeón en hover o fijado: sus runas arriba, con el botón (Racha nunca las pone sin tu clic)
+function miPick(s) {  // tu campeón en hover o fijado: sus runas arriba, con 2 o 3 estilos para elegir (al fijar, Racha pone uno solo si lo dejas prendido en Ajustes)
   const p = s.fase === "ChampSelect" && s.mi_pick; if (!p) return "";
   const b = p.build, mu = p.matchup;  // con datos del matchup, su página manda (mains Master+ contra tu rival)
+  const ra = s.runas_auto || {}, msg = runasMsg || ra.mensaje || "";
+  const ests = [...((mu && mu.estilos) || []).map(e => ({...e, vs: true})), ...((b && b.fuente !== "riot" && b.estilos) || [])].filter(e => e.pagina_ids).slice(0, 3);
+  if (ests.length) return `<div class="card" style="gap:10px"><div style="display:flex;align-items:center;gap:14px">${img("champion", p.champ, "ico40")}
+    <b>${p.fijo ? "Tus runas con" : "Runas para"} ${esc(p.champ)}</b><span class="sub" style="font-size:12px;margin-left:auto">${mu ? `contra ${esc(p.rival)}: mains Master+` : b && b.fuente === "tu" ? "tu build" : "Master+"}</span></div>
+    <span role="group" aria-label="Estilos de runas" style="display:flex;gap:8px;flex-wrap:wrap">${ests.map(e => `<button class="btn2" aria-pressed="${ra.estilo === e.id}" ${ra.estilo === e.id ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} data-champ="${esc(p.champ)}" data-pos="${esc(p.pos)}" data-estilo="${esc(e.id)}" onclick="ponerRunas(this.dataset.champ,this.dataset.pos,undefined,this.dataset.estilo)">${e.vs ? `Contra ${esc(p.rival)}: ` : ""}${esc(e.nombre)} · ${pct(e.wr)} · ${e.n} partidas</button>`).join("")}</span>
+    <span class="sub" style="font-size:13px" role="status" aria-live="polite">${esc(msg)}</span></div>`;
   const txt = mu ? `${esc(mu.runa.nombre)} · ${pct(mu.runa.wr)} contra ${esc(p.rival)} (n=${mu.n}, mains Master+)`
     : b && b.fuente === "riot" ? `${esc(b.runa[0])} · recomendada por Riot` : b && b.runa ? `${esc(b.runa[0])} · ${pct(b.runa[1])} · ${b.fuente === "tu" ? "tu build" : quienBuild(b)}` : `Aún no hay build guardada de ${esc(p.champ)} en ${esc(ROL[p.pos] || p.pos)}.`;
   return `<div class="card" style="flex-direction:row;align-items:center;gap:14px;flex-wrap:wrap">${img("champion", p.champ, "ico40")}
     <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><b>${p.fijo ? "Tus runas con" : "Runas para"} ${esc(p.champ)}</b>
       <span class="sub" style="font-size:13px">${txt}</span></div>
     ${mu || (b && b.pagina_ids) ? `<button class="btn2" style="margin-left:auto" data-champ="${esc(p.champ)}" data-pos="${esc(p.pos)}" data-rival="${esc(mu ? p.rival : "")}" onclick="ponerRunas(this.dataset.champ,this.dataset.pos,this.dataset.rival || undefined)">Poner estas runas</button>
-      <span class="sub" style="font-size:13px" role="status" aria-live="polite">${esc(runasMsg)}</span>` : ""}</div>`;
+      <span class="sub" style="font-size:13px" role="status" aria-live="polite">${esc(msg)}</span>` : ""}</div>`;
 }
-async function ponerRunas(champ, pos, rival) {  // solo con tu clic; Racha no elige, banea ni acepta por ti. Con rival: la página del matchup
+async function ponerRunas(champ, pos, rival, estilo) {  // tu clic: un estilo (Racha lo recuerda) o la página de la build; con rival, la del matchup. Racha no elige, banea ni acepta por ti
   runasMsg = "Poniendo las runas…"; v = -1; tick();
-  try { const r = await fetch("/api/runas", {method: "POST", headers: {"X-HTC": "1", "Content-Type": "application/json"}, body: JSON.stringify({champ, pos, rival})}); runasMsg = (await r.json()).mensaje || ""; }
+  try { const r = await fetch("/api/runas", {method: "POST", headers: {"X-HTC": "1", "Content-Type": "application/json"}, body: JSON.stringify({champ, pos, rival, estilo})}); runasMsg = (await r.json()).mensaje || ""; }
   catch (e) { runasMsg = "No se pudo hablar con Racha."; }
   v = -1; tick();
 }

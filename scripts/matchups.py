@@ -108,8 +108,16 @@ def agregar(filas, legendarios=None):
                   "ventanas": ven, "primero6": round(sum(p6) / len(p6), 3) if p6 else None,
                   "gd": {m: med([f["gd"].get(m) if isinstance(f["gd"], dict) else None for f in fs if isinstance(f["gd"], dict) and f["gd"].get(m) is not None]) for m in (5, 10, 14)},
                   "wr_si_abajo": [sum(f["win"] for f in abajo), len(abajo)], "runa": runa, "primer": primer,
-                  "pagina_ids": list(pag.most_common(1)[0][0]) if pag else None}
+                  "pagina_ids": list(pag.most_common(1)[0][0]) if pag else None, "estilos": _estilos(fs)}
     return out
+
+
+def _estilos(fs, minimo=30):
+    """Los estilos de juego del matchup (builds.estilos, n ≥ 30 por estilo); los nombres los pone para_ficha."""
+    import builds
+    bs = [{"win": f["win"], "runas": (p[0], p[2], (*p[2:6], p[1], *p[6:8]), tuple(p[8:11]))}  # pagina: estilo, rama, 6 runas, 3 fragmentos
+          for f in fs if len(p := f.get("pagina") or []) == 11 and None not in p[:8]]
+    return builds.estilos(bs, {}, minimo)
 
 
 def _mas_ganadora(pares, minimo=30, uso=0.2):
@@ -175,7 +183,7 @@ def para_ficha(a, pos, b, archivo=None):
     r, p = m.get("runa"), m.get("primer")
     return {"frases": frases(m, legible(a), legible(b), nom_r), "n": m["n"], "parches": parches,
             "runa": {**r, "nombre": nom_r(r["id"])} if r else None, "primer": {**p, "nombre": nom_i(p["id"])} if p else None,
-            "pagina": pagina_lcu(m)}
+            "pagina": pagina_lcu(m), "estilos": [{**e, "nombre": " · ".join(nom_r(int(x)) for x in e["id"].split("-"))} for e in m.get("estilos") or []]}
 
 
 def rastrear(campeon, pos, jugadores=60, partidas=40, regiones=None):
