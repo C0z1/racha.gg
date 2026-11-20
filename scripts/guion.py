@@ -48,7 +48,7 @@ def personales(plan, errores, fijas, rol):
         leer = plan_rol.MEDIDAS[m["id"]][3]
         xs = [s for s in rol if (v := leer(s)) is not None][-ULTIMAS:]
         out.append(dict(id=m["id"], tipo="plan", etq=str(m["minuto"]), min=m["minuto"] * 60, meta=m["v"], nombre=m["etq"], dato=m["dato"],
-                        corto=f"{m['etq']} · victorias {plan_rol.valor(m['id'], m['v'])}", ok=sum(plan_rol.cumple(m["id"], leer(s), m["v"]) for s in xs), n=len(xs)))
+                        corto=plan_rol.renglon(m), wr=m.get("wr"), ok=sum(plan_rol.cumple(m["id"], leer(s), m["v"]) for s in xs), n=len(xs)))
     c = (errores or {}).get("ciclo") or {}
     for i, k in enumerate(c.get("vigilados") or [], 1):
         lo, hi = errores_.VENTANA[k]

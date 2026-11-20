@@ -57,12 +57,19 @@ class Plan(unittest.TestCase):
         self.assertIsNone(plan_rol.plan(ss[:12], "MIDDLE"))  # menos de 8 derrotas
         self.assertTrue(plan_rol.cumple("muertes6", 0, 0.5)); self.assertFalse(plan_rol.cumple("cs10", 60, 71))
 
+    def test_con_15_por_lado_elige_por_tu_wr(self):  # el renglón dice el umbral y tu WR al cumplirlo
+        ss = [self.serie(True, 0, 80) for _ in range(20)] + [self.serie(False, 2, 80) for _ in range(20)]
+        p = plan_rol.plan(ss, "MIDDLE"); m = p["fases"][1]
+        self.assertEqual((m["id"], m["v"], m["wr"]), ("muertes6", 1, 1.0))
+        self.assertEqual(plan_rol.renglon(m), "≤1 muerte al 6: ganas 100%")
+        self.assertEqual(plan_rol.umbral("dragones14", 1), "≥1 dragón al 14"); self.assertEqual(plan_rol.umbral("muertes6", 0), "0 muertes al 6")
+
     def test_marcas_personales(self):
         plan = {"marcas": [{"id": "cs10", "minuto": 10, "v": 71, "etq": "CS al 10", "dato": "x"}]}
         er = {"ciclo": {"vigilados": ["sin_objetivo"], "errores": {"sin_objetivo": {"veces": 13, "ok": 2, "n": 10}}}}
         ms = guion.personales(plan, er, {"6": {"meta": 1}}, [{"cs": [70] * 12}] * 3)
         self.assertEqual([(m["tipo"], m["etq"]) for m in ms], [("fija", "6"), ("plan", "10"), ("fija", "14"), ("error", "E1")])
-        self.assertEqual(ms[1]["corto"], "CS al 10 · victorias 71"); self.assertEqual((ms[1]["ok"], ms[1]["n"]), (0, 3))
+        self.assertEqual(ms[1]["corto"], "Tus victorias: 71 CS al 10"); self.assertEqual((ms[1]["ok"], ms[1]["n"]), (0, 3))
         self.assertEqual(guion.personales(None, None, {}, []), sorted(guion.personales(None, None, {}, []), key=lambda m: m["min"]))  # sin nada: las 4 fijas
 
 
@@ -128,7 +135,7 @@ class Motor(unittest.TestCase):
 
     def test_carta_con_plan_y_errores(self):
         c = M.carta_carga({**G, "matchup": {"v": 4, "n": 7}, "regla": {"tope": 2, "racha": 2}})
-        self.assertEqual(c[-2:], ["Tus victorias: 71 CS al 10", "Vigilas: E1 muerte sin objetivo · E2 nivel abajo al 6"])
+        self.assertEqual(c[-2:], ["Tu plan: 71 CS al 10", "Vigilas: E1 muerte sin objetivo · E2 nivel abajo al 6"])
         import lienzo
         self.assertEqual(lienzo.pintar_carta(c).size, (lienzo.CARTA_W, lienzo.CARTA_H + lienzo.CARTA_RENGLON))
 

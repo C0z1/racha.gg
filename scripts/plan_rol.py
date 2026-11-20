@@ -54,6 +54,11 @@ def plan(ss, pos):
     Una medida entra si tus victorias van mejor que tus derrotas (efecto > 0)."""
     m = medir(ss, pos)
     if not m: return None
+    import postpartida  # con 15+ partidas de cada lado, la medida se elige por cuánto te cambia el WR (no por la mediana)
+    for k in list(m):
+        if (x := postpartida.impacto(ss, pos, k)) is None: continue
+        if x["si"] - x["no"] < postpartida.MIN_DIF: del m[k]; continue  # no te cambia el WR: es ruido (kp6 en mid)
+        m[k].update(v=x["umbral"], wr=round(x["si"], 3), n_wr=x["n_si"], wr_no=round(x["no"], 3), efecto=round(10 + x["si"] - x["no"], 3))  # 10+: antes que las sin WR
     fases = {}
     for f in FASES:
         mejor = max(((k, x) for k, x in m.items() if x["fase"] == f and x["efecto"] > 0), key=lambda kx: kx[1]["efecto"], default=None)
@@ -74,6 +79,18 @@ def frase(k, v):
     """El valor con su unidad, para leerse solo: «1 dragón al 14», «25% en kills al 6»."""
     t = FRASE[k].format(valor(k, v))
     return t.replace("muertes", "muerte").replace("dragones", "dragón") if v == 1 else t
+
+
+def umbral(k, u):
+    """La meta como umbral: «≥1 dragón al 14», «≤2 muertes 14–25», «0 muertes al 6»."""
+    t = FRASE[k].replace("{}", ("≥" if MEDIDAS[k][2] == "+" else "≤") + "{}").format(valor(k, u)).replace("≤0 ", "0 ")
+    return t.replace("muertes", "muerte").replace("dragones", "dragón") if u == 1 else t
+
+
+def renglon(m):
+    """El renglón de una medida del plan: con tu WR al cumplirla («≥1 dragón al 14: ganas 69%») o, con pocas partidas, la
+    mediana de tus victorias («Tus victorias: 1 dragón al 14»). Dato, nunca orden."""
+    return f"{umbral(m['id'], m['v'])}: ganas {m['wr']:.0%}" if m.get("wr") is not None else "Tus victorias: " + frase(m["id"], m["v"])
 
 
 def dato(k, x):

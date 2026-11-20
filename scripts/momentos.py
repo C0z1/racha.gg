@@ -306,7 +306,7 @@ def _fase(e, g, t):
         x = fs.get(k) or fs.get(int(k))  # en JSON las llaves son texto; recién armado, números
         if ini <= t < ini + 20 and k not in e["fases"] and x:
             e["fases"].append(k)
-            return _cabe("Tus victorias: " + plan_rol.frase(x["id"], x["v"]))
+            return _cabe(plan_rol.renglon(x))
     return None
 
 
@@ -324,7 +324,7 @@ def carta_carga(g):
     es = [m for m in g.get("marcas_p") or [] if m["tipo"] == "error"]
     l4 = None
     if ps or es:  # Fase 7: tu plan de rol y tus errores vigilados en lugar de las tasas de las marcas fijas
-        l3 = ("Tus victorias: " + " · ".join(plan_rol.frase(m["id"], m["meta"]) for m in ps)) if ps else None
+        l3 = ("Tu plan: " + " · ".join(plan_rol.umbral(m["id"], m["meta"]) if m.get("wr") is not None else plan_rol.frase(m["id"], m["meta"]) for m in ps)) if ps else None
         l4 = ("Vigilas: " + " · ".join(f"E{m['rango']} {m['nombre'].lower()}" for m in es)) if es else None
         if r.get("racha"): l2 = (l2 + " · " if l2 else "") + f"racha {r['racha']}"
     return [x for x in (l1, l2, l3, l4) if x]
