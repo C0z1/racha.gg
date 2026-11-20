@@ -170,3 +170,89 @@ def pintar_carta(lineas, esc=1.0):
 def carta_alto(lineas):
     """Alto (a 1080p) de la carta: 3 renglones o hasta 4."""
     return CARTA_H + CARTA_RENGLON * max(0, min(4, len(lineas)) - 3)
+
+
+# Modo interactivo (Ctrl+Shift+Z): una barra de botones sobre la franja y dos vistas más (Stats y Build).
+BARRA = 26  # alto de la barra a 1080p
+BOTONES = (("min", None), ("sombra", "Sombra"), ("stats", "Stats"), ("build", "Build"), ("ajustes", "Ajustes"), ("mover", "Mover"))
+STATS_H, BUILD_H, MINI_W, MINI_H = 124, 92, 70, 26
+
+
+def boton_en(x, y):
+    """El botón de la barra en (x, y) a 1080p, relativos a la ventana; None fuera de la barra."""
+    if not (0 <= y < BARRA and 0 <= x < ANCHO): return None
+    return BOTONES[int(x // (ANCHO / len(BOTONES)))][0]
+
+
+def _base(w, h, esc):
+    from PIL import Image, ImageDraw
+    S = 2; k = lambda v: round(v * esc * S)
+    im = Image.new("RGBA", (round(w * esc) * S, round(h * esc) * S), (0, 0, 0, 0))
+    return im, ImageDraw.Draw(im), k
+
+
+def _fin(im, w, h, esc):
+    from PIL import Image
+    return im.resize((round(w * esc), round(h * esc)), Image.LANCZOS)
+
+
+def pintar_barra(vista, minimizada, esc=1.0):
+    """La barra de botones: Ocultar/Mostrar · Sombra · Stats · Build · Ajustes · Mover; la vista activa en rosa."""
+    im, d, k = _base(ANCHO, BARRA, esc)
+    d.rounded_rectangle((0, 0, im.width - 1, im.height - 1), radius=k(9), fill=FONDO, outline=ROSA + (140,), width=max(1, k(1)))
+    w = ANCHO / len(BOTONES)
+    for i, (clave, txt) in enumerate(BOTONES):
+        txt = txt or ("Mostrar" if minimizada else "Ocultar")
+        activa = clave == vista and not minimizada
+        if activa: d.rounded_rectangle((k(i * w + 3), k(4), k((i + 1) * w - 3), k(BARRA - 4)), radius=k(6), fill=ROSA + (90,))
+        d.text((k((i + 0.5) * w), k(BARRA / 2)), txt, font=_fuente(k(10)), fill=(TXT if activa else GRIS) + (255,), anchor="mm")
+    return _fin(im, ANCHO, BARRA, esc)
+
+
+def pintar_mini(esc=1.0):
+    """Minimizada: una píldora «Racha» (Sombra sigue anotando por detrás)."""
+    im, d, k = _base(MINI_W, MINI_H, esc)
+    d.rounded_rectangle((0, 0, im.width - 1, im.height - 1), radius=k(13), fill=FONDO, outline=ROSA + (89,), width=max(1, k(1)))
+    d.text((k(MINI_W / 2), k(MINI_H / 2)), "Racha", font=_fuente(k(11)), fill=GRIS + (255,), anchor="mm")
+    return _fin(im, MINI_W, MINI_H, esc)
+
+
+def _flecha(d, x, y, arriba, col, k):
+    a = k(4)
+    d.polygon([(x - a, y + a / 2), (x + a, y + a / 2), (x, y - a)] if arriba else [(x - a, y - a / 2), (x + a, y - a / 2), (x, y + a)], fill=col + (255,))
+
+
+def pintar_stats(filas, de, esc=1.0):
+    """La vista Stats: 5 filas (etiqueta, tu número, flecha y diferencia contra tu sombra). Salvia si vas igual o arriba, oro si
+    abajo (el rojo de la franja es solo de tu tope)."""
+    im, d, k = _base(ANCHO, STATS_H, esc)
+    d.rounded_rectangle((0, 0, im.width - 1, im.height - 1), radius=k(14), fill=FONDO, outline=ROSA + (89,), width=max(1, k(1)))
+    d.text((k(14), k(14)), "Tú", font=_fuente(k(10)), fill=GRIS + (255,), anchor="lm")
+    d.text((k(ANCHO - 14), k(14)), f"vs tu {de}", font=_fuente(k(10)), fill=GRIS + (255,), anchor="rm")
+    for i, f in enumerate(filas[:5]):
+        y = k(34 + i * 19)
+        d.text((k(14), y), f["etq"], font=_fuente(k(13)), fill=TXT + (255,), anchor="lm")
+        d.text((k(222), y), f["num"], font=_fuente(k(13)), fill=TXT + (255,), anchor="rm")
+        if f["dif"] is None: d.text((k(250), y), "—", font=_fuente(k(12)), fill=GRIS + (255,), anchor="lm"); continue
+        col = SALVIA if f["mejor"] else ORO
+        _flecha(d, k(244), y, f["mejor"], col, k)
+        d.text((k(254), y), f["dif"], font=_fuente(k(12)), fill=col + (255,), anchor="lm")
+    return _fin(im, ANCHO, STATS_H, esc)
+
+
+def pintar_build(b, esc=1.0, icono=None):
+    """La vista Build: el core (hasta 3 ítems) con lo comprado apagado y el que sigue con un anillo oro."""
+    im, d, k = _base(ANCHO, BUILD_H, esc)
+    d.rounded_rectangle((0, 0, im.width - 1, im.height - 1), radius=k(14), fill=FONDO, outline=ROSA + (89,), width=max(1, k(1)))
+    if not b:
+        d.text((k(ANCHO / 2), k(BUILD_H / 2)), "Sin build para este campeón", font=_fuente(k(12)), fill=GRIS + (255,), anchor="mm")
+        return _fin(im, ANCHO, BUILD_H, esc)
+    d.text((k(14), k(14)), b["etq"].capitalize(), font=_fuente(k(11)), fill=GRIS + (255,), anchor="lm")
+    if b.get("falta"): d.text((k(ANCHO - 14), k(14)), b["falta"], font=_fuente(k(11)), fill=ORO + (255,), anchor="rm")
+    for i, it in enumerate(b["items"]):
+        x, y, px = k(14 + i * 56), k(32), k(44)
+        im.alpha_composite(_retrato(it["nombre"], px, icono, it["comprado"], it["id"]), (x, y))
+        if it["actual"]: d.ellipse((x - k(2), y - k(2), x + px + k(2), y + px + k(2)), outline=ORO + (255,), width=k(2))
+    if (a := next((it for it in b["items"] if it["actual"]), None)):
+        d.text((k(14 + 3 * 56 + 4), k(54)), a["nombre"], font=_fuente(k(12)), fill=TXT + (255,), anchor="lm")
+    return _fin(im, ANCHO, BUILD_H, esc)

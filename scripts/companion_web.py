@@ -978,6 +978,9 @@ def main(argv=None):
             elif m[0] == "guardar" and len(m) == 3: guardar_franja(m[1], m[2])
             elif m[0] == "registrar" and len(m) == 2: registrar(str(m[1])[:500])
             elif m[0] == "salud" and len(m) == 2 and isinstance(m[1], dict): guardar_salud(m[1])
+            elif m[0] == "abrir" and len(m) == 2 and m[1] == "ajustes":  # botón Ajustes de la franja (Ctrl+Shift+Z)
+                with LOCK: ESTADO.update(ir=["ajustes", time.time()], v=ESTADO["v"] + 1)
+                abrir(URL[0])
         def caida(): gui.FRANJA_CAIDA[0] = True; registrar("franja: dos caídas, HTC sigue sin franja")  # y vuelve al sondeo de 10 s
         try: import franja; franja.vigilar(leer, recibir, seguir, registrar, caida)  # la franja en su propio proceso (fase 1 de Sombra)
         except Exception as e: registrar(f"sin franja: {e!r}")

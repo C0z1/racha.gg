@@ -334,7 +334,7 @@ def meta_fase(d, m10=None):
     rs = (rival or {}).get("scores") or {}
     return {"minuto": int(((d.get("gameData") or {}).get("gameTime") or 0) // 60), "campeon": me.get("championName"),
             "nivel": me.get("level"), "rival": (rival or {}).get("championName"), "nivel_rival": (rival or {}).get("level"),
-            "cs": (me.get("scores") or {}).get("creepScore"), "muertes14": muertes14(d, me),
+            "cs": (me.get("scores") or {}).get("creepScore"), "muertes14": muertes14(d, me), "vision": (me.get("scores") or {}).get("wardScore"),
             "cs_meta": meta_cs(me, m10),
             "rival_kda": f"{rs.get('kills') or 0}/{rs.get('deaths') or 0}/{rs.get('assists') or 0}" if rival else None,
             "rival_cs": rs.get("creepScore"), "rival_items": [[i["itemID"], i.get("displayName") or ""] for i in (rival or {}).get("items") or [] if i.get("itemID") and not i.get("consumable") and i.get("slot") != 6][:6],  # slot 6 = trinket

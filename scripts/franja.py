@@ -138,7 +138,8 @@ def main(argv):
     threading.Thread(target=leer_socket, daemon=True).start()
     import overlay
     overlay.correr(lambda: estado[0], lambda: vivo[0], registrar=lambda t: mandar("registrar", t), icono=icono,
-                   guardar=lambda k, v: mandar("guardar", k, v), anotar=lambda n, m: mandar("anotar", n, m), salud=lambda d: mandar("salud", d))
+                   guardar=lambda k, v: mandar("guardar", k, v), anotar=lambda n, m: mandar("anotar", n, m), salud=lambda d: mandar("salud", d),
+                   abrir=lambda que: mandar("abrir", que))
     try: con.close()
     except OSError: pass
     return 0

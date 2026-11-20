@@ -143,9 +143,9 @@ AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "avi
                "sondeo_ahorro": False,  # Sombra en PCs modestas: la partida se lee cada 3 s en vez de cada 1 s  # Sombra: un «tic» de 120 ms al sellar una marca (apagado por defecto)
                "franja_poco": False,  # Sombra: 1 interrupción por partida (se prende sola tras dos «no» a «¿Te sirvieron?»)
                "franja_por_res": {},  # posición libre por resolución: {"1920x1080": [fx, fy]}
-               "franja_tam": "grande",  # Sombra: tamaño de la franja (overlay.py: ×1, ×1.25, ×1.5)
+               "franja_tam": "grande", "franja_vista": "sombra", "franja_min": False,  # modo interactivo (Ctrl+Shift+Z): vista y minimizada  # Sombra: tamaño de la franja (overlay.py: ×1, ×1.25, ×1.5)
                "franja_pos": "arriba", "franja_x": 0.22, "franja_y": 0.0}  # esquina de la franja: único ajuste que no es booleano
-OPCIONES = {"franja_pos": ("arriba", "abajo", "libre"), "franja_estilo": ("sombra", "clasica"), "franja_tam": ("normal", "grande", "muy_grande")}  # lista blanca de los ajustes de texto
+OPCIONES = {"franja_pos": ("arriba", "abajo", "libre"), "franja_estilo": ("sombra", "clasica"), "franja_tam": ("normal", "grande", "muy_grande"), "franja_vista": ("sombra", "stats", "build")}  # lista blanca de los ajustes de texto
 FRACCIONES = ("franja_x", "franja_y")  # posición libre de la franja: fracción del juego (0–1), la eligió el usuario arrastrándola
 
 
@@ -554,6 +554,7 @@ def trabajador(q):
                 if mf and mf.get("modo") != "ARAM" and ajustes().get("franja_build", True) is not False:  # tu próximo ítem en la franja
                     if estado.get("build") is None and time.time() - estado.get("build_t", 0) > 30:  # falló: se reintenta cada 30 s (False = no hay)
                         estado["build"], estado["build_t"] = companion.build_partida(mf.get("campeon"), mf.get("pos")), time.time()
+                    if estado.get("build"): mf["core"] = estado["build"]  # la vista Build de la franja
                     try: import builds; mf["proximo"] = companion.proximo(estado["build"], mf.get("items"), mf.get("oro_actual"), builds.ddragon()[0])
                     except Exception as e: mf["proximo"] = None; registrar_franja(f"próximo ítem: {e!r}")
                 if mf and mf.get("modo") != "ARAM" and ajustes().get("franja_plan", True) is not False:  # MATCH, PLAN, CUIDADO (90 s) y el dato del matchup

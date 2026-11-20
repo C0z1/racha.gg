@@ -403,12 +403,30 @@ EJEMPLO = {"tipo": "plan", "a": {"campeon": None, "anillo": 1.0, "color": "rosa"
 
 
 def interactiva(hwnd, on):
-    """Modo mover: la franja recibe los clics (sin TRANSPARENT ni NOACTIVATE) para poder arrastrarla; al salir, vuelve a
-    dejarlos pasar al juego."""
+    """Modo mover o Ctrl+Shift+Z: la franja recibe los clics (sin TRANSPARENT); NOACTIVATE se queda, así LoL no pierde el foco.
+    Al salir, los clics vuelven a pasar al juego."""
     try:
         import ctypes
         u = ctypes.windll.user32; ex = u.GetWindowLongW(hwnd, -20)
-        u.SetWindowLongW(hwnd, -20, (ex & ~0x20 & ~0x08000000) if on else (ex | 0x20 | 0x08000000))
+        u.SetWindowLongW(hwnd, -20, (ex & ~0x20) if on else (ex | 0x20))
+    except (AttributeError, OSError): pass
+
+
+ATAJO = (0x0002 | 0x0004 | 0x4000, 0x5A)  # Ctrl+Shift+Z (MOD_CONTROL|MOD_SHIFT|MOD_NOREPEAT): LoL no la usa y Windows no se la pasa
+ALTERNAR = [lambda: None, False]  # la franja viva y si el hilo del atajo ya corre
+ATAJO_QUIETO_S = 20  # el modo interactivo se apaga solo tras 20 s sin el cursor encima
+
+
+def escuchar_atajo(alternar, registrar=lambda t: None):
+    """Hilo: RegisterHotKey (no es un hook de teclado: no lee nada más) y su cola de mensajes; cada Ctrl+Shift+Z llama a
+    alternar(), que solo cambia una bandera (Tk no se toca desde este hilo)."""
+    try:
+        import ctypes, ctypes.wintypes as w
+        u = ctypes.windll.user32
+        if not u.RegisterHotKey(None, 1, *ATAJO): registrar("atajo Ctrl+Shift+Z ocupado por otra app"); return
+        msg = w.MSG()
+        while u.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+            if msg.message == 0x0312: alternar()  # WM_HOTKEY
     except (AttributeError, OSError): pass
 
 
@@ -528,7 +546,7 @@ def resumen_salud(lat, cpu_s, pared_s):
 
 
 def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, guardar=lambda clave, v: None, anotar=lambda notas, marcas: None,
-           salud=lambda d: None):
+           salud=lambda d: None, abrir=lambda que: None):
     """Bucle de tkinter (hilo principal): la pastilla en una ventana en capas (alfa por píxel), siempre encima y
     atravesable. leer() -> estado de HTC; seguir() -> False para cerrar; icono(tipo, nombre) -> PNG en bytes o None.
     Solo se repinta cuando cambia lo que muestra (la foto llega cada 10 s)."""
@@ -545,15 +563,38 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
     sonado = [None]  # la última marca que sonó (un tic por sello)
     med = {"lat": [], "ult": None, "t": time.time(), "cpu": time.process_time()}  # salud: latencia foto → pantalla, CPU y RAM
     rapido = [False]  # Sombra: tick de 250 ms (lo decide el último dibujar que sí leyó el estado)
-    mov = {"on": False, "agarre": None, "pos": None}  # modo mover (Ajustes): arrastrar con el botón izquierdo, se guarda al soltar
+    mov = {"on": False, "agarre": None, "pos": None, "atajo": False, "encima": 0, "abajo": None, "esc": 1.0, "barra": False}  # modo mover (Ajustes) o atajo
+    ALTERNAR[0] = lambda: mov.update(atajo=not mov["atajo"], encima=time.time())
+    if not ALTERNAR[1]:  # un solo hilo por proceso: RegisterHotKey no se puede registrar dos veces
+        import threading
+        ALTERNAR[1] = True; threading.Thread(target=escuchar_atajo, args=(lambda: ALTERNAR[0](), registrar), daemon=True).start()
 
-    def arrastrar():  # solo en modo mover: lee el mouse cada 16 ms mientras el botón izquierdo está apretado sobre la franja
+    def clic(clave):  # un botón de la barra (modo atajo)
+        aj = (leer() or {}).get("ajustes") or {}
+        if clave == "min": guardar("franja_min", not aj.get("franja_min"))
+        elif clave in ("sombra", "stats", "build"):
+            guardar("franja_vista", clave)
+            if aj.get("franja_min"): guardar("franja_min", False)
+        elif clave == "ajustes": abrir("ajustes"); mov["atajo"] = False
+        ultimo[0] = None
+
+    def boton(x, y):
+        import lienzo
+        return lienzo.boton_en(x / mov["esc"], y / mov["esc"])
+
+    def arrastrar():  # modo mover o atajo: lee el mouse cada 16 ms (sin eventos de Tk: la ventana no se activa)
         if not mov["on"] or not hwnd: return
         import ctypes.wintypes as w
         u = ctypes.windll.user32; p, r = w.POINT(), w.RECT()
         u.GetCursorPos(ctypes.byref(p)); u.GetWindowRect(hwnd, ctypes.byref(r))
+        dentro = r.left <= p.x < r.right and r.top <= p.y < r.bottom
+        if dentro: mov["encima"] = time.time()
+        bt = boton(p.x - r.left, p.y - r.top) if dentro and mov["atajo"] and mov["barra"] else None
         if u.GetAsyncKeyState(0x01) & 0x8000:
-            if mov["agarre"] is None and r.left <= p.x < r.right and r.top <= p.y < r.bottom: mov["agarre"] = (p.x - r.left, p.y - r.top)
+            if mov["abajo"] is None:
+                mov["abajo"] = (dentro, bt)
+                if mov["atajo"] and not dentro: mov["atajo"] = False  # clic fuera: se apaga y ese clic es del juego
+            if mov["agarre"] is None and mov["abajo"][0] and (not mov["atajo"] or mov["abajo"][1] == "mover"): mov["agarre"] = (p.x - r.left, p.y - r.top)
             if mov["agarre"]:
                 nx, ny = p.x - mov["agarre"][0], p.y - mov["agarre"][1]
                 u.SetWindowPos(hwnd, 0, nx, ny, 0, 0, 0x15); mov["pos"] = (nx, ny)
@@ -565,6 +606,9 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
             guardar("franja_por_res", dict(list(por.items())[-POR_RES:]))  # una posición por resolución (las más recientes)
             guardar("franja_x", fx); guardar("franja_y", fy); guardar("franja_pos", "libre")
             ultimo[0] = None  # que el próximo tick la recoloque con lo guardado
+        else:
+            if mov["abajo"] and mov["abajo"][0] and mov["abajo"][1] not in (None, "mover") and mov["abajo"][1] == bt: clic(bt)  # soltó sobre el mismo botón
+            mov["abajo"] = None
         root.after(16, arrastrar)
 
     def tick():
@@ -579,9 +623,10 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
 
     def dibujar():
         s = leer() or {}; ahora = time.time(); aj = s.get("ajustes") or {}
-        if bool(s.get("mover_franja")) != mov["on"]:  # entra o sale del modo mover
-            mov["on"] = bool(s.get("mover_franja")); interactiva(hwnd, mov["on"]) if hwnd else None; ultimo[0] = None
-            if mov["on"]: root.after(16, arrastrar)
+        if mov["atajo"] and (s.get("fase") not in ("InProgress", "Reconnect") or ahora - mov["encima"] > ATAJO_QUIETO_S): mov["atajo"] = False  # nunca se queda captando clics
+        if (bool(s.get("mover_franja")) or mov["atajo"]) != mov["on"]:  # entra o sale del modo mover / atajo
+            mov["on"] = bool(s.get("mover_franja")) or mov["atajo"]; interactiva(hwnd, mov["on"]) if hwnd else None; ultimo[0] = None
+            if mov["on"]: mov["encima"] = ahora; root.after(16, arrastrar)
         if mov["on"] and mov["agarre"] is not None: return  # mientras la arrastras, el tick no la recoloca
         regla = (((s.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy"))  # tu regla, no la del autor
         marcar(marcas, s.get("meta"), ahora)
@@ -611,7 +656,8 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         if not e:
             if mostrada[0]: root.withdraw(); mostrada[0] = False
             ultimo[0] = tipo_ant[0] = None; gen[0] += 1; return
-        juego = rect_juego(); esc = escala(juego, aj.get("franja_tam"))
+        juego = rect_juego(); esc = escala(juego, aj.get("franja_tam")); mov["esc"] = esc
+        e = vistas(e, s, aj, meta, sombra, mov["atajo"]); mov["barra"] = bool(e.get("barra"))
         if e.get("carta"):  # al centro abajo, sobre la pantalla de carga; nada que mover ni animar
             x0, y0, x1, y1 = juego or (0, 0, root.winfo_screenwidth(), root.winfo_screenheight())
             w, h = round(lienzo.CARTA_W * esc), round(lienzo.carta_alto(e["carta"]) * esc); px, py = x0 + (x1 - x0 - w) // 2, y0 + int((y1 - y0) * 0.80) - h
@@ -620,8 +666,8 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
             gen[0] += 1
             if hwnd: mostrar(hwnd, lienzo.pintar_carta(e["carta"], esc), px, py)
             ultimo[0] = clave; return
-        ancho = round((lienzo.ANCHO if sombra else 380) * esc)
-        alto = round((lienzo.ALTO if sombra else ALTO_X if e.get("extra") else ALTO) * esc)  # Sombra: la barra no se mueve; renglón y panel cuelgan debajo
+        ancho = round((lienzo.ANCHO if sombra or e.get("vista") else 380) * esc)
+        alto = round((lienzo.ALTO if sombra or e.get("vista") else ALTO_X if e.get("extra") else ALTO) * esc)  # Sombra: la barra no se mueve; renglón y panel cuelgan debajo
         pant = (root.winfo_screenwidth(), root.winfo_screenheight())
         if aj.get("franja_pos") == "libre":
             fx, fy = (aj.get("franja_por_res") or {}).get(resolucion(juego, pant)) or (aj.get("franja_x", x), aj.get("franja_y", 0))
@@ -633,13 +679,13 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         if clave == ultimo[0] and mostrada[0]: return  # nada cambió: no se repinta
         if not mostrada[0]: root.deiconify(); root.attributes("-topmost", True); mostrada[0] = True  # la ventana en capas solo se ve tras mostrarla
         gen[0] += 1; g = gen[0]  # los pasos de una animación vieja no pisan un estado nuevo ni una franja oculta
-        img = lienzo.pintar(e, esc, icono) if sombra else pintar(e, esc, icono)
+        img = componer(e, esc, icono, sombra) if e.get("vista") else lienzo.pintar(e, esc, icono) if sombra else pintar(e, esc, icono)
         if hwnd: mostrar(hwnd, img, px, py)
         if meta and (r := meta.get("recibido")) and r != med["ult"]: med["lat"].append(time.time() - r); med["ult"] = r
-        if hwnd and sombra and e.get("brillo") is not None and mostrada[0]:  # el brillo del sello se apaga a los 600 ms
+        if hwnd and sombra and not e.get("vista") and e.get("brillo") is not None and mostrada[0]:  # el brillo del sello se apaga a los 600 ms
             quieta = lienzo.pintar({**e, "brillo": None}, esc, icono); vale = lambda: gen[0] == g and mostrada[0]
             root.after(int(momentos.BRILLO_S * 1000), lambda: vale() and mostrar(hwnd, quieta, px, py))
-        if hwnd and e.get("tipo") in ("aviso", "igualaste", "oro14") and e["tipo"] != tipo_ant[0] and animar():  # al entrar: sacudida (aviso) y dos pulsos
+        if hwnd and not e.get("vista") and e.get("tipo") in ("aviso", "igualaste", "oro14") and e["tipo"] != tipo_ant[0] and animar():  # al entrar: sacudida (aviso) y dos pulsos
             imgs = (pintar({**e, "pulso": True}, esc, icono), img)
             vale = lambda: gen[0] == g and mostrada[0]
             for i, p in enumerate(PULSOS): root.after(250 * (i + 1), lambda p=p: vale() and mostrar(hwnd, imgs[0 if p else 1], px, py))
@@ -650,3 +696,33 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         ultimo[0] = clave
 
     tick(); root.mainloop()
+
+
+def vistas(e, s, aj, meta, sombra, atajo):
+    """Envuelve la escena si hay barra (Ctrl+Shift+Z), está minimizada o la vista elegida no es Sombra; si no, la deja igual.
+    shortcut: con Stats/Build a la vista, Sombra sigue anotando en la bitácora pero sus renglones no se ven."""
+    if e.get("carta"): return e
+    import momentos
+    vista = aj.get("franja_vista", "sombra") if sombra and meta else "sombra"
+    mini = bool(aj.get("franja_min"))
+    if not (atajo or mini or vista != "sombra"): return e
+    g = s.get("guion") or {}
+    return {"vista": vista, "mini": mini, "barra": atajo, "sombra": e,
+            "stats": momentos.stats(meta, g, meta.get("t") or 0) if vista == "stats" else None,
+            "build": momentos.build(meta, meta.get("core")) if vista == "build" else None,
+            "de": "sombra" if (g.get("sombra") or {}).get("alcance") == "campeon" else "sombra del rol"}
+
+
+def componer(v, esc, icono, sombra):
+    """La barra de botones arriba (con el atajo) y debajo Sombra, Stats, Build o la píldora minimizada."""
+    import lienzo
+    from PIL import Image
+    if v["mini"]: cuerpo = lienzo.pintar_mini(esc)
+    elif v["vista"] == "stats" and v["stats"]: cuerpo = lienzo.pintar_stats(v["stats"], v["de"], esc)
+    elif v["vista"] == "build": cuerpo = lienzo.pintar_build(v["build"], esc, icono)
+    else: cuerpo = lienzo.pintar(v["sombra"], esc, icono) if sombra else pintar(v["sombra"], esc, icono)
+    if not v["barra"]: return cuerpo
+    barra = lienzo.pintar_barra(v["vista"], v["mini"], esc); sep = round(lienzo.SEP * esc)
+    im = Image.new("RGBA", (max(barra.width, cuerpo.width), barra.height + sep + cuerpo.height), (0, 0, 0, 0))
+    im.alpha_composite(barra, (0, 0)); im.alpha_composite(cuerpo, (0, barra.height + sep))
+    return im

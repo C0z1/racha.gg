@@ -969,7 +969,7 @@ function ajustesV(s) {  // Ajustes_Vino: cuenta, apariencia y avisos en partida 
           + fila("Sombra: sonido al sellar", "Un «tic» corto cuando se sella una marca.", tog("t-sonido_sello", !!aj.sonido_sello, false, `ajuste('sonido_sello',${!aj.sonido_sello})`, "Sombra: sonido al sellar")) : ""}
         ${fila("Posición de la franja", "Dónde se ve en partida.", `<span role="group" aria-label="Posición de la franja" style="display:flex;gap:8px">${[["arriba", "Arriba"], ["abajo", "Abajo"], ...(aj.franja_pos === "libre" ? [["libre", "Donde la dejaste"]] : [])].map(([k, t]) => `<button class="btn2" aria-pressed="${(aj.franja_pos || "arriba") === k}" ${(aj.franja_pos || "arriba") === k ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} onclick="ajuste('franja_pos','${k}')">${t}</button>`).join("")}</span>`)}
         ${fila("Tamaño de la franja", "Qué tan grande se ve en partida.", `<span role="group" aria-label="Tamaño de la franja" style="display:flex;gap:8px">${[["normal", "Normal"], ["grande", "Grande"], ["muy_grande", "Muy grande"]].map(([k, t]) => `<button class="btn2" aria-pressed="${(aj.franja_tam || "grande") === k}" ${(aj.franja_tam || "grande") === k ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} onclick="ajuste('franja_tam','${k}')">${t}</button>`).join("")}</span>`)}
-        ${fila("Mover la franja", s.mover_franja ? "Arrástrala con el mouse a donde quieras: se guarda sola. Se apaga sola en 90 s (en partida, Alt+Tab a Racha y «Listo»)." : "Muéstrala y arrástrala a donde quieras (también fuera de partida).",
+        ${fila("Mover la franja", s.mover_franja ? "Arrástrala con el mouse a donde quieras: se guarda sola. Se apaga sola en 90 s (en partida, Alt+Tab a Racha y «Listo»)." : "Muéstrala y arrástrala a donde quieras (también fuera de partida). En partida, Ctrl+Shift+Z la vuelve clicable: Ocultar, Sombra, Stats, Build, Ajustes y Mover.",
           `<button class="btn2" aria-pressed="${!!s.mover_franja}" ${s.mover_franja ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} onclick="moverFranja(${!s.mover_franja})">${s.mover_franja ? "Listo" : "Mover"}</button>`)}
         ${av("franja_linea", "Franja: nivel y farm", "Hasta el minuto 14: tu nivel contra tu rival y tu CS contra tu ritmo.")}
         ${av("franja_regla", "Franja: muertes y peleas", "Del 14 al 25: tus muertes contra tu tope y tu participación en kills.")}
@@ -1221,6 +1221,7 @@ let ultVista;  // la vista pintada la última vez (Estela: entradas solo al camb
 let ultVistaPintada = false;  // la primera pintura no lleva transición
 let elegida = location.hash.slice(1).split("&")[0] || null, ultFase;  // #vista (y &medir para dev_medir.py)  // vista que eligió el usuario (o #vista en la URL); se olvida al cambiar de fase
 function ver(x) { elegida = x; v = -1; tick(); }
+let irVisto = null;
 
 let v = -1;
 async function tick() {
@@ -1228,6 +1229,7 @@ async function tick() {
     const r = await fetch("/api/estado?desde=" + v);
     if (r.status === 304) return;  // nada cambió
     const s = await r.json();
+    if (s.ir && s.ir[1] !== irVisto) { irVisto = s.ir[1]; elegida = s.ir[0]; }  // botón Ajustes de la franja
     if (document.activeElement && ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;  // no borrar lo que estás escribiendo
     if (s.v !== v) {
       v = s.v;

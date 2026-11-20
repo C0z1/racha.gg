@@ -339,6 +339,34 @@ def carta_fin(e, cumplida=None, racha=None):
     return out
 
 
+def stats(foto, g, t):
+    """La vista Stats de la franja: [{etq, num, dif, mejor}] tuyo contra tu sombra (mediana de tus victorias a ese minuto). Solo
+    datos visibles: tu oro (actual + ítems, lo de Tab), CS, peleas, visión y nivel. dif None: sin referencia («—»)."""
+    sb, m = (g or {}).get("sombra") or {}, max(t, 1) / 60
+    def fila(etq, tu, ref, fmt, por_min=True):
+        v = None if tu is None else tu / m if por_min else tu
+        r = None if ref is None else ref / m if por_min else ref
+        return {"etq": etq, "num": "—" if v is None else fmt(v), "dif": None if v is None or r is None else fmt(abs(v - r)),
+                "mejor": None if v is None or r is None else v >= r}
+    oro = (foto.get("oro") or {}).get("tu")
+    oro = foto.get("oro_actual", 0) + oro if oro is not None and t >= 120 else None  # shortcut: sin pociones, wards ni ventas (~100–300 abajo); con totalGold en vivo, usarlo
+    c = lambda v: f"{v:.1f}".replace(".", ",")
+    return [fila("Oro / min", oro, _curva(sb.get("oro") or [], t), lambda v: f"{v:.0f}"),
+            fila("CS / min", _cs(foto), _curva(sb.get("cs") or [], t), c),
+            fila("Peleas", foto.get("participacion"), _curva(sb.get("kp") or [], t), lambda v: f"{v:.0%}", False),
+            fila("Visión / min", foto.get("vision"), sb.get("vision_min") * m if sb.get("vision_min") is not None else None, c),
+            fila("Nivel", foto.get("nivel"), _curva(sb.get("nivel") or [], t), lambda v: f"{v:.0f}" if v == int(v) else c(v), False)]
+
+
+def build(foto, core):
+    """La vista Build: el core que ya calcula Racha ({core: [(nombre, id)], fuente}) con lo comprado y el que sigue."""
+    if not core or not core.get("core"): return None
+    tengo, p = {str(i[0]) for i in foto.get("items") or []}, foto.get("proximo") or {}
+    return {"etq": "build de los mejores" if core.get("fuente") == "mejores" else "tu build",
+            "items": [{"id": i, "nombre": n, "comprado": i in tengo, "actual": i == p.get("id")} for n, i in core["core"][:3]],
+            "falta": f"faltan {p['falta']}" if p.get("falta") else None}
+
+
 def textos(escena):
     """Los textos de la escena en orden de lectura (para validar palabras e imperativos)."""
     if not escena: return []
