@@ -13,11 +13,11 @@ P = lo comprueba `checks/preship.py` solo, a 390×844 y 1440×900.
 | 7 | Cada `img` con alt y `width`/`height` | P |
 | 8 | Un solo h1 y sin saltos de nivel | P |
 | 9 | Foco visible al tabular: ≥ 2px y ≥ 3:1 contra el fondo | P |
-| 10 | Con reduced-motion, ninguna animación ni transición tras el scroll | P |
+| 10 | Con reduced-motion, ninguna animación ni transición tras el scroll, sin `.escena canvas` y sin requests a /vendor/three | P |
 | 11 | Todo `[data-descarga]` termina en `Racha-Setup-x.y.z.exe` y su HEAD da 200 o 302 (sin red: SKIP, nunca PASS) | P |
 | 12 | Sin JS, el href de respaldo es `/releases/latest` | P |
 | 13 | El botón (y la confianza) se ven sin scroll a 390×844 y 1440×900 | P |
-| 14 | Todos los hex del CSS están en `colors` de DESIGN.md (se permiten derivados con color-mix o rgba de tokens) | P |
+| 14 | Todos los hex del CSS están en `colors` de DESIGN.md (se permiten derivados con color-mix o rgba de tokens); los fill/stroke/stop-color del HTML y los de docs/js, en `colors` o `mascota` | P |
 | 15 | Sin emojis en el texto visible (Extended_Pictographic) | P |
 | 16 | Sin palabras prohibidas de `words.md` ni imperativos de juego | P |
 | 17 | El aviso legal de Riot, literal | P |

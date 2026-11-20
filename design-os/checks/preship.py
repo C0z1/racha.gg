@@ -169,14 +169,21 @@ def estaticos(r):
         else: colores[v.upper()] = k
     todos = [f"L{i}: {l.strip()[:110]}" for i, l in enumerate(lineas, 1) if "TODO" in l]
     for f in fallas: r.extra.append(("FAIL", "[DESIGN] " + f))
-    # punto 14: todo hex del CSS de la portada es un token
+    # punto 14: todo hex del CSS de la portada es un token; los del dibujo (fill/stroke/stop-color del HTML) y de docs/js, token o de `mascota`
     html = (DOCS / "index.html").read_text(encoding="utf-8")
+    largo = lambda h: (h if len(h) != 4 else "#" + "".join(c * 2 for c in h[1:])).upper()
+    mascota = {str(v).upper() for v in (y.get("mascota") or {}).values()}
     css = "\n".join(re.findall(r"<style>(.*?)</style>", html, re.S) + re.findall(r'style="([^"]*)"', html))
-    malos = sorted({h for h in re.findall(r"#[0-9A-Fa-f]{3,8}\b", css)
-                    if (h if len(h) != 4 else "#" + "".join(c * 2 for c in h[1:])).upper() not in colores})
+    malos = sorted({h for h in re.findall(r"#[0-9A-Fa-f]{3,8}\b", css) if largo(h) not in colores})
     for m in re.findall(r"rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)", css):
         if "#%02X%02X%02X" % tuple(map(int, m)) not in colores: malos.append("rgb(" + ",".join(m) + ")")
-    r.add(14, "FAIL" if malos else "PASS", ("fuera de tokens: " + ", ".join(malos)) if malos else f"{len(colores)} tokens; todo hex del CSS es token")
+    dibujo = re.findall(r'(?:fill|stroke|stop-color)="(#[0-9A-Fa-f]{3,8})"', html)
+    js = {f.name: re.findall(r"(?:#|0x)([0-9A-Fa-f]{6})\b", f.read_text(encoding="utf-8")) for f in sorted((DOCS / "js").glob("*.js"))}
+    malos += sorted({f"{h} (SVG)" for h in dibujo if largo(h) not in colores and largo(h) not in mascota})
+    malos += sorted({f"#{h} ({n})" for n, hs in js.items() for h in hs if "#" + h.upper() not in colores and "#" + h.upper() not in mascota})
+    n_js = sum(map(len, js.values()))
+    r.add(14, "FAIL" if malos else "PASS", ("fuera de tokens: " + ", ".join(malos)) if malos else
+          f"{len(colores)} tokens y {len(mascota)} de mascota; todo hex del CSS es token; {len(dibujo)} del SVG y {n_js} de docs/js, token o mascota")
     return todos
 
 
@@ -291,12 +298,16 @@ def medir_vista(nav, url, w, h, r, propia, reglas=None, texto_legal=None):
 
 
 def reducido(nav, url, w, h, r):
-    """10 · con prefers-reduced-motion nada se anima tras el scroll."""
+    """10 · con prefers-reduced-motion nada se anima tras el scroll, y la mascota 3D ni se dibuja ni se descarga."""
     ctx = nav.new_context(viewport={"width": w, "height": h}, reduced_motion="reduce")
     ctx.add_init_script(JS)
-    pg = ctx.new_page(); pg.goto(url, wait_until="load"); pg.wait_for_timeout(800)
+    pg = ctx.new_page(); three = []
+    pg.on("request", lambda q: "/vendor/three" in q.url and three.append(q.url.rsplit("/", 1)[-1]))
+    pg.goto(url, wait_until="load"); pg.wait_for_timeout(800)
     b = pg.evaluate(BAJAR)
-    r.add(10, "FAIL" if b["vivas"] else "PASS", f"{w}: " + (("se animan: " + ", ".join(b["vivas"][:6])) if b["vivas"] else "nada se anima con reduced-motion"))
+    if pg.evaluate("() => !!document.querySelector('.escena canvas')"): b["vivas"].append("la mascota 3D (.escena canvas)")
+    if three: b["vivas"].append("se descargó three (" + ", ".join(sorted(set(three))) + ")")
+    r.add(10, "FAIL" if b["vivas"] else "PASS", f"{w}: " + (("se animan: " + ", ".join(b["vivas"][:6])) if b["vivas"] else "nada se anima con reduced-motion; sin canvas ni three"))
     ctx.close()
 
 

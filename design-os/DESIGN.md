@@ -14,6 +14,21 @@ colors:
   estado-bien: "#A8D8C0"  # app --teal, SALVIA overlay.py L12
   estado-mal: "#FF8A8A"   # app --red, ROJO overlay.py L11
   estado-oro: "#F2C46B"   # app --oro, ORO overlay.py L12
+mascota:                  # solo el dibujo de la mascota (póster inline y docs/js/mascota.js); nunca en la UI. Minion vino de Minions_Variantes
+  tunica: "#C25A85"
+  tunica-oscura: "#5E2440"
+  gema: "#7A2E52"
+  costura: "#3A1426"      # también el clon de la fila Sombra
+  piedra: "#E8EEF5"
+  piedra-media: "#AFC0D2"
+  piedra-oscura: "#6F8296"
+  cuero: "#C98E5A"
+  cuero-medio: "#8A5A30"
+  cuero-oscuro: "#5E3A1C"
+  cristal: "#FFE6F0"
+  cristal-oscuro: "#A33A63"
+  ojos: "#0B1630"
+  brillo-ojos: "#F28DB0"  # = rosa
 typography:
   familia: Mulish          # portada, OFL; servida desde docs/fonts/
   familia-franja: Roboto   # franja en partida, Bold, OFL
@@ -59,7 +74,7 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 - `borde` #4A2436 es decorativo (1.36:1): nunca separa información por sí solo.
 - Los estados (`estado-bien`, `estado-mal`, `estado-oro`) solo aparecen dentro de capturas de la app. En la portada nunca son decoración. Un solo rojo por pantalla (lienzo.py L28); el oro se usa cuando el rojo ya está ocupado.
 - La estela (degradado #A33A63 → #A8D8C0) es solo de la app, nunca de la portada.
-- Se permiten derivados de tokens (`color-mix` con `var()`, rgba de un token). Cualquier otro hex es un error (web-20 punto 14).
+- Se permiten derivados de tokens (`color-mix` con `var()`, rgba de un token). Cualquier otro hex es un error (web-20 punto 14). Los hex de `mascota` solo valen en el dibujo de la mascota (SVG del póster y `docs/js/`), nunca en el CSS.
 - Contraste: texto ≥ 4.5:1 y foco ≥ 3:1 contra su fondo real.
 
 ## Typography
@@ -68,7 +83,7 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 - h2: 1.75rem (28px) en `rosa2`. h3: 1.3rem (20.8px) en `rosa`. Los dos con peso 700 y line-height 1.6 heredado del cuerpo (medido con getComputedStyle, 20-nov-2026).
 - Cuerpo: 1rem, peso 400, line-height 1.6. Tagline: 1.2rem en `suave`. Nota: .9rem. Legal: .82rem.
 - Las cifras que cambian usan `tabular-nums`.
-- Sustituto libre si falta Mulish o Roboto: TODO. Hoy cae a system-ui y Segoe UI.
+- Sin sustituto: Mulish (OFL) va servida desde docs/fonts; si no carga, system-ui y Segoe UI. Roboto e Inter son de la app.
 
 ## Layout
 - Contenedor de 960px con padding de 24px; el hero llega hasta 1200px.
@@ -76,12 +91,14 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 - Espaciado solo de la escala: 8, 12, 16, 20, 24, 32, 40 y 48.
 - Anchos de lectura: 520px (nota), 560px (tagline) y 720px (texto de una fila sola). La marca de la barra mide 1.4rem. `scroll-padding-top` de 72px para que la barra fija no tape el destino de un ancla (valores en uso en docs/index.html).
 - Orden: barra, hero (mensaje, botón y confianza; UI real a la derecha), 3 pasos, qué es, antes/durante/después, FAQ, botón final y pie.
-- El botón principal y la lista de confianza se ven sin scroll a 390×844 y a 1440×900.
+- El botón principal y la lista de confianza se ven sin scroll a 390×844 y a 1440×900. En celular (pointer coarse, ≤700px) el principal es «Enviarme el enlace» y el `.exe` queda como secundario.
+- Mascota: ≥1400 px y pointer fine, en los márgenes, nunca sobre texto; cambia de lado hundiéndose en su cristal (escala a 0). Va en una capa fija detrás del contenido (`.escena`, z-index -1).
 
 ## Elevation & Depth
 - Es plana. La profundidad viene del paso `fondo` → `fondo2` más un borde de 1px en `borde`.
 - La única excepción es la barra fija, con `color-mix` de `fondo` al 88 % y `blur(8px)`. Se mide con preship: si empeora el LCP, el CLS o el contraste, va con fondo sólido.
 - Una sola sombra: la de la tarjeta al pasar el mouse, `0 14px 30px -12px rgb(0 0 0 / .25)` (decisión del usuario, 20-nov-2026). Fuera de eso, sin sombras; las de `hero-app` vienen horneadas en la composición.
+- La luz y el flat shading de la mascota son del dibujo y no cuentan como sombra. Sin sombra proyectada ni elipse bajo los pies.
 
 ## Shapes
 - La píldora (999px) es solo para botones. Radios de 18 (hero), 14 (tarjeta) y 12 (FAQ).
@@ -107,16 +124,22 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 - Don't: dar órdenes de juego. Fuente: CUMPLIMIENTO L8 e `IMPERATIVOS` en herramientas/replay.py L112.
 - Don't: usar emojis. Fuente: el usuario, nov-2026.
 - Don't: usar splash art ni logos de LoL o Riot. Fuente: portada-propuesta P2.
+- Do: la mascota es la única excepción a «solo transform/opacity»: dibuja en WebGL solo cuando hay scroll (sin bucle en reposo), cuenta como 1 de las 3 cosas en movimiento y con reduced-motion queda el póster quieto.
 - Don't: animar otra cosa que `transform`/`opacity`, ni animar con reduced-motion. Fuente: docs/index.html y pruebas/test_ds_estela.py.
+- Don't: ponerle a la mascota (ni al logo) el escudo de Order ni la runa, ni llamarla «minion» o «caster» en la página. Fuente: memory/corrections.md, 2026-11-20.
 - Don't: usar los estados como decoración. Fuente: esta guía, sección Colors.
 - Don't: poner cifras de RAM o FPS sin medir. Fuente: portada-propuesta §2 (COMPETENCIA: «Medir RAM de Edge antes de presumir»).
 - Don't: agregar «Código abierto» a la lista de confianza. Fuente: memory/corrections.md, 2026-11-20.
 
 ## Iconography
-- Ícono de la app: `assets/htc-icono.svg` (el publicado; `docs/img/icono.png` es el mismo PNG). Favicon: `docs/img/icono-32.png`; además `docs/img/apple-touch-icon.png`.
+- Ícono de la app: `assets/htc-icono.svg`, el mago vino sin escudo ni runa (`docs/img/icono.png` es el mismo PNG). Favicon: `docs/img/icono-32.png`; además `docs/img/apple-touch-icon.png`.
 - La marca va en texto: `Ra<span>cha</span>`, «cha» en `rosa`, peso 800.
-- No hay set de íconos de UI: TODO. Hasta que lo haya, sin íconos (las viñetas son puntos).
+- Sin set de íconos de UI: viñetas de 8 px en rosa; un ícono nuevo requiere decisión del usuario.
 - La captura de SmartScreen (`smartscreen.webp`) está en TODO: no se fabrica.
+
+### Mascota
+- El mismo mago del ícono, sin escudo ni runa y con la placa lisa; colores en `mascota`. Póster: SVG inline en `docs/index.html` (primer pintado y respaldo sin JS, sin WebGL o con reduced-motion). 3D: `docs/js/mascota.js` con three vendorizado en `docs/vendor/three/0.185.0/` (MIT), que se baja al primer scroll y solo en PC grande.
+- En la página se llama «mascota» (alt, clases y archivos).
 
 ## Voice
 - Español neutro, de tú, de jugador. Los términos de LoL van en inglés: champ select, win rate, tier list, CS, build, replay.
