@@ -273,5 +273,56 @@ class Ladder(unittest.TestCase):
         self.assertEqual(envios, [50] * 5)
 
 
+class Tier(unittest.TestCase):
+    """builds.tier: la tier list por parche con WR bayesiano, cortes S/A/B, flechas contra el parche anterior y NEW."""
+    def archivo(self, d, partidas):
+        """partidas: [(parche, campeón, pos, n, victorias)] → un FILAS temporal, una partida por build."""
+        f, ls = pathlib.Path(d) / "filas.jsonl", []
+        for p, c, pos, n, w in partidas:
+            ls += [json.dumps({"id": f"KR_{p}_{c}_{i}", "parche": p, "builds": [{"champ": c, "pos": pos, "win": i < w}]}) for i in range(n)]
+        f.write_text("\n".join(ls) + "\n{roto\n", encoding="utf-8"); return f
+
+    def test_encoge_al_promedio_del_rol(self):  # 41 al 60 % queda debajo de 400 al 55 %; 39 no entra
+        with tempfile.TemporaryDirectory() as d:
+            ps = [("16.22", "Poco", "MIDDLE", 41, 25), ("16.22", "Mucho", "MIDDLE", 400, 220), ("16.22", "Casi", "MIDDLE", 39, 30)]
+            t = builds.tier(self.archivo(d, ps + [("16.22", f"Relleno{i}", "MIDDLE", 60, 27) for i in range(8)]))
+        cs = [c["c"] for c in t["Tier|MIDDLE"]["campeones"]]
+        self.assertLess(cs.index("Mucho"), cs.index("Poco")); self.assertNotIn("Casi", cs)
+
+    def test_cortes_empates_y_pocas(self):
+        with tempfile.TemporaryDirectory() as d:
+            ps = [("16.22", f"C{i:02d}", "TOP", 100, 40 + i) for i in range(20)] + [("16.22", "Igual", "TOP", 100, 58)]  # empata con C18
+            t = builds.tier(self.archivo(d, ps + [("16.22", f"J{i}", "JUNGLE", 50, 25) for i in range(3)]))
+        cs = t["Tier|TOP"]["campeones"]; ts = {c["c"]: c["t"] for c in cs}
+        self.assertEqual((ts["C19"], ts["C18"], ts["Igual"]), ("S", "S", "S"))  # 21: S son 2, pero el empate en el corte sube
+        self.assertEqual([sum(c["t"] == x for c in cs) for x in "SAB"], [3, 4, 7]); self.assertNotIn("C00", ts)
+        self.assertEqual(t["Tier|JUNGLE"]["campeones"], []); self.assertIn("Pocas partidas", t["Tier|JUNGLE"]["aviso"])
+
+    def test_parches_flechas_y_new(self):
+        with tempfile.TemporaryDirectory() as d:
+            ps = [(p, f"R{i}", "BOTTOM", 60, 30) for p in ("16.21", "16.22") for i in range(8)]
+            ps += [("16.21", "Sube", "BOTTOM", 100, 40), ("16.22", "Sube", "BOTTOM", 200, 130), ("16.21", "Baja", "BOTTOM", 200, 130),
+                   ("16.22", "Baja", "BOTTOM", 100, 52), ("16.21", "Poca", "BOTTOM", 30, 20), ("16.22", "Poca", "BOTTOM", 100, 60),
+                   ("16.23", "Nuevo", "BOTTOM", 50, 40)]  # 16.23 con 50 partidas: aún no es «el actual»
+            t = builds.tier(self.archivo(d, ps))["Tier|BOTTOM"]
+        self.assertEqual((t["parche"], t["anterior"]), ("16.22", "16.21"))
+        cs = {c["c"]: c for c in t["campeones"]}
+        self.assertEqual((cs["Sube"]["t"], cs["Sube"]["antes"]), ("S", "-"))
+        self.assertEqual(cs["Baja"]["antes"], "S"); self.assertNotEqual(cs["Baja"]["t"], "S")
+        self.assertIsNone(cs["Poca"]["antes"])  # NEW: tenía menos de 40
+        self.assertEqual(t["destacado"]["c"], "Sube"); self.assertIn("de fuera a S en 16.22", t["destacado"]["texto"])
+
+    def test_blob_para_el_backend_y_sin_ordenes(self):
+        import re
+        sys.path.insert(0, str(AQUI.parent / "herramientas")); import replay
+        with tempfile.TemporaryDirectory() as d:
+            t = builds.tier(self.archivo(d, [("16.22", f"Campeon{i}", "UTILITY", 60 + i, 30 + i) for i in range(160)]))
+            self.assertEqual(builds.tier(pathlib.Path(d) / "no.jsonl"), {})
+        for k, b in t.items():
+            self.assertRegex(k, r"^[A-Za-z' .&]{2,30}\|[A-Z]{3,7}$")  # backend/extra.js: CLAVE
+            self.assertNotIn("n", b); self.assertLess(len(json.dumps(b)), 20000)
+            self.assertFalse([w for w in replay.IMPERATIVOS if re.search(r"\b" + re.escape(w) + r"\b", b["destacado"]["texto"].lower())])
+
+
 if __name__ == "__main__":
     unittest.main()

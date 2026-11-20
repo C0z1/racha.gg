@@ -721,6 +721,17 @@ def imagen(tipo, nombre):
     return f.read_bytes()
 
 
+def tier_list():
+    """{POS: blob de builds.tier} de builds.json, más «actual»: el parche de Data Dragon («16.23»), o None sin red ni caché."""
+    import builds
+    try: d = json.loads((builds.META / "builds.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError): d = {}
+    out = {k.split("|")[1]: v for k, v in d.items() if k.startswith("Tier|") and isinstance(v, dict)}
+    try: out["actual"] = ".".join(builds.get("https://ddragon.leagueoflegends.com/api/versions.json", ttl=builds.DIA)[0].split(".")[:2])
+    except Exception: out["actual"] = None
+    return out
+
+
 RUN = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 
@@ -770,6 +781,8 @@ class H(http.server.BaseHTTPRequestHandler):
             except (ValueError, OSError) as e: msg = str(e) if isinstance(e, ValueError) else "No pude hablar con el servidor de Racha."
             pagina = f'<!doctype html><meta charset="utf-8"><title>Racha</title><body style="margin:0;display:grid;place-items:center;height:100vh;background:#24111A;color:#F2F4F7;font:600 18px Segoe UI,sans-serif"><p style="max-width:460px;text-align:center">{html.escape(msg)}</p>'
             return self.enviar(200, pagina.encode(), "text/html; charset=utf-8")
+        if self.path == "/api/tier":  # Tier list por parche: los «Tier|POS» que dejó builds.py --ladder (o bajó del backend)
+            return self.enviar(200, json.dumps(tier_list(), ensure_ascii=False).encode(), "application/json; charset=utf-8")
         if self.path == "/api/partidas":  # Partidas: el índice completo, una vez; la página filtra por cola y carga de 50 en 50
             return self.enviar(200, json.dumps(INDICE[0]).encode(), "application/json; charset=utf-8")
         if m := re.fullmatch(r"/api/partida\?id=([A-Z0-9]{2,5}_\d{1,15})", self.path):  # «Ver»: la revisión de esa partida

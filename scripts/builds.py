@@ -284,6 +284,67 @@ def agregar_ladder(filas=None, minimo=20, cuota=0.10, validos=None):
             if len(bs) >= minimo and len(bs) / tot[k.split("|")[0]] >= cuota}
 
 
+TIERS = (("S", 0.10), ("A", 0.25), ("B", 0.35))  # cuota de los campeones del rol en cada tier, de arriba abajo
+TIER_MIN_PARCHE, TIER_MIN_ROL = 300, 5  # partidas para que un parche sea «el actual»; campeones del rol para armar tiers
+_VER = lambda p: tuple(int(x) for x in p.split(".") if x.isdigit())
+
+
+def _tiers(por, minimo, k):
+    """{pos: [fila]} de un parche: WR bayesiano encogido al WR medio del rol, ordenado, con su tier (S, A, B o None).
+    Un empate en el corte queda en el tier de arriba."""
+    out = {}
+    for pos, cs in por.items():
+        n_rol, w_rol = sum(n for n, _ in cs.values()), sum(w for _, w in cs.values())
+        p0 = w_rol / n_rol if n_rol else 0.5
+        fs = sorted((dict(c=c, n=n, wr=w / n, wrb=(w + k * p0) / (n + k)) for c, (n, w) in cs.items() if n >= minimo), key=lambda f: (-f["wrb"], f["c"]))
+        cortes, acum = [], 0
+        for i, (t, q) in enumerate(TIERS):
+            acum += max(1, round(q * len(fs))) if i == 0 else round(q * len(fs)); cortes.append((acum, t))
+        for i, f in enumerate(fs):
+            f["t"] = fs[i - 1]["t"] if i and f["wrb"] == fs[i - 1]["wrb"] and fs[i - 1]["t"] else next((t for c, t in cortes if i < c), None)
+        out[pos] = fs
+    return out
+
+
+def tier(filas=None, minimo=40, k=200):
+    """La tier list por parche (Master+ de FILAS), {«Tier|POS»: {parche, anterior, partidas, partidas_ant, fecha, destacado,
+    campeones: [{c, wr, wrb, pr, n, t, antes}], aviso}}. «Actual» = el último parche con TIER_MIN_PARCHE+ partidas; «anterior»,
+    el previo con datos. antes = el tier en el anterior («-» si no llegó a B, None = NEW: no estaba o tenía < minimo).
+    Sin clave «n» arriba: companion_gui.rivales_linea lee las «X|POS» con «n» como campeones."""
+    f = pathlib.Path(filas or FILAS)
+    if not f.exists(): return {}
+    por, partidas = {}, Counter()  # parche → pos → campeón → [n, victorias]
+    for l in f.read_text(encoding="utf-8").splitlines():
+        try: r = json.loads(l)
+        except ValueError: continue
+        if not r.get("builds") or not _VER(str(r.get("parche") or "")): continue
+        partidas[r["parche"]] += 1
+        for b in r["builds"]:
+            x = por.setdefault(r["parche"], {}).setdefault(b["pos"], {}).setdefault(b["champ"], [0, 0]); x[0] += 1; x[1] += bool(b["win"])
+    ps = sorted(partidas, key=_VER)
+    actual = next((p for p in reversed(ps) if partidas[p] >= TIER_MIN_PARCHE), None)
+    if not actual: return {}
+    anterior = next((p for p in reversed(ps) if _VER(p) < _VER(actual)), None)
+    hoy, antes = _tiers(por[actual], minimo, k), _tiers(por.get(anterior) or {}, minimo, k)
+    fecha, orden, out = datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d"), {"S": 3, "A": 2, "B": 1, "-": 0}, {}
+    for pos, fs in hoy.items():
+        prev = {x["c"]: x["t"] or "-" for x in antes.get(pos, [])}
+        cs = [dict(c=x["c"], wr=round(x["wr"], 3), wrb=round(x["wrb"], 3), pr=round(x["n"] / partidas[actual], 3), n=x["n"], t=x["t"], antes=prev.get(x["c"]))
+              for x in fs if x["t"]]
+        blob = dict(parche=actual, anterior=anterior, partidas=partidas[actual], partidas_ant=partidas.get(anterior, 0), fecha=fecha, destacado=None, campeones=[], aviso=None)
+        if len(fs) < TIER_MIN_ROL:
+            blob["aviso"] = f"Pocas partidas de este rol en {actual} ({len(fs)} campeones con {minimo}+): aún sin tiers."
+        else:
+            blob["campeones"] = cs
+            sube = max((x for x in cs if x["t"] == "S" and x["antes"] != "S"), key=lambda x: (x["antes"] is not None, -orden.get(x["antes"], 0), x["wrb"]), default=None) \
+                if anterior else None  # el que más sube a S; uno NEW, solo si ninguno sube
+            d = sube or cs[0]
+            como = "nuevo en S" if d["antes"] is None and anterior else f"de {d['antes'].replace('-', 'fuera')} a S" if d is sube else "en S"
+            blob["destacado"] = dict(c=d["c"], texto=f"{d['c']}: {como} en {actual} · {d['wr']:.0%} en {d['n']} partidas Master+")
+        out[f"Tier|{pos}"] = blob
+    return out
+
+
 def mezclar(nuevas, pisar_onetricks=False):
     """Mezcla en builds.json sin borrar lo demás; las de onetricks (`jugadores`, de --pool) mandan sobre las del ladder."""
     f = META / "builds.json"
@@ -482,6 +543,7 @@ if __name__ == "__main__":
         except SinKey as e: print(f"Se cortó: {e}. Renueva la key y repite: sigue donde quedó.")
         except KeyboardInterrupt: print("Cortado: sigue donde quedó la próxima vez.")
         print(f"Listo: {mezclar(agregar_ladder())} builds del ladder en builds.json. Súbelas con builds.py --subir.")
+        print(f"Tier list: {mezclar(tier())} roles en builds.json (suben con las builds).")
     elif sys.argv[1] == "--pool":
         partes, guarda = [f"# Builds de los mejores contra la tuya ({datetime.now():%Y-%m-%d})\n"], {}
         for ch, pos in pool():
