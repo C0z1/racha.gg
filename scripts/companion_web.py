@@ -134,10 +134,10 @@ def cerrar_sombra(r):
         import bitacora, momentos
         g, sb = ESTADO.get("guion") or {}, ESTADO.get("sombra") or {"notas": [], "marcas": {}}
         rg = g.get("regla") or {}
-        cumplida = r["muertes14_25"] <= rg.get("tope", 2) if rg.get("metrica") == "muertes" and r.get("muertes14_25") is not None else None
+        cumplida = r["muertes14_25"] <= rg.get("tope", 2) if rg.get("metrica") in ("muertes", None) and r.get("muertes14_25") is not None else None  # sin regla: el tope de 2 de la franja
         bitacora.guardar(g, sb, sb["notas"], cumplida)
         filas = bitacora.para_revision({"notas": sb["notas"]})
-        return {"carta": momentos.carta_fin(sb, cumplida, (rg.get("racha") or 0) + 1 if cumplida else None), "bitacora": filas}
+        return {"carta": momentos.carta_fin(sb, cumplida, (rg.get("racha") or 0) + 1 if cumplida and rg.get("metrica") else None), "bitacora": filas}
     except Exception as x: gui.registrar_franja(f"bitácora: {x!r}"); return {}
 
 
@@ -169,12 +169,13 @@ def evento(e):
     elif tipo == "fin":  # el tope de tu coach (F12) también en la línea final; y el ping sale aunque no llegue la revisión de Riot
         tope = ((((ESTADO.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy")) or {}).get("tope", 2)
         s = {"fin": {**e[1], "texto": companion.linea_fin(e[1], tope)}}
-        if ESTADO.get("sombra") or ESTADO.get("guion"): x = cerrar_sombra(e[1]); s["fin"].update(x); s["bitacora"] = x.get("bitacora")  # carta de cierre y bitácora
+        x = cerrar_sombra(e[1]) if ESTADO.get("sombra") or ESTADO.get("guion") else {}
+        s["fin"].update(x); s["bitacora"] = x.get("bitacora")  # carta de cierre y bitácora; sin Sombra, nada de la partida anterior
         threading.Thread(target=ping, daemon=True).start()
     elif tipo == "post_espera": s = {"espera": e[1]}
-    elif tipo == "revision":
+    elif tipo == "revision":  # la foto en vivo (fin, carta y bitácora) se queda junto a la revisión
         s = {"revision": {**e[1], "bitacora": (ESTADO.get("fin") or {}).get("bitacora") or ESTADO.get("bitacora")} if isinstance(e[1], dict) else e[1],
-             "fin": None, "espera": None, "perfil": gui.perfil(ESTADO["rango"], ESTADO["cuenta"])}  # «Lo que viste en partida»
+             "espera": None, "perfil": gui.perfil(ESTADO["rango"], ESTADO["cuenta"])}  # «Lo que viste en partida»
         USADO.add("revision"); threading.Thread(target=refrescar, daemon=True).start(); threading.Thread(target=ping, daemon=True).start()
     elif tipo == "rango": s = {"rango": e[1] or ESTADO["rango"]}; s["perfil"] = gui.perfil(s["rango"], ESTADO["cuenta"])
     elif tipo == "cuenta":  # la cuenta con sesión en el cliente: manda sobre perfil.json (un amigo, u otra cuenta en tu PC)

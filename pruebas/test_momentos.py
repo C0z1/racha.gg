@@ -164,7 +164,10 @@ class Escena(unittest.TestCase):
     def test_cartas(self):
         c = M.carta_carga(G)
         self.assertEqual(c[0], "Sylas vs Zed · 4 de 7 tuyas"); self.assertIn("la cumples 6 de 10", c[1]); self.assertIn("racha 3", c[2])
-        self.assertEqual(M.carta_fin({"marcas": {"6": True, "10": False, "14": True, "25": None}}, True, 4), ["2 de 4 marcas", "Tu regla: cumplida · racha 4"])
+        self.assertEqual(M.carta_fin({"marcas": {"kp6": True, "dragones14": False, "sin_pelea": True, "sin_objetivo": None}}, True, 4),
+                         ["2 de 3 marcas con dato · 1 sin dato", "Tu tope 14–25: cumplido · racha 4"])  # None = sin dato: no cuenta
+        self.assertEqual(M.carta_fin({"marcas": {"14": False}}), ["0 de 1 marcas con dato"])  # Zeri bot sin regla
+        self.assertEqual(M.carta_fin({"marcas": {}}, False), ["Sin marcas: la partida acabó antes", "Tu tope 14–25: sin cumplir"])
 
 
 if __name__ == "__main__":

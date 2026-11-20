@@ -38,6 +38,10 @@ class Adaptador(unittest.TestCase):
             otro = {**api, "/lol-summoner/v1/current-summoner": {"puuid": "otra-cuenta", "gameName": "Otro", "tagLine": "X"}}
             self.assertIn("otra cuenta", cliente_v5.descargar(d, otro.get)[1])  # no mezcla historiales
         self.assertEqual(cliente_v5.descargar(tempfile.gettempdir(), {}.get)[0], 0)  # sin cliente
+        sin_lista = {**api, "/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=0&endIndex=20": {"platformId": "LA1", "games": {"games": []}}}
+        with tempfile.TemporaryDirectory() as d:  # el historial aún no la lista: con gid se pide igual
+            self.assertEqual(cliente_v5.descargar(d, sin_lista.get)[0], 0)
+            self.assertEqual(cliente_v5.descargar(d, sin_lista.get, gid=g["gameId"])[0], 1)
 
     def test_misma_cuenta_con_otro_puuid(self):  # Riot cifra el puuid por key: la API y el cliente dan distinto para ti
         g, tl = self.d["game"], self.d["timeline"]

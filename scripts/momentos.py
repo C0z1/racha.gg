@@ -331,10 +331,11 @@ def carta_carga(g):
 
 
 def carta_fin(e, cumplida=None, racha=None):
-    """La carta al terminar: marcas cumplidas, tu regla y tu racha (ciclo.py)."""
-    ok = sum(v is True for v in (e or {}).get("marcas", {}).values())
-    out = [f"{ok} de {len(MARCAS)} marcas"]  # siempre 4: fijas o personales
-    if cumplida is not None: out.append(f"Tu regla: {'cumplida' if cumplida else 'sin cumplir'}" + (f" · racha {racha}" if racha else ""))
+    """La carta al terminar: marcas cumplidas de las que tienen dato (None = sin dato), tu tope 14–25 y tu racha (ciclo.py)."""
+    ms = list(((e or {}).get("marcas") or {}).values()); con = [v for v in ms if v is not None]
+    sin = f" · {len(ms) - len(con)} sin dato" if len(ms) > len(con) else ""  # esas no se evaluaron
+    out = [f"{sum(con)} de {len(con)} marcas con dato{sin}"] if con else ["Sin marcas: la partida acabó antes"]
+    if cumplida is not None: out.append(f"Tu tope 14–25: {'cumplido' if cumplida else 'sin cumplir'}" + (f" · racha {racha}" if racha else ""))
     return out
 
 

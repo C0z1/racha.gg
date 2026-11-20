@@ -138,8 +138,9 @@ AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "avi
                "sondeo_ahorro": False,  # Sombra en PCs modestas: la partida se lee cada 3 s en vez de cada 1 s  # Sombra: un «tic» de 120 ms al sellar una marca (apagado por defecto)
                "franja_poco": False,  # Sombra: 1 interrupción por partida (se prende sola tras dos «no» a «¿Te sirvieron?»)
                "franja_por_res": {},  # posición libre por resolución: {"1920x1080": [fx, fy]}
+               "franja_tam": "grande",  # Sombra: tamaño de la franja (overlay.py: ×1, ×1.25, ×1.5)
                "franja_pos": "arriba", "franja_x": 0.22, "franja_y": 0.0}  # esquina de la franja: único ajuste que no es booleano
-OPCIONES = {"franja_pos": ("arriba", "abajo", "libre"), "franja_estilo": ("sombra", "clasica")}  # lista blanca de los ajustes de texto
+OPCIONES = {"franja_pos": ("arriba", "abajo", "libre"), "franja_estilo": ("sombra", "clasica"), "franja_tam": ("normal", "grande", "muy_grande")}  # lista blanca de los ajustes de texto
 FRACCIONES = ("franja_x", "franja_y")  # posición libre de la franja: fracción del juego (0–1), la eligió el usuario arrastrándola
 
 
@@ -423,28 +424,35 @@ def post_partida(q):
     POST[:] = [threading.Thread(target=_post_partida, args=(q,), daemon=True)]; POST[0].start()
 
 
-CLIENTE_ESPERA, CLIENTE_INTENTOS = 20, 9  # s entre intentos y cuántos (3 min): el cliente publica la partida al rato de terminar
+CLIENTE_ESPERA, CLIENTE_INTENTOS = 20, 15  # s entre intentos y cuántos (5 min): el cliente publica la partida al rato de terminar
 
 
-def guardar_del_cliente(q, espera=None, intentos=None, dormir=None):
+def id_partida():
+    """El gameId de la partida que acaba de terminar (gameflow sigue en EndOfGame), o None si el cliente no responde."""
+    try: s = companion.lcu("/lol-gameflow/v1/session")
+    except Exception: return None
+    return ((s.get("gameData") or {}).get("gameId") if isinstance(s, dict) else None) or None
+
+
+def guardar_del_cliente(q, gid=None, espera=None, intentos=None, dormir=None):
     """Guarda la partida recién jugada desde tu propio cliente (sin key): cliente_v5 la baja a la carpeta de la cuenta
-    activa con su timeline. True si entró alguna partida nueva. Al salir de la partida
-    se guarda sola, también sin key y con otra cuenta."""
+    activa con su timeline. True si ya está en disco la partida gid (sin gid: si entró alguna nueva). El cliente publica
+    tarde y fuera de orden: otra partida vieja no cuenta, o la revisión saldría de esa."""
     import cliente_v5
     q.put(("post_espera", "Guardando tu partida desde el cliente…"))
     for _ in range(CLIENTE_INTENTOS if intentos is None else intentos):
         (dormir or time.sleep)(CLIENTE_ESPERA if espera is None else espera)  # time.sleep al llamar: las pruebas lo cambian
-        try: nuevas, _ = cliente_v5.descargar()
+        try: nuevas, _ = cliente_v5.descargar(gid=gid)
         except Exception: nuevas = 0  # cliente cerrándose o a medias: se reintenta
-        if nuevas: return True
-    q.put(("post_espera", "El cliente aún no publica la partida: se guarda sola la próxima vez que abras Racha."))
+        if any(RAW.glob(f"*_{gid}.json")) if gid else nuevas: return True
+    q.put(("post_espera", "El cliente aún no publica la partida: lo de arriba es lo que vio Racha; la revisión de Riot sale cuando se guarde."))
     return False
 
 
 def _post_partida(q):
     # la partida recién jugada llega primero desde tu cliente (al instante y sin gastar la key, aunque la cola esté
     # bajando tu historial); si el cliente no la da, la cola de descargas la pide a Riot con prioridad.
-    if not guardar_del_cliente(q):
+    if not guardar_del_cliente(q, id_partida()):
         if puede_descargar(): q.put(("bajar", 5))
         return
     if "draft" in sys.modules:
