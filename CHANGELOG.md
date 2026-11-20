@@ -2,7 +2,7 @@
 
 Una línea por versión, en palabras de jugador. Lo más nuevo arriba.
 
-## Sin publicar
+## 20 de noviembre de 2026 · 0.32
 - Al fijar tu campeón, Racha pone sus runas sola, una vez: el estilo que elegiste la última vez o el de mejor WR (contra tu rival si hay datos). Usa solo la página de Racha o un espacio libre, nunca la tuya, y no toca nada si ya cambiaste tus runas. En la tarjeta ves 2 o 3 estilos («Conquistador · Valor · 51% · 145 partidas») para cambiar con un clic, y se apaga en Ajustes.
 - Nueva vista **Tier list**: por rol, los campeones S, A y B del último parche con partidas Master+ (LAN, KR y EUW), con flechas si suben o bajan contra el parche anterior y «NEW» si antes no tenían partidas. Tus campeones salen marcados con tu WR, y arriba siempre ves de qué parche y cuántas partidas son.
 - En partida, **Ctrl+Shift+Z** vuelve clicable la franja (se apaga sola con el mismo atajo, un clic fuera o 20 s sin el mouse encima): ocúltala, abre Ajustes, muévela o cambia de vista. **Stats**: tu oro, CS, peleas y visión por minuto y tu nivel, cada uno con su flecha contra tu sombra. **Build**: tu core con lo comprado apagado y el que sigue marcado. El renglón de tu plan ahora dice cuánto ganas cuando lo cumples («≥1 dragón al 14: ganas 69%»), y las compras salen una sola vez por ítem.
