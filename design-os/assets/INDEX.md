@@ -17,5 +17,5 @@ Solo se usa lo que está aquí o lo que indexa esta página. No se duplican arch
 
 ## TODO
 - `smartscreen.webp`: los 2 pasos de SmartScreen en español. Hay que capturarlo en una PC real; no se fabrica.
-- En la carpeta de origen también están `racha.svg`, `racha-mono.svg` y `racha-wordmark.svg` (barras). No están publicados; falta que el usuario decida si reemplazan al mago.
+- Logo: el mago (decisión del usuario, 20-nov-2026). Las barras (`racha.svg`, `racha-mono.svg`, `racha-wordmark.svg`) se quedan sin publicar: ver memory/corrections.md.
 - Set de íconos de UI: no hay.

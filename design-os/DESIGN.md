@@ -64,7 +64,7 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 ## Typography
 - La portada usa Mulish (400, 600 y 800), servida desde `docs/fonts/`, sin Google Fonts. La franja usa Roboto Bold; Inter va solo en la app.
 - h1: clamp(2.2rem, 5vw, 3.4rem), peso 800, line-height 1.05, tracking -.02em. Hay uno solo por página.
-- h2: 1.75rem en `rosa2`. h3: 1.3rem en `rosa`. Peso y line-height de h2 y h3: TODO (hoy, el bold del navegador y 1.6 heredado).
+- h2: 1.75rem (28px) en `rosa2`. h3: 1.3rem (20.8px) en `rosa`. Los dos con peso 700 y line-height 1.6 heredado del cuerpo (medido con getComputedStyle, 20-nov-2026).
 - Cuerpo: 1rem, peso 400, line-height 1.6. Tagline: 1.2rem en `suave`. Nota: .9rem. Legal: .82rem.
 - Las cifras que cambian usan `tabular-nums`.
 - Sustituto libre si falta Mulish o Roboto: TODO. Hoy cae a system-ui y Segoe UI.
@@ -73,7 +73,7 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 - Contenedor de 960px con padding de 24px; el hero llega hasta 1200px.
 - Quiebres: 800px (las filas pasan a zigzag) y 900px (el hero pasa a dos columnas).
 - Espaciado solo de la escala: 8, 12, 16, 20, 24, 32, 40 y 48.
-- En uso pero sin token: anchos de lectura (520, 560 y 720px), tamaño de la marca en la barra (1.4rem) y `scroll-padding-top` de 72px para la barra fija: TODO.
+- Anchos de lectura: 520px (nota), 560px (tagline) y 720px (texto de una fila sola). La marca de la barra mide 1.4rem. `scroll-padding-top` de 72px para que la barra fija no tape el destino de un ancla (valores en uso en docs/index.html).
 - Orden: barra, hero (mensaje, botón y confianza; UI real a la derecha), 3 pasos, qué es, antes/durante/después, FAQ, botón final y pie.
 - El botón principal y la lista de confianza se ven sin scroll a 390×844 y a 1440×900.
 
