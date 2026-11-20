@@ -210,3 +210,11 @@ test("v0.13: el ping suma las respuestas de «¿te sirvieron los avisos?»", asy
   const met = await (await worker.fetch(conCodigo("/v1/admin/metricas", "codigo-admin1"), env, ctx)).json();
   assert.deepEqual([met[0].sirvio_si, met[0].sirvio_no, met[0].sirvio_no_vi], [2, 1, 0]);
 });
+
+test("Sombra: el ping cuenta quién jugó con la franja Sombra (sí/no, nunca texto)", async () => {
+  const {env, ctx} = entorno(); env.ACCESOS = "cozi:codigo-admin1,beto:codigo-beto1"; env.ADMINS = "cozi";
+  await worker.fetch(conCodigo("/v1/ping", "codigo-beto1", {method: "POST", body: {version: "0.40.0", region: "la1", sombra: true}}), env, ctx);
+  await worker.fetch(conCodigo("/v1/ping", "codigo-beto1", {method: "POST", body: {version: "0.40.0", region: "la1", sombra: false}}), env, ctx);
+  const met = await (await worker.fetch(conCodigo("/v1/admin/metricas", "codigo-admin1"), env, ctx)).json();
+  assert.equal(met[0].sombra, 1);
+});

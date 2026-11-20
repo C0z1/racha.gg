@@ -270,7 +270,89 @@ class Ladder(unittest.TestCase):
         envios = []
         with mock.patch.object(builds, "_backend", lambda m, r, c=None: envios.append(len(c))):
             self.assertEqual(builds.subir(), 250)
-        self.assertEqual(envios, [50] * 5)
+        self.assertEqual(envios, [30] * 8 + [10])
+
+
+class Estilos(unittest.TestCase):
+    """builds.estilos: 2 o 3 estilos de juego por (piedra angular, rama secundaria) con su WR bayesiano y su página."""
+    RUNAS = {8010: "Conquistador", 8005: "Ataque Intensificado", 8400: "Valor", 8300: "Inspiración"}
+
+    @staticmethod
+    def b(ks, sub, win, frag=(5005, 5008, 5001)):
+        return {"win": win, "runas": (8000, ks, (ks, 9111, 9104, 8299, sub, 8444 if sub == 8400 else 8345, 8453 if sub == 8400 else 8347), *([frag] if frag else []))}
+
+    def test_agrupa_minimo_y_encoge(self):
+        bs = [self.b(8010, 8400, i < 60) for i in range(100)] + [self.b(8010, 8300, True) for _ in range(3)] \
+            + [self.b(8005, 8400, i < 18) for i in range(40)]
+        e = builds.estilos(bs, self.RUNAS, minimo=3)
+        self.assertEqual([x["id"] for x in e], ["8010-8400", "8010-8300", "8005-8400"])  # 3/3 no le gana a 60/100
+        self.assertEqual((e[0]["nombre"], e[0]["n"], e[0]["wr"], e[0]["uso"]), ("Conquistador · Valor", 100, 0.6, round(100 / 143, 3)))
+        self.assertEqual(e[0]["pagina_ids"], {"primaryStyleId": 8000, "subStyleId": 8400, "selectedPerkIds": [8010, 9111, 9104, 8299, 8444, 8453, 5005, 5008, 5001]})
+        self.assertEqual([x["id"] for x in builds.estilos(bs, self.RUNAS)], ["8010-8400", "8005-8400"])  # minimo 30: el de 3 no entra
+
+    def test_maximo_3_y_sin_fragmentos(self):
+        bs = [self.b(k, s, i % 2 == 0, frag=None if k == 8005 else (5005, 5008, 5001)) for k in (8010, 8005) for s in (8400, 8300) for i in range(30)]
+        e = builds.estilos(bs, self.RUNAS)
+        self.assertEqual(len(e), 3)
+        sin = [x for x in builds.estilos(bs, self.RUNAS, maximo=4) if x["id"].startswith("8005")]
+        self.assertEqual([x["pagina_ids"] for x in sin], [None, None])  # cuentan para el WR, no para la página
+
+    def test_ida_y_vuelta_por_json(self):
+        bs = [self.b(8010, 8400, i < 20) for i in range(40)]
+        self.assertEqual(builds.estilos(json.loads(json.dumps(bs)), self.RUNAS), builds.estilos(bs, self.RUNAS))
+        r = builds.resumir([dict(x, core=["3153"], botas=None, skills="Q>E>W") for x in bs], ITEMS, self.RUNAS)
+        self.assertEqual(json.loads(json.dumps(r))["estilos"][0]["id"], "8010-8400")
+
+
+class Tier(unittest.TestCase):
+    """builds.tier: la tier list por parche con WR bayesiano, cortes S/A/B, flechas contra el parche anterior y NEW."""
+    def archivo(self, d, partidas):
+        """partidas: [(parche, campeón, pos, n, victorias)] → un FILAS temporal, una partida por build."""
+        f, ls = pathlib.Path(d) / "filas.jsonl", []
+        for p, c, pos, n, w in partidas:
+            ls += [json.dumps({"id": f"KR_{p}_{c}_{i}", "parche": p, "builds": [{"champ": c, "pos": pos, "win": i < w}]}) for i in range(n)]
+        f.write_text("\n".join(ls) + "\n{roto\n", encoding="utf-8"); return f
+
+    def test_encoge_al_promedio_del_rol(self):  # 41 al 60 % queda debajo de 400 al 55 %; 39 no entra
+        with tempfile.TemporaryDirectory() as d:
+            ps = [("16.22", "Poco", "MIDDLE", 41, 25), ("16.22", "Mucho", "MIDDLE", 400, 220), ("16.22", "Casi", "MIDDLE", 39, 30)]
+            t = builds.tier(self.archivo(d, ps + [("16.22", f"Relleno{i}", "MIDDLE", 60, 27) for i in range(8)]))
+        cs = [c["c"] for c in t["Tier|MIDDLE"]["campeones"]]
+        self.assertLess(cs.index("Mucho"), cs.index("Poco")); self.assertNotIn("Casi", cs)
+
+    def test_cortes_empates_y_pocas(self):
+        with tempfile.TemporaryDirectory() as d:
+            ps = [("16.22", f"C{i:02d}", "TOP", 100, 40 + i) for i in range(20)] + [("16.22", "Igual", "TOP", 100, 58)]  # empata con C18
+            t = builds.tier(self.archivo(d, ps + [("16.22", f"J{i}", "JUNGLE", 50, 25) for i in range(3)]))
+        cs = t["Tier|TOP"]["campeones"]; ts = {c["c"]: c["t"] for c in cs}
+        self.assertEqual((ts["C19"], ts["C18"], ts["Igual"]), ("S", "S", "S"))  # 21: S son 2, pero el empate en el corte sube
+        self.assertEqual([sum(c["t"] == x for c in cs) for x in "SAB"], [3, 4, 7]); self.assertNotIn("C00", ts)
+        self.assertEqual(t["Tier|JUNGLE"]["campeones"], []); self.assertIn("Pocas partidas", t["Tier|JUNGLE"]["aviso"])
+
+    def test_parches_flechas_y_new(self):
+        with tempfile.TemporaryDirectory() as d:
+            ps = [(p, f"R{i}", "BOTTOM", 60, 30) for p in ("16.21", "16.22") for i in range(8)]
+            ps += [("16.21", "Sube", "BOTTOM", 100, 40), ("16.22", "Sube", "BOTTOM", 200, 130), ("16.21", "Baja", "BOTTOM", 200, 130),
+                   ("16.22", "Baja", "BOTTOM", 100, 52), ("16.21", "Poca", "BOTTOM", 30, 20), ("16.22", "Poca", "BOTTOM", 100, 60),
+                   ("16.23", "Nuevo", "BOTTOM", 50, 40)]  # 16.23 con 50 partidas: aún no es «el actual»
+            t = builds.tier(self.archivo(d, ps))["Tier|BOTTOM"]
+        self.assertEqual((t["parche"], t["anterior"]), ("16.22", "16.21"))
+        cs = {c["c"]: c for c in t["campeones"]}
+        self.assertEqual((cs["Sube"]["t"], cs["Sube"]["antes"]), ("S", "-"))
+        self.assertEqual(cs["Baja"]["antes"], "S"); self.assertNotEqual(cs["Baja"]["t"], "S")
+        self.assertIsNone(cs["Poca"]["antes"])  # NEW: tenía menos de 40
+        self.assertEqual(t["destacado"]["c"], "Sube"); self.assertIn("de fuera a S en 16.22", t["destacado"]["texto"])
+
+    def test_blob_para_el_backend_y_sin_ordenes(self):
+        import re
+        sys.path.insert(0, str(AQUI.parent / "herramientas")); import replay
+        with tempfile.TemporaryDirectory() as d:
+            t = builds.tier(self.archivo(d, [("16.22", f"Campeon{i}", "UTILITY", 60 + i, 30 + i) for i in range(160)]))
+            self.assertEqual(builds.tier(pathlib.Path(d) / "no.jsonl"), {})
+        for k, b in t.items():
+            self.assertRegex(k, r"^[A-Za-z' .&]{2,30}\|[A-Z]{3,7}$")  # backend/extra.js: CLAVE
+            self.assertNotIn("n", b); self.assertLess(len(json.dumps(b)), 20000)
+            self.assertFalse([w for w in replay.IMPERATIVOS if re.search(r"\b" + re.escape(w) + r"\b", b["destacado"]["texto"].lower())])
 
 
 if __name__ == "__main__":

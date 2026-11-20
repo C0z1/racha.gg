@@ -18,7 +18,7 @@ IMG = gui.REPO / "datos" / "meta" / "ddragon" / "img"
 LOCK = threading.Lock()
 ESTADO = {"fase": "inicio", "perfil": gui.perfil(), "draft": None, "meta": None, "fin": None, "revision": None,
           "aviso": None, "avisos": [], "espera": None, "rango": None, "cuenta": None, "crono": None, "tablero": None, "mi_pick": None, "lobby": None, "comentario": None, "mover_franja": False, "al_dia": None, "ajustes": gui.ajustes(), "descarga": None, "nueva": None, "previa": None, "ultima": None, "nube": None, "plataforma": None, "conectado": companion.acceso(gui.REPO) is not None, "icono": None, "region": None, "cliente": None, "rendimiento": None, "pos": None, "autoarranque": None, "admin": None, "grupo": None, "pantalla_completa": None, "coach": gui.coach(), "reporte": None, "invitacion": None, "v": 0}
-VERSION = "0.31.0"  # HTC; también invalida la caché de rendimiento
+VERSION = "0.32.0"  # HTC; también invalida la caché de rendimiento
 ESTADO["version"] = VERSION  # la página se recarga si cambia (Racha se actualizó con la ventana abierta)
 VIVO = [time.time()]  # último GET de la ventana
 URL, FONDO = [None], [False]
@@ -55,7 +55,7 @@ def mi_pick(tab, draft=None):
         try: import matchups; mu = matchups.para_ficha(yo["campeon"], pos, rival)
         except Exception: mu = None  # sin datos de matchup: la build general
     return {"champ": yo["campeon"], "pos": pos, "fijo": fijo, "rival": rival, "build": build_para(yo["campeon"], pos),
-            "matchup": {"runa": mu["runa"], "n": mu["n"]} if mu and mu.get("pagina") and mu.get("runa") else None}
+            "matchup": {"runa": mu["runa"], "n": mu["n"], "estilos": mu.get("estilos") or []} if mu and mu.get("pagina") and mu.get("runa") else None}
 
 
 def build_para(champ, pos):
@@ -70,12 +70,75 @@ def build_para(champ, pos):
 
 
 def poner_pick(mp):
-    """Lo que cambia en ESTADO; al fijar (o cambiar de campeón o rol ya fijado) con runas que mostrar, Racha al frente sin foco.
-    El hover y la llegada del rival solo actualizan la tarjeta."""
+    """Lo que cambia en ESTADO; al fijar (o cambiar de campeón o rol ya fijado) con runas que mostrar, Racha al frente sin foco
+    y, con «Poner runas solas al fijar», sus runas (auto_runas). El hover y la llegada del rival solo actualizan la tarjeta."""
     ant = ESTADO.get("mi_pick") or {}
     if mp and mp["fijo"] and (mp["champ"], mp["pos"], True) != (ant.get("champ"), ant.get("pos"), ant.get("fijo")) and ((mp["build"] or {}).get("pagina_ids") or mp["matchup"]):
         threading.Thread(target=abrir, args=(URL[0], False), daemon=True).start()
+        if ESTADO["ajustes"].get("runas_solas", True): threading.Thread(target=auto_runas, args=(mp,), daemon=True).start()
     return {} if mp is ant or (mp is None and not ant) else {"mi_pick": mp}
+
+
+RUNAS = {"inicio": None, "puesta": None, "hechos": set()}  # por selección: tu página al entrar, la que puso Racha, campeones ya hechos
+ELEGIDAS = gui.REPO / "datos" / "cache" / "runas-elegidas.json"  # {«Campeón|POS»: id del estilo} que elegiste la última vez
+
+
+def firma_runas(p):
+    """Lo que identifica una página de runas (estilos y las 9 runas), sin nombre ni id; None si no es una página."""
+    return (p.get("primaryStyleId"), p.get("subStyleId"), tuple(p.get("selectedPerkIds") or [])) if isinstance(p, dict) else None
+
+
+def leer_inicio():
+    """Al entrar a la selección: tu página de runas actual. Si no se puede leer, inicio queda None y esta vez no se ponen solas."""
+    try: RUNAS["inicio"] = firma_runas(companion.lcu("/lol-perks/v1/currentpage"))
+    except Exception: RUNAS["inicio"] = None
+
+
+def elegidas(champ=None, pos=None, estilo=None):
+    """Lee {«Campeón|POS»: estilo} o, con estilo, guarda tu elección (un fallo de disco no tumba nada)."""
+    try: d = json.loads(ELEGIDAS.read_text(encoding="utf-8"))
+    except (OSError, ValueError): d = {}
+    d = d if isinstance(d, dict) else {}
+    if estilo:
+        d[f"{champ}|{pos}"] = estilo
+        try: ELEGIDAS.parent.mkdir(parents=True, exist_ok=True); ELEGIDAS.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+        except OSError: pass
+    return d
+
+
+def runas_de(mp, estilo=None):
+    """(nombre de la página, página LCU, estilo) para tu pick. Con estilo: ese (del matchup o de la build), o None. Sin él:
+    el que elegiste la última vez > el mejor contra tu rival > el mejor de la build > la página de la build.
+    Nunca la recomendada por Riot (sin datos de WR). None sin nada que poner."""
+    b, mu = mp.get("build") or {}, mp.get("matchup") or {}
+    if b.get("fuente") == "riot": b = {}
+    cands = [(e, True) for e in mu.get("estilos") or [] if e.get("pagina_ids")] + [(e, False) for e in b.get("estilos") or [] if e.get("pagina_ids")]
+    quiero = estilo or elegidas().get(f"{mp['champ']}|{mp['pos']}")
+    e, vs = next(((e, v) for e, v in cands if e["id"] == quiero), None) or (cands[0] if cands and not estilo else (None, False))
+    nom = mp["champ"] + (f" vs {mp['rival']}" if vs and mp.get("rival") else "")
+    if e: return nom, e["pagina_ids"], e["id"]
+    return (nom, b["pagina_ids"], None) if b.get("pagina_ids") and not estilo else None
+
+
+def auto_runas(mp, leer=None):
+    """Al fijar: pone sola la página de runas, una vez por campeón en esta selección, solo en la página de Racha o en un
+    espacio libre (nunca en la tuya) y solo si no cambiaste tus runas desde que entraste (o desde que Racha las puso).
+    El resultado va a ESTADO["runas_auto"] para la tarjeta."""
+    leer = leer or companion.lcu
+    k = f"{mp['champ']}|{mp['pos']}"
+    with LOCK:
+        if k in RUNAS["hechos"]: return
+        RUNAS["hechos"].add(k)
+    def dejar(msg, estilo=None):
+        with LOCK: ESTADO.update(runas_auto={"mensaje": msg, "estilo": estilo}, v=ESTADO["v"] + 1)
+    if RUNAS["inicio"] is None: return  # no se pudo leer tu página al entrar: esta vez no
+    if ((((leer("/lol-gameflow/v1/session") or {}).get("gameData") or {}).get("queue") or {}).get("gameMode")) == "ARAM": return
+    if firma_runas(leer("/lol-perks/v1/currentpage")) not in (RUNAS["inicio"], RUNAS["puesta"]): return dejar("No toqué tus runas: las cambiaste tú.")
+    if not (x := runas_de(mp)): return
+    nom, pag, estilo = x
+    ok, msg = companion.importar_runas(nom, pag, solo_racha=True)
+    if ok: RUNAS["puesta"] = firma_runas(pag); msg = "Racha puso tus runas al fijar."
+    dejar(msg, estilo if ok else None)
 
 
 SIRVIO = {"si": 0, "no": 0, "no_vi": 0}  # «¿te sirvieron los avisos?» : contadores para el ping opt-in, sin identidad
@@ -88,6 +151,69 @@ def franja_libre(previos, ahora):
     return len(salidos) < AVISO_MAX and (not salidos or ahora - max(salidos) >= AVISO_ENTRE)
 
 
+GUION = [False]  # hay un hilo armando el guion de Sombra
+
+
+def armar_guion(campeon, rival, pos):
+    """El guion de Sombra para esta partida (guion.py), con tu regla de hoy y tu racha; a ESTADO["guion"]."""
+    try:
+        import guion
+        rh = (((ESTADO.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy")) or None
+        V = ((ESTADO.get("rendimiento") or {}).get("vistas") or {})
+        er = {"ciclo": V.get("ciclo_errores"), "tipos": (V.get("errores") or {}).get("tipos")}  # Fase 7: tus errores vigilados
+        g = guion.armar(campeon, rival, pos or "MIDDLE", regla=rh, racha=(rh or {}).get("racha", 0), errores=er) if not gui.ajeno(gui.CUENTA[0]) else None  # tu otra cuenta usa su propio historial; uno ajeno, no
+    except Exception as x: g = None; gui.registrar_franja(f"guion: {x!r}")
+    with LOCK: ESTADO.update(guion=g or {"campeon": campeon, "rival": rival, "pos": pos}, v=ESTADO["v"] + 1); GUION[0] = False
+
+
+def quizas_guion(campeon, rival, pos):
+    """Arma el guion de Sombra en un hilo si falta o cambió el campeón o el rival (al fijar en champ select y al llegar la
+    primera foto en partida). Sin rival nuevo se queda el que había."""
+    g = ESTADO.get("guion") or {}
+    if not campeon or ESTADO["ajustes"].get("franja_estilo") != "sombra" or GUION[0]: return
+    if (g.get("campeon"), g.get("rival")) == (campeon, rival or g.get("rival")): return
+    GUION[0] = True; threading.Thread(target=armar_guion, args=(campeon, rival, pos), daemon=True).start()
+
+
+def guardar_salud(d):
+    """La salud de la franja (latencia foto → pantalla, CPU y RAM de su proceso), un renglón por cada 30 s de partida, un archivo por día."""
+    try:
+        f = gui.REPO / "datos" / "salud" / f"franja-{time.strftime('%Y%m%d')}.jsonl"; f.parent.mkdir(parents=True, exist_ok=True)
+        lim = {k: d.get(k) for k in ("lat_p50", "lat_p95", "cpu", "ram", "n")}
+        with f.open("a", encoding="utf-8") as h: h.write(json.dumps({"t": int(time.time()), "sondeo": gui.sondeo(ESTADO["ajustes"]), **lim}) + chr(10))
+    except OSError: pass
+
+
+def anotar(notas, marcas):
+    """La franja Sombra manda lo que mostró (o no) y tus marcas: se juntan para la bitácora de la partida."""
+    with LOCK:
+        sb = ESTADO.get("sombra") or {"notas": [], "marcas": {}}
+        ESTADO["sombra"] = {"notas": sb["notas"] + list(notas), "marcas": dict(marcas)}
+
+
+def cerrar_sombra(r):
+    """Al terminar: si cumpliste tu regla, la carta de cierre y la bitácora (a disco y para la revisión)."""
+    try:
+        import bitacora, momentos
+        g, sb = ESTADO.get("guion") or {}, ESTADO.get("sombra") or {"notas": [], "marcas": {}}
+        rg = g.get("regla") or {}
+        cumplida = r["muertes14_25"] <= rg.get("tope", 2) if rg.get("metrica") in ("muertes", None) and r.get("muertes14_25") is not None else None  # sin regla: el tope de 2 de la franja
+        bitacora.guardar(g, sb, sb["notas"], cumplida)
+        filas = bitacora.para_revision({"notas": sb["notas"]})
+        return {"carta": momentos.carta_fin(sb, cumplida, (rg.get("racha") or 0) + 1 if cumplida and rg.get("metrica") else None), "bitacora": filas}
+    except Exception as x: gui.registrar_franja(f"bitácora: {x!r}"); return {}
+
+
+def feedback_fin(r):
+    """Qué hiciste bien, qué no y tu foco (postpartida.feedback) con lo que vio Racha en vivo y tu historial; None con un
+    historial ajeno en disco o si algo falla (la línea final sale igual)."""
+    try:
+        import postpartida, sombra
+        if gui.ajeno(gui.CUENTA[0]): return None
+        return postpartida.feedback(r.get("medidas"), sombra.series(), r.get("pos"))
+    except Exception as x: gui.registrar_franja(f"feedback: {x!r}"); return None
+
+
 def evento(e):
     """Aplica un evento de la cola (los mismos que App.evento de companion_gui) al estado."""
     tipo, s = e[0], {}
@@ -97,25 +223,35 @@ def evento(e):
             abrir(URL[0])  # el cliente acaba de abrir y no hay ventana de Racha
         if ESTADO["fase"] in ("InProgress", "Reconnect") and e[1] not in ("InProgress", "Reconnect"):  # «Tu última partida» = la que acaba de terminar
             threading.Thread(target=vistas_previas, args=(ESTADO.get("rendimiento"),), daemon=True).start()
-        if e[1] == "ChampSelect": s.update(tablero=None, mi_pick=None, comentario=None, draft=None, fin=None, meta=None, pos=None, avisos=[]); USADO.add("champ_select")
+        if e[1] == "ChampSelect": s.update(tablero=None, mi_pick=None, comentario=None, draft=None, fin=None, meta=None, pos=None, avisos=[], guion=None, runas_auto=None); USADO.add("champ_select")
+        if e[1] == "ChampSelect" and ESTADO["fase"] != "ChampSelect":  # selección nueva: runas solas desde cero
+            RUNAS.update(inicio=None, puesta=None, hechos=set()); threading.Thread(target=leer_inicio, daemon=True).start()
+        if e[1] == "InProgress" and ESTADO["fase"] not in ("InProgress", "Reconnect"): s["sombra"] = None  # bitácora nueva
         if e[1] in ("ChampSelect", "InProgress"): s["pantalla_completa"] = companion.pantalla_completa()  # la franja no se vería
         if e[1] == "InProgress" and ESTADO["ajustes"].get("overlay", True): USADO.add("overlay")
+        if e[1] == "InProgress" and ESTADO["ajustes"].get("overlay", True) and ESTADO["ajustes"].get("franja_estilo") == "sombra": USADO.add("sombra")
         if e[1] == "InProgress" and ESTADO["fase"] not in ("InProgress", "Reconnect"): s["lobby"] = None; threading.Thread(target=armar_lobby, daemon=True).start()
         if e[1] in ("Lobby", "Matchmaking", "ReadyCheck"): s.update(aviso=None, perfil=gui.perfil(ESTADO["rango"], ESTADO["cuenta"]))
     elif tipo == "draft":
         s = {"draft": {**draft_json(e[1], e[2]), "probable": bool(e[3]) if len(e) > 3 else False}}
         s.update(poner_pick(mi_pick(ESTADO.get("tablero"), s["draft"])))  # llegó el rival: runas del matchup, sin volver a traer la ventana
+        if (mp := s.get("mi_pick")) and mp.get("fijo"): quizas_guion(mp["champ"], mp.get("rival"), mp.get("pos"))  # la carta de carga
     elif tipo == "meta":  # el mismo gameTime que la foto anterior: juego en pausa (práctica, custom): los timers se congelan
         antes = (ESTADO.get("meta") or {}).get("t")
         pausa = e[1].get("t") is not None and antes is not None and abs(e[1]["t"] - antes) <= companion.TEMBLOR
         s = {"meta": {**e[1], "texto": gui.texto_meta(e[1]), "recibido": time.time(), "pausa": pausa}}  # «recibido»: el overlay descuenta los timers
+        if e[1].get("modo") != "ARAM": quizas_guion(e[1].get("campeon"), e[1].get("rival"), e[1].get("pos"))  # el rival real ya se ve en partida
     elif tipo == "fin":  # el tope de tu coach (F12) también en la línea final; y el ping sale aunque no llegue la revisión de Riot
         tope = ((((ESTADO.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy")) or {}).get("tope", 2)
         s = {"fin": {**e[1], "texto": companion.linea_fin(e[1], tope)}}
+        x = cerrar_sombra(e[1]) if ESTADO.get("sombra") or ESTADO.get("guion") else {}
+        s["fin"]["feedback"] = feedback_fin(e[1])
+        s["fin"].update(x); s["bitacora"] = x.get("bitacora")  # carta de cierre y bitácora; sin Sombra, nada de la partida anterior
         threading.Thread(target=ping, daemon=True).start()
     elif tipo == "post_espera": s = {"espera": e[1]}
-    elif tipo == "revision":
-        s = {"revision": e[1], "fin": None, "espera": None, "perfil": gui.perfil(ESTADO["rango"], ESTADO["cuenta"])}
+    elif tipo == "revision":  # la foto en vivo (fin, carta y bitácora) se queda junto a la revisión
+        s = {"revision": {**e[1], "bitacora": (ESTADO.get("fin") or {}).get("bitacora") or ESTADO.get("bitacora")} if isinstance(e[1], dict) else e[1],
+             "espera": None, "perfil": gui.perfil(ESTADO["rango"], ESTADO["cuenta"])}  # «Lo que viste en partida»
         USADO.add("revision"); threading.Thread(target=refrescar, daemon=True).start(); threading.Thread(target=ping, daemon=True).start()
     elif tipo == "rango": s = {"rango": e[1] or ESTADO["rango"]}; s["perfil"] = gui.perfil(s["rango"], ESTADO["cuenta"])
     elif tipo == "cuenta":  # la cuenta con sesión en el cliente: manda sobre perfil.json (un amigo, u otra cuenta en tu PC)
@@ -132,6 +268,7 @@ def evento(e):
     elif tipo == "crono": s = {"crono": e[1]}
     elif tipo == "tablero":
         s = {"tablero": e[1], **poner_pick(mi_pick(e[1], ESTADO.get("draft")))}  # fijaste campeón: Racha al frente con sus runas
+        if (mp := s.get("mi_pick")) and mp.get("fijo"): quizas_guion(mp["champ"], mp.get("rival"), mp.get("pos"))  # la carta de carga
     elif tipo == "comentario": s = {"comentario": e[1]}
     elif tipo == "aviso":  # F8: los consejos de la partida se guardan todos (el nuevo ya no borra al anterior)
         s = {"aviso": e[1]}
@@ -323,7 +460,8 @@ def actualizar(version, url, sha, espera=30):
         with LOCK: fase = ESTADO.get("fase")
         if fase in QUIETO: break
         time.sleep(espera)
-    subprocess.Popen([str(destino), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/RACHA=" + ("--fondo" if FONDO[0] and not ventana.viva() else "")])  # con ventana abierta, vuelve con ventana
+    subprocess.Popen([str(destino), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/RACHA=" + ("--fondo" if FONDO[0] and not ventana.viva() else "")],  # con ventana abierta, vuelve con ventana
+                     env={**os.environ, "DATOS_DIR": str(gui.BASE)})  # no la cuenta activa: Racha reabría con esa como base y anidaba cuentas/ (2026-11-18)
 
 
 ACTUALIZANDO = threading.Lock()  # una sola búsqueda/descarga/instalación a la vez (al arrancar, cada 30 min o con el botón)
@@ -555,7 +693,7 @@ def ping():
     with LOCK: avisos = sum(1 for a in ESTADO.get("avisos") or [] if a.get("franja"))  # F5: cuántos salieron en la franja en la última partida
     with LOCK: resp = dict(SIRVIO)  # respuestas a «¿te sirvieron los avisos?» desde el último ping
     try: companion.backend("POST", "/v1/ping", {"version": VERSION, "region": region or "?", "avisos": avisos, **{f"sirvio_{k}": v for k, v in resp.items()},
-                                                **{k: k in USADO for k in ("overlay", "champ_select", "revision")}}, gui.REPO)
+                                                **{k: k in USADO for k in ("overlay", "champ_select", "revision", "sombra")}}, gui.REPO)
     except Exception: return
     PING[0] = hoy; USADO.clear()
     with LOCK:
@@ -648,6 +786,17 @@ def imagen(tipo, nombre):
     return f.read_bytes()
 
 
+def tier_list():
+    """{POS: blob de builds.tier} de builds.json, más «actual»: el parche de Data Dragon («16.23»), o None sin red ni caché."""
+    import builds
+    try: d = json.loads((builds.META / "builds.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError): d = {}
+    out = {k.split("|")[1]: v for k, v in d.items() if k.startswith("Tier|") and isinstance(v, dict)}
+    try: out["actual"] = ".".join(builds.get("https://ddragon.leagueoflegends.com/api/versions.json", ttl=builds.DIA)[0].split(".")[:2])
+    except Exception: out["actual"] = None
+    return out
+
+
 RUN = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 
@@ -697,6 +846,8 @@ class H(http.server.BaseHTTPRequestHandler):
             except (ValueError, OSError) as e: msg = str(e) if isinstance(e, ValueError) else "No pude hablar con el servidor de Racha."
             pagina = f'<!doctype html><meta charset="utf-8"><title>Racha</title><body style="margin:0;display:grid;place-items:center;height:100vh;background:#24111A;color:#F2F4F7;font:600 18px Segoe UI,sans-serif"><p style="max-width:460px;text-align:center">{html.escape(msg)}</p>'
             return self.enviar(200, pagina.encode(), "text/html; charset=utf-8")
+        if self.path == "/api/tier":  # Tier list por parche: los «Tier|POS» que dejó builds.py --ladder (o bajó del backend)
+            return self.enviar(200, json.dumps(tier_list(), ensure_ascii=False).encode(), "application/json; charset=utf-8")
         if self.path == "/api/partidas":  # Partidas: el índice completo, una vez; la página filtra por cola y carga de 50 en 50
             return self.enviar(200, json.dumps(INDICE[0]).encode(), "application/json; charset=utf-8")
         if m := re.fullmatch(r"/api/partida\?id=([A-Z0-9]{2,5}_\d{1,15})", self.path):  # «Ver»: la revisión de esa partida
@@ -762,22 +913,35 @@ class H(http.server.BaseHTTPRequestHandler):
             with LOCK:
                 if (ESTADO.get("fin") or {}).get("sirvio"): return self.enviar(409, b"", "text/plain")
                 SIRVIO[v] += 1; ESTADO.update(fin={**(ESTADO.get("fin") or {}), "sirvio": v}, v=ESTADO["v"] + 1)
+            if (poco := gui.contar_sirvio(v)) is not None and poco != ESTADO["ajustes"].get("franja_poco"):  # dos «no»: Sombra habla 1 vez
+                aj = gui.guardar_ajuste("franja_poco", poco)
+                with LOCK: ESTADO.update(ajustes=aj, v=ESTADO["v"] + 1)
             return self.enviar(200, b"{}", "application/json")
         if self.path == "/api/cuenta":  # tu Riot ID y región, para usar Racha sin el cliente de LoL abierto
             try: d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 300)))
             except (ValueError, TypeError): return self.enviar(400, b"", "text/plain")
             ok, msg = buscar_cuenta(str(d.get("riot_id") or ""), str(d.get("region") or ""))
             return self.enviar(200 if ok else 409, json.dumps({"ok": ok, "mensaje": msg}).encode(), "application/json")
-        if self.path == "/api/runas":  # importar la página de runas de la build, solo cuando el jugador pulsa el botón
+        if self.path == "/api/runas":  # importar la página de runas cuando pulsas un botón (un estilo, o la de la build)
             try:
                 d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 300)))
-                b = build_para(str(d["champ"]), str(d["pos"])) or {}
+                champ, pos, estilo = str(d["champ"]), str(d["pos"]), str(d["estilo"]) if d.get("estilo") else None
+                b = build_para(champ, pos) or {}
                 pag = None
-                if d.get("rival"):  # la página del matchup (muchas partidas Master+), si hay datos
-                    try: import matchups; pag = (matchups.para_ficha(str(d["champ"]), str(d["pos"]), str(d["rival"])) or {}).get("pagina")
+                if d.get("rival") and not estilo:  # la página del matchup (muchas partidas Master+), si hay datos
+                    try: import matchups; pag = (matchups.para_ficha(champ, pos, str(d["rival"])) or {}).get("pagina")
                     except Exception: pag = None  # sin datos de matchup: la página de la build
             except (ValueError, KeyError, TypeError): return self.enviar(400, b"", "text/plain")
-            ok, msg = companion.importar_runas(str(d["champ"]) + (f" vs {d['rival']}" if pag else ""), pag or b.get("pagina_ids"))
+            if estilo:  # un estilo de la tarjeta: del matchup o de la build
+                mp = ESTADO.get("mi_pick") or {}
+                x = runas_de(mp if (mp.get("champ"), mp.get("pos")) == (champ, pos) else {"champ": champ, "pos": pos, "build": b}, estilo)
+                if not x: return self.enviar(409, json.dumps({"ok": False, "mensaje": "Ese estilo ya no está en tus datos."}).encode(), "application/json")
+                nom, pag, _ = x
+            else: nom, pag = champ + (f" vs {d['rival']}" if pag else ""), pag or b.get("pagina_ids")
+            ok, msg = companion.importar_runas(nom, pag)
+            if ok:  # tu elección manda: Racha ya no las cambia sola en esta selección y la recuerda para la próxima
+                with LOCK: RUNAS["hechos"].add(f"{champ}|{pos}"); RUNAS["puesta"] = firma_runas(pag); ESTADO.update(runas_auto={"mensaje": msg, "estilo": estilo}, v=ESTADO["v"] + 1)
+                if estilo: elegidas(champ, pos, estilo)
             return self.enviar(200 if ok else 409, json.dumps({"ok": ok, "mensaje": msg}).encode(), "application/json")
         if self.path in ("/api/reporte", "/api/invitar"):
             try:
@@ -855,6 +1019,8 @@ class Servidor(http.server.ThreadingHTTPServer):
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["--franja"]:  # el proceso hijo de la franja (franja.py): ni servidor ni instancia única
+        import franja; return franja.main(argv[1:])
     unico = not ({"--demo", "--no-abrir"} & set(argv))  # las pruebas y la demo no tocan al HTC real
     if unico and (url := otro_htc()):
         if "--fondo" not in argv: pedir_abrir(url)
@@ -873,6 +1039,7 @@ def main(argv=None):
     if unico:
         try: PUERTO.parent.mkdir(parents=True, exist_ok=True); PUERTO.write_text(str(srv.server_port))
         except OSError: pass
+    if unico: gui.rescatar_anidadas()  # antes de refrescar: tus partidas que quedaron en cuentas/*/cuentas/
     q = queue.Queue()
     threading.Thread(target=bombear, args=(q,), daemon=True).start()
     threading.Thread(target=refrescar, daemon=True).start()
@@ -894,8 +1061,17 @@ def main(argv=None):
                 f = gui.REPO / "datos" / "salud" / "franja.log"; f.parent.mkdir(parents=True, exist_ok=True)
                 with f.open("a", encoding="utf-8") as h: h.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {txt}\n")
             except OSError: pass
-        try: import overlay; overlay.correr(leer, seguir, registrar=registrar, icono=imagen, guardar=guardar_franja)  # franja en partida; ocupa el hilo principal (tkinter)
-        except Exception as e: registrar(f"sin franja: {e!r}")  # sin tkinter o sin pantalla: HTC sigue sin overlay
+        def recibir(m):  # lo que manda el proceso de la franja
+            if m[0] == "anotar" and len(m) == 3: anotar(m[1], m[2])
+            elif m[0] == "guardar" and len(m) == 3: guardar_franja(m[1], m[2])
+            elif m[0] == "registrar" and len(m) == 2: registrar(str(m[1])[:500])
+            elif m[0] == "salud" and len(m) == 2 and isinstance(m[1], dict): guardar_salud(m[1])
+            elif m[0] == "abrir" and len(m) == 2 and m[1] == "ajustes":  # botón Ajustes de la franja (Ctrl+Shift+Z)
+                with LOCK: ESTADO.update(ir=["ajustes", time.time()], v=ESTADO["v"] + 1)
+                abrir(URL[0])
+        def caida(): gui.FRANJA_CAIDA[0] = True; registrar("franja: dos caídas, HTC sigue sin franja")  # y vuelve al sondeo de 10 s
+        try: import franja; franja.vigilar(leer, recibir, seguir, registrar, caida)  # la franja en su propio proceso (fase 1 de Sombra)
+        except Exception as e: registrar(f"sin franja: {e!r}")
     while seguir(): time.sleep(2)
     ventana.cerrar(); srv.shutdown()
 

@@ -333,7 +333,8 @@ class MiPick(unittest.TestCase):
 
     def setUp(self):
         for p in (mock.patch("builds.guardado_dict", return_value=self.B), mock.patch.dict(w.ESTADO, mi_pick=None, tablero=None, draft=None),
-                  mock.patch.object(w.companion, "runas_recomendadas", return_value=None)):  # sin cliente: nada de la página de Riot
+                  mock.patch.object(w.companion, "runas_recomendadas", return_value=None),  # sin cliente: nada de la página de Riot
+                  mock.patch.object(w, "auto_runas")):  # nunca escribir runas en un cliente real abierto durante las pruebas
             p.start(); self.addCleanup(p.stop)
         self.ab = mock.patch.object(w, "abrir").start(); self.addCleanup(mock.patch.stopall)
 
@@ -405,6 +406,91 @@ class Lobby(unittest.TestCase):
             w.armar_lobby(intentos=2, espera=0)
             self.assertIsNone(w.ESTADO["lobby"]); self.assertEqual(be.call_count, 2)
 
+
+
+class AutoRunas(unittest.TestCase):
+    """Runas solas al fijar: una vez por campeón, nunca en tu página ni si las cambiaste, se apaga en Ajustes."""
+    P1 = {"primaryStyleId": 8000, "subStyleId": 8400, "selectedPerkIds": [8010, 9111, 9104, 8299, 8444, 8453, 5005, 5008, 5001]}
+    P2 = {"primaryStyleId": 8000, "subStyleId": 8300, "selectedPerkIds": [8010, 9111, 9104, 8299, 8345, 8347, 5005, 5008, 5001]}
+    MIA = {"primaryStyleId": 8100, "subStyleId": 8000, "selectedPerkIds": [8112] * 9}
+    B = {"fuente": "mejores", "runa": ["Conquistador", .52], "pagina_ids": P1,
+         "estilos": [{"id": "8010-8400", "nombre": "Conquistador · Valor", "n": 145, "wr": .51, "pagina_ids": P1},
+                     {"id": "8010-8300", "nombre": "Conquistador · Inspiración", "n": 60, "wr": .5, "pagina_ids": P2}]}
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
+        for p in (mock.patch.dict(w.ESTADO, mi_pick=None, tablero=None, draft=None, runas_auto=None, ajustes={**w.ESTADO.get("ajustes", {}), "runas_solas": True}),
+                  mock.patch.object(w, "ELEGIDAS", pathlib.Path(self.tmp.name) / "elegidas.json"), mock.patch.object(w, "abrir"),
+                  mock.patch.dict(w.RUNAS, inicio=w.firma_runas(self.MIA), puesta=None, hechos=set())):
+            p.start(); self.addCleanup(p.stop)
+        self.imp = mock.patch.object(w.companion, "importar_runas", return_value=(True, "Listo")).start(); self.addCleanup(mock.patch.stopall)
+        self.actual, self.modo = dict(self.MIA), "CLASSIC"
+
+    def leer(self, path):
+        return {"/lol-perks/v1/currentpage": self.actual, "/lol-gameflow/v1/session": {"gameData": {"queue": {"gameMode": self.modo}}}}.get(path)
+
+    def mp(self, champ="Sylas", **kw): return {"champ": champ, "pos": "MIDDLE", "fijo": True, "rival": None, "build": self.B, "matchup": None, **kw}
+
+    def test_hover_no_y_fijar_una_vez(self):
+        tab = lambda fijo: {"draft": True, "mio": [{"yo": True, "pos": "MIDDLE", "campeon": "Sylas", "fijo": fijo}]}
+        with mock.patch("builds.guardado_dict", return_value=self.B), mock.patch.object(w, "auto_runas") as a:
+            w.evento(("tablero", tab(False))); a.assert_not_called()
+            w.evento(("tablero", tab(True))); w.evento(("tablero", tab(True))); a.assert_called_once()
+            w.ESTADO["mi_pick"] = None; w.ESTADO["ajustes"]["runas_solas"] = False
+            w.evento(("tablero", tab(True))); a.assert_called_once()  # apagado en Ajustes
+
+    def test_pone_la_mejor_una_vez_y_solo_en_la_de_racha(self):
+        w.auto_runas(self.mp(), self.leer); w.auto_runas(self.mp(), self.leer)
+        self.imp.assert_called_once_with("Sylas", self.P1, solo_racha=True)
+        self.assertEqual(w.ESTADO["runas_auto"]["estilo"], "8010-8400"); self.assertEqual(w.RUNAS["puesta"], w.firma_runas(self.P1))
+
+    def test_cambio_a_mano_y_clic_previo(self):
+        self.actual = dict(self.P2)  # la cambiaste tú desde que entraste
+        w.auto_runas(self.mp(), self.leer); self.imp.assert_not_called()
+        self.assertIn("las cambiaste tú", w.ESTADO["runas_auto"]["mensaje"])
+        w.RUNAS["hechos"].add("Ekko|MIDDLE"); self.actual = dict(self.MIA)  # ya pulsaste un estilo de Ekko
+        w.auto_runas(self.mp("Ekko"), self.leer); self.imp.assert_not_called()
+
+    def test_tu_ultima_eleccion_manda(self):
+        w.elegidas("Sylas", "MIDDLE", "8010-8300")
+        w.auto_runas(self.mp(), self.leer); self.imp.assert_called_once_with("Sylas", self.P2, solo_racha=True)
+
+    def test_trade_contra_el_rival_y_riot(self):
+        w.auto_runas(self.mp(), self.leer); self.actual = dict(self.P1)  # la que puso Racha sigue: el trade puede cambiarla
+        mu = {"estilos": [{"id": "8010-8400", "nombre": "x", "n": 40, "pagina_ids": self.P1}]}
+        w.auto_runas(self.mp("Yone", rival="Zed", matchup=mu), self.leer)
+        self.assertEqual(self.imp.call_args[0][0], "Yone vs Zed")
+        w.auto_runas(self.mp("Akali", build={"fuente": "riot", "pagina_ids": self.P2}), self.leer)
+        self.assertEqual(self.imp.call_count, 2)  # la recomendada por Riot nunca se pone sola
+
+    def test_sin_inicio_o_en_aram_no(self):
+        w.RUNAS["inicio"] = None; w.auto_runas(self.mp(), self.leer)
+        w.RUNAS["inicio"] = w.firma_runas(self.MIA); self.modo = "ARAM"; w.auto_runas(self.mp("Ekko"), self.leer)
+        self.imp.assert_not_called()
+
+    def test_solo_racha_sin_espacio_no_toca_tu_pagina(self):
+        mock.patch.stopall()
+        import companion
+        escritas = []
+        leer = lambda p: {"/lol-gameflow/v1/gameflow-phase": "ChampSelect", "/lol-perks/v1/pages": [{"id": 5, "name": "Mía", "isEditable": True}],
+                          "/lol-perks/v1/inventory": {"canAddCustomPage": False}, "/lol-perks/v1/currentpage": {"id": 5, "name": "Mía"}}.get(p)
+        ok, msg = companion.importar_runas("Sylas", self.P1, leer, lambda *a: escritas.append(a) or True, solo_racha=True)
+        self.assertEqual((ok, escritas), (False, [])); self.assertIn("no toqué nada", msg)
+
+    def test_api_runas_con_estilo(self):
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), w.H); threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            w.ESTADO["mi_pick"] = self.mp()
+            c = http.client.HTTPConnection("127.0.0.1", srv.server_port)
+            c.request("POST", "/api/runas", json.dumps({"champ": "Sylas", "pos": "MIDDLE", "estilo": "8010-8300"}), {"X-HTC": "1"})
+            r = c.getresponse(); self.assertEqual(r.status, 200); r.read()
+            c.request("POST", "/api/runas", json.dumps({"champ": "Sylas", "pos": "MIDDLE", "estilo": "9999-1"}), {"X-HTC": "1"})
+            r = c.getresponse(); self.assertEqual(r.status, 409); r.read()
+        finally: srv.shutdown(); srv.server_close()
+        self.imp.assert_called_once_with("Sylas", self.P2)
+        self.assertEqual(w.elegidas()["Sylas|MIDDLE"], "8010-8300"); self.assertIn("Sylas|MIDDLE", w.RUNAS["hechos"])
+        w.auto_runas(self.mp(), self.leer); self.imp.assert_called_once()  # tu clic manda: ya no las cambia sola
 
 
 class RunasRiot(unittest.TestCase):

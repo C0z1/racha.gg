@@ -1,0 +1,19 @@
+# Franja Sombra y las reglas de Riot
+
+Sombra solo muestra datos tuyos o conteos que se ven con Tab. Lee el cliente (LCU) y la Live Client Data, nunca la memoria del juego, y no inyecta nada. Esta tabla une cada regla con la prueba que la cubre.
+
+| Regla de Riot | Qué hace Sombra | Prueba |
+| --- | --- | --- |
+| Sin timers de enemigos (ultis, hechizos, jungla; desde el 13-03-2025) | No muestra ningún timer: solo tu tope de muertes, tu CS o tus peleas contra tu sombra y tus 4 marcas | `replay.py --momentos --validar` (lista negra: «cooldown», «flash», «respawn», «campamento»…) |
+| No dictar decisiones ni automatizarlas (29-05-2025) | Datos, nunca órdenes: «faltan 350», nunca «compra»; la regla entra solo como `regla.corta` | `test_sombra.Guion.test_regla_corta_es_dato`, `test_momentos.Escena.test_zonas_fijas_y_pocas_palabras`, `IMPERATIVOS` en `replay.py` |
+| Sin anuncios en overlays | Racha no tiene anuncios | — |
+| Sin puntaje ni rango propio | 4 casillas y una regla, sin MMR ni nota | `LISTA_NEGRA` («mmr», «elo») |
+| Sin lectura de memoria (Vanguard, 06-10-2026) | Solo HTTP local a `127.0.0.1:2999` (Live Client Data) y al LCU | `companion.vivo()` es la única lectura en partida |
+| Información dinámica en tiempo real, con recelo | Comparación solo contra tu propio historial; máx. 3 interrupciones, nunca en pelea, nada después del 25; cada momento se apaga en Ajustes | `test_momentos.Contrato` (6 pruebas) |
+| Plan de partida por rol (Fase 7) | Comparación de tus victorias con tus derrotas en tu rol, escrita como dato («CS al 10: victorias 71 · derrotas 68»), nunca como orden | `test_fase7.Plan`, `IMPERATIVOS` en `replay.py` |
+| Tus errores vigilados (Fase 7) | Solo eventos públicos y tus datos: sin posiciones, sin timers. Un error se marca en su punto sin interrumpir; al morir, el panel dice el dato | `test_fase7.Detector`, `test_fase7.Motor`, `validar_errores.py` (96 % igual que el timeline) |
+| Estadísticas agregadas, no de jugadores (tier list por parche) | Solo fuera de partida, en la ventana de Racha: WR, partidas y uso por campeón y rol de partidas Master+ (LAN, KR, EUW), sin nombres de jugadores; siempre dice de qué parche y cuántas partidas son, y si el parche actual aún no tiene datos | `test_builds.Tier`, `test_ds_web.test_api_tier` |
+| Runas al fijar (automatizar solo lo que el jugador ya decidió) | Solo /lol-perks, solo en ChampSelect y una vez al fijar tu campeón; nunca pisa tu cambio (si tu página no es la de al entrar ni la que puso Racha, no toca nada) ni tu página (solo la de Racha o un espacio libre); nunca elige, banea ni acepta por ti; se apaga en Ajustes («Poner runas solas al fijar») | `test_companion_web.AutoRunas` |
+| Scouting de los 10 jugadores | No hay: solo tú y, en el panel al morir, el marcador de objetivos que se ve con Tab | — |
+
+Fase 0: Racha está registrada (app 904596). Falta enviar por la pestaña *Messages* de la app la pregunta por 3 puntos: la comparación en vivo con el historial propio, la carta en la pantalla de carga y el uso de la vida propia para callar la franja. Plan B si Riot objeta la comparación en vivo: la sombra solo al morir, en la carga y al terminar.

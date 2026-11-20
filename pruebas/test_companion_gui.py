@@ -128,6 +128,11 @@ class TestRivalesLinea(unittest.TestCase):
         self.assertEqual(g.rivales_linea("JUNGLE", ["Ahri", "Sylas"]), ["Sylas"])
         self.assertEqual(g.rivales_linea("JUNGLE", ["Lee Sin"]), ["Lee Sin"])  # alias con espacio: builds.norm
 
+    def test_la_tier_list_no_es_un_campeon(self):  # «Tier|MIDDLE» vive en builds.json junto a las «Campeón|POS»
+        self.archivo.write_text(json.dumps({**self.BUILDS, "Tier|MIDDLE": {"parche": "16.22", "partidas": 2659, "campeones": [{"c": "Sylas", "n": 900}]}}), encoding="utf-8")
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Sylas", "Ahri", "Thresh"]), ["Ahri"])
+        self.assertEqual(g.rivales_linea("MIDDLE", ["Sylas"]), [])
+
     def test_empate_decide_tu_historial(self):
         self.assertEqual(g.rivales_linea("MIDDLE", ["Ahri", "Zed"]), ["Zed"])  # los dos 100 % mid; Zed te tocó
 

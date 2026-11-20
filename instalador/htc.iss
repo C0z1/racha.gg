@@ -1,6 +1,6 @@
 ; Instalador de HTC: por usuario (sin admin) en %LOCALAPPDATA%\Programs\HTC.
 ; Los datos (datos/, config.json) se crean junto al exe y no se borran al desinstalar.
-#define Version "0.31.0"
+#define Version "0.32.0"
 [Setup]
 AppId={{6B1F0C2E-4D1A-4C8E-9E57-48544301C11B}
 AppName=Racha
@@ -20,6 +20,7 @@ UninstallDisplayIcon={app}\HTC.exe
 Source: "..\dist\HTC\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 Source: "..\scripts\*.py"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "..\scripts\web\*"; DestDir: "{app}\scripts\web"; Flags: recursesubdirs ignoreversion
+Source: "..\scripts\fuentes\*"; DestDir: "{app}\scripts\fuentes"; Flags: ignoreversion
 Source: "..\scripts\fixtures\*"; DestDir: "{app}\scripts\fixtures"; Flags: recursesubdirs ignoreversion
 Source: "..\docs\config.ejemplo.json"; DestDir: "{app}"; Flags: ignoreversion
 

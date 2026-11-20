@@ -118,6 +118,14 @@ class Integracion(unittest.TestCase):  # la ficha de la selección, la franja y 
         self.assertEqual((f["n"], f["parches"]), (200, ["16.22"]))
         self.assertEqual(f["pagina"], {"primaryStyleId": 8100, "subStyleId": 8000, "selectedPerkIds": [8112, 8139, 8138, 8135, 9111, 8017, 5005, 5008, 5001]})
         self.assertIsNone(M.pagina_lcu({"pagina_ids": [1, 2, 3]}))
+        e = f["estilos"]  # un solo estilo (Electrocutar · Precisión) con sus 200 partidas y la misma página
+        self.assertEqual([(x["id"], x["n"], x["pagina_ids"]) for x in e], [("8112-8000", 200, f["pagina"])])
+        self.assertEqual(len(e[0]["nombre"].split(" · ")), 2)  # «Electrocutar · Precisión» (sin Data Dragon, los ids)
+
+    def test_estilos_solo_con_30_por_estilo(self):
+        fs = filas_sinteticas(200)
+        for f in fs[:25]: f["pagina"] = [8000, 8100, 8005, 9111, 9104, 8299, 8139, 8135, 5005, 5008, 5001]; f["runa"] = 8005
+        self.assertEqual([x["id"] for x in M.agregar(fs)["Zeri|MIDDLE|MissFortune"]["estilos"]], ["8112-8000"])  # 25 < 30
 
     def test_franja_usa_el_dato(self):
         import overlay

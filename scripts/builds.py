@@ -122,8 +122,35 @@ def build_de(match, timeline, puuid, items):
                 skills=">".join(SKILL[s - 1] for s in orden))
 
 
-def resumir(bs, items, runas):
-    """Lo más común de una lista de builds: dict(n, wr, core [(nombre, %)], botas, runa, pagina, skills) o None."""
+def _pagina(bs):
+    """(piedra más usada y sus partidas, su página más común, la página completa con fragmentos para el cliente o None).
+    Las filas sin fragmentos no cuentan para la página completa."""
+    ks = Counter(b["runas"][1] for b in bs).most_common(1)[0]
+    pag = Counter(tuple(b["runas"][2]) for b in bs if b["runas"][1] == ks[0]).most_common(1)[0][0]
+    frag = Counter(tuple(b["runas"][3]) for b in bs if b["runas"][1] == ks[0] and tuple(b["runas"][2]) == pag and len(b["runas"]) > 3 and None not in b["runas"][3])
+    estilo = next(b["runas"][0] for b in bs if b["runas"][1] == ks[0])
+    ids = dict(primaryStyleId=estilo, subStyleId=pag[4], selectedPerkIds=list(pag[:4]) + list(pag[5:7]) + list(frag.most_common(1)[0][0]))         if frag and len(pag) == 7 else None  # la página completa para importarla al cliente (con un clic del jugador o sola al fijar)
+    return ks, pag, ids
+
+
+def estilos(bs, runas, minimo=30, k=100, maximo=3):
+    """Hasta 3 estilos de juego: grupos por (piedra angular, rama secundaria) con `minimo`+ partidas, ordenados por WR
+    bayesiano encogido al WR de toda la muestra (3/3 no le gana a 60/100). [{id «8010-8400», nombre «Conquistador · Valor»,
+    n, wr, wrb, uso, pagina_ids}]. Las filas pueden venir del JSONL (listas) o de agregar_ladder (tuplas)."""
+    if not bs: return []
+    p0, grupos = sum(bool(b["win"]) for b in bs) / len(bs), {}
+    for b in bs: grupos.setdefault((b["runas"][1], b["runas"][2][4]), []).append(b)
+    out = []
+    for (ks, sub), g in grupos.items():
+        if len(g) < minimo: continue
+        w = sum(bool(b["win"]) for b in g)
+        out.append(dict(id=f"{ks}-{sub}", nombre=f"{runas.get(ks, ks)} · {runas.get(sub, sub)}", n=len(g), wr=round(w / len(g), 3),
+                        wrb=round((w + k * p0) / (len(g) + k), 3), uso=round(len(g) / len(bs), 3), pagina_ids=_pagina(g)[2]))
+    return sorted(out, key=lambda e: (-e["wrb"], -e["n"]))[:maximo]
+
+
+def resumir(bs, items, runas, minimo_estilo=30):
+    """Lo más común de una lista de builds: dict(n, wr, core [(nombre, %)], botas, runa, pagina, skills, estilos) o None."""
     if not bs: return None
     n = len(bs); nom = lambda i: items.get(i, {}).get("name", i)
     core, usados = [], set()
@@ -132,16 +159,12 @@ def resumir(bs, items, runas):
         if not c: break
         i, v = c.most_common(1)[0]; usados.add(i); core.append((nom(i), v / n, i))
     b_ = Counter(b["botas"] for b in bs if b["botas"])
-    ks = Counter(b["runas"][1] for b in bs).most_common(1)[0]
-    pag = Counter(b["runas"][2] for b in bs if b["runas"][1] == ks[0]).most_common(1)[0][0]
+    ks, pag, ids = _pagina(bs)
     sk = Counter(b["skills"] for b in bs).most_common(1)[0]
-    frag = Counter(b["runas"][3] for b in bs if b["runas"][1] == ks[0] and b["runas"][2] == pag and len(b["runas"]) > 3 and None not in b["runas"][3])
-    estilo = next(b["runas"][0] for b in bs if b["runas"][1] == ks[0])
-    ids = dict(primaryStyleId=estilo, subStyleId=pag[4], selectedPerkIds=list(pag[:4]) + list(pag[5:7]) + list(frag.most_common(1)[0][0]))         if frag and len(pag) == 7 else None  # la página completa para importarla al cliente (con un clic del jugador)
     return dict(n=n, pagina_ids=ids, wr=sum(b["win"] for b in bs) / n, core=core,
                 botas=(nom(b_.most_common(1)[0][0]), b_.most_common(1)[0][1] / n) if b_ else None,
                 runa=(runas.get(ks[0], ks[0]), ks[1] / n), pagina=[runas.get(r, r) for r in pag],
-                skills=(sk[0], sk[1] / n))
+                skills=(sk[0], sk[1] / n), estilos=estilos(bs, runas, minimo_estilo))
 
 
 def lineas(r, quien):
@@ -284,6 +307,67 @@ def agregar_ladder(filas=None, minimo=20, cuota=0.10, validos=None):
             if len(bs) >= minimo and len(bs) / tot[k.split("|")[0]] >= cuota}
 
 
+TIERS = (("S", 0.10), ("A", 0.25), ("B", 0.35))  # cuota de los campeones del rol en cada tier, de arriba abajo
+TIER_MIN_PARCHE, TIER_MIN_ROL = 300, 5  # partidas para que un parche sea «el actual»; campeones del rol para armar tiers
+_VER = lambda p: tuple(int(x) for x in p.split(".") if x.isdigit())
+
+
+def _tiers(por, minimo, k):
+    """{pos: [fila]} de un parche: WR bayesiano encogido al WR medio del rol, ordenado, con su tier (S, A, B o None).
+    Un empate en el corte queda en el tier de arriba."""
+    out = {}
+    for pos, cs in por.items():
+        n_rol, w_rol = sum(n for n, _ in cs.values()), sum(w for _, w in cs.values())
+        p0 = w_rol / n_rol if n_rol else 0.5
+        fs = sorted((dict(c=c, n=n, wr=w / n, wrb=(w + k * p0) / (n + k)) for c, (n, w) in cs.items() if n >= minimo), key=lambda f: (-f["wrb"], f["c"]))
+        cortes, acum = [], 0
+        for i, (t, q) in enumerate(TIERS):
+            acum += max(1, round(q * len(fs))) if i == 0 else round(q * len(fs)); cortes.append((acum, t))
+        for i, f in enumerate(fs):
+            f["t"] = fs[i - 1]["t"] if i and f["wrb"] == fs[i - 1]["wrb"] and fs[i - 1]["t"] else next((t for c, t in cortes if i < c), None)
+        out[pos] = fs
+    return out
+
+
+def tier(filas=None, minimo=40, k=200):
+    """La tier list por parche (Master+ de FILAS), {«Tier|POS»: {parche, anterior, partidas, partidas_ant, fecha, destacado,
+    campeones: [{c, wr, wrb, pr, n, t, antes}], aviso}}. «Actual» = el último parche con TIER_MIN_PARCHE+ partidas; «anterior»,
+    el previo con datos. antes = el tier en el anterior («-» si no llegó a B, None = NEW: no estaba o tenía < minimo).
+    Sin clave «n» arriba: companion_gui.rivales_linea lee las «X|POS» con «n» como campeones."""
+    f = pathlib.Path(filas or FILAS)
+    if not f.exists(): return {}
+    por, partidas = {}, Counter()  # parche → pos → campeón → [n, victorias]
+    for l in f.read_text(encoding="utf-8").splitlines():
+        try: r = json.loads(l)
+        except ValueError: continue
+        if not r.get("builds") or not _VER(str(r.get("parche") or "")): continue
+        partidas[r["parche"]] += 1
+        for b in r["builds"]:
+            x = por.setdefault(r["parche"], {}).setdefault(b["pos"], {}).setdefault(b["champ"], [0, 0]); x[0] += 1; x[1] += bool(b["win"])
+    ps = sorted(partidas, key=_VER)
+    actual = next((p for p in reversed(ps) if partidas[p] >= TIER_MIN_PARCHE), None)
+    if not actual: return {}
+    anterior = next((p for p in reversed(ps) if _VER(p) < _VER(actual)), None)
+    hoy, antes = _tiers(por[actual], minimo, k), _tiers(por.get(anterior) or {}, minimo, k)
+    fecha, orden, out = datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d"), {"S": 3, "A": 2, "B": 1, "-": 0}, {}
+    for pos, fs in hoy.items():
+        prev = {x["c"]: x["t"] or "-" for x in antes.get(pos, [])}
+        cs = [dict(c=x["c"], wr=round(x["wr"], 3), wrb=round(x["wrb"], 3), pr=round(x["n"] / partidas[actual], 3), n=x["n"], t=x["t"], antes=prev.get(x["c"]))
+              for x in fs if x["t"]]
+        blob = dict(parche=actual, anterior=anterior, partidas=partidas[actual], partidas_ant=partidas.get(anterior, 0), fecha=fecha, destacado=None, campeones=[], aviso=None)
+        if len(fs) < TIER_MIN_ROL:
+            blob["aviso"] = f"Pocas partidas de este rol en {actual} ({len(fs)} campeones con {minimo}+): aún sin tiers."
+        else:
+            blob["campeones"] = cs
+            sube = max((x for x in cs if x["t"] == "S" and x["antes"] != "S"), key=lambda x: (x["antes"] is not None, -orden.get(x["antes"], 0), x["wrb"]), default=None) \
+                if anterior else None  # el que más sube a S; uno NEW, solo si ninguno sube
+            d = sube or cs[0]
+            como = "nuevo en S" if d["antes"] is None and anterior else f"de {d['antes'].replace('-', 'fuera')} a S" if d is sube else "en S"
+            blob["destacado"] = dict(c=d["c"], texto=f"{d['c']}: {como} en {actual} · {d['wr']:.0%} en {d['n']} partidas Master+")
+        out[f"Tier|{pos}"] = blob
+    return out
+
+
 def mezclar(nuevas, pisar_onetricks=False):
     """Mezcla en builds.json sin borrar lo demás; las de onetricks (`jugadores`, de --pool) mandan sobre las del ladder."""
     f = META / "builds.json"
@@ -402,7 +486,7 @@ def guardar_tuyas(minimo=10):
     except (OSError, ValueError): d = {}
     n = 0
     for ch, pos in pool(minimo):
-        tu = resumir([build_de(m, t, u, items) for m, t, u in tuyas(ch, pos)], items, runas)
+        tu = resumir([build_de(m, t, u, items) for m, t, u in tuyas(ch, pos)], items, runas, minimo_estilo=10)
         if tu: d[f"{ch}|{pos}|tu"] = tu; n += 1
     if n:
         META.mkdir(parents=True, exist_ok=True)
@@ -421,8 +505,8 @@ def subir():
     except (OSError, ValueError): return 0
     mejores = {k: v for k, v in d.items() if k.count("|") == 1 and v}
     ks = sorted(mejores)
-    for i in range(0, len(ks), 50):  # el Worker corta en 64 KB por petición (~1 KB por build)
-        _backend("PUT", "/v1/builds", {k: mejores[k] for k in ks[i:i + 50]})
+    for i in range(0, len(ks), 30):  # el Worker corta en 64 KB por petición (~2 KB por build con sus estilos)
+        _backend("PUT", "/v1/builds", {k: mejores[k] for k in ks[i:i + 30]})
     return len(mejores)
 
 
@@ -482,6 +566,7 @@ if __name__ == "__main__":
         except SinKey as e: print(f"Se cortó: {e}. Renueva la key y repite: sigue donde quedó.")
         except KeyboardInterrupt: print("Cortado: sigue donde quedó la próxima vez.")
         print(f"Listo: {mezclar(agregar_ladder())} builds del ladder en builds.json. Súbelas con builds.py --subir.")
+        print(f"Tier list: {mezclar(tier())} roles en builds.json (suben con las builds).")
     elif sys.argv[1] == "--pool":
         partes, guarda = [f"# Builds de los mejores contra la tuya ({datetime.now():%Y-%m-%d})\n"], {}
         for ch, pos in pool():

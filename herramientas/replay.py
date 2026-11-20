@@ -1,10 +1,11 @@
 """Repite una partida grabada (datos/vivo/*.jsonl) por companion.paso_vivo y la pastilla (overlay.estado), sin LoL ni red.
-Uso: python herramientas/replay.py <archivo.jsonl> [--validar] [--precios]
+Uso: python herramientas/replay.py <archivo.jsonl> [--validar] [--precios] [--momentos]
+--momentos: la franja Sombra (momentos.paso con el guion de tus partidas): «mm:ss | regla | sombra | marcas | renglón».
 Cada foto: «mm:ss | franja: … | aviso: …». --validar comprueba invariantes y sale con 1 si alguna falla.
 Por defecto no usa Data Dragon (sin pieza de Oro ni aviso de pico) para que la salida sea idéntica en cualquier máquina; --precios lo activa."""
 import argparse, contextlib, json, pathlib, re, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
-import companion, overlay
+import companion, overlay, momentos
 
 MAX_PIEZAS = 9  # textos de la pastilla: número y etiqueta ×2, flecha, chip, y al morir el marcador y tu regla
 AVISO_CORTO = 48  # plan F1: caracteres del aviso en la franja
@@ -27,7 +28,7 @@ def cargar(ruta):
         d = json.loads(l); d = d.get("foto", d) if isinstance(d, dict) else d
         t = ((d or {}).get("gameData") or {}).get("gameTime")
         if t is None or t in vistos: continue
-        vistos.add(t); out.append(d)
+        vistos.add(t); out.append(companion.limpia(d))  # como vivo(): la práctica trae "items": {"error": …}
     return out
 
 
@@ -108,9 +109,76 @@ def validar(rs):
     return f
 
 
+IMPERATIVOS = ("juega", "únete", "pelea", "pelees", "farmea", "tradea", "tradees", "roamea", "roamees", "evita", "busca", "cuida",
+               "castiga", "empuja", "vuelve", "haz", "salgas", "escala", "quédate", "no tradear", "jugar seguro", "no pelear")  # Sombra: ningún imperativo
+
+
+def repetir_momentos(fotos, g, aj=None):
+    """[{t, meta, escena, notas, pelea}] por foto, con el reloj local = gameTime."""
+    est, e, out = {"avisado": set()}, None, []
+    for d in fotos:
+        t = d["gameData"]["gameTime"]
+        meta, avisos = companion.paso_vivo(d, est, aj or {})
+        if meta: meta = {**meta, "avisos": [(c, getattr(x, "corto", x)) for c, x, _ in avisos]}
+        e, esc, notas = momentos.paso(e, meta, g, t, aj)
+        out.append({"t": t, "meta": meta, "escena": esc, "notas": notas, "pelea": bool(meta) and momentos.en_pelea(e, meta, t)})
+    return out
+
+
+def texto_momentos(r):
+    x = r["escena"]
+    if not x: return f"{reloj(r['t'])} | (sin franja)"
+    mk = " ".join(f"{m.get('etq', m['min'])}{ {None: '·', True: '●', False: '○', 'sin': '-'}[m['estado']] }" for m in x["marcas"])
+    return (f"{reloj(r['t'])} | {x['regla']['apagadas']}/{x['regla']['tope']} | {x['sombra']['num']} {x['sombra']['etq']} | {mk} | "
+            f"{x.get('renglon') or ''}{' | panel: ' + ' / '.join(x['panel']) if x.get('panel') else ''}")
+
+
+def validar_momentos(rs):
+    """Fallos del contrato de atención y del texto de Sombra; vacía si todo cuadra."""
+    f, n = [], 0
+    for r in rs:
+        t, x = reloj(r["t"]), r["escena"]
+        for a in r["notas"]:
+            if a["clase"] != "interrupcion" or not a["mostrado"]: continue
+            n += 1
+            if r["pelea"] and not (r["meta"] or {}).get("muerto"): f.append(f"{t}: interrupción en pelea «{a['dato']}»")
+            if r["t"] >= momentos.TARDE_S: f.append(f"{t}: interrupción después del 25 «{a['dato']}»")
+        if not x: continue
+        if not (r["meta"] or {}).get("muerto") and (p := momentos.palabras_vivo(x)) > 9: f.append(f"{t}: {p} palabras con el campeón vivo (máx. 9)")
+        if x.get("renglon") and len(x["renglon"]) > 34: f.append(f"{t}: renglón de {len(x['renglon'])} caracteres (máx. 34)")
+        for txt in momentos.textos(x):
+            if mal := [w for w in LISTA_NEGRA + IMPERATIVOS if re.search(r"" + re.escape(w) + r"", txt.lower())]: f.append(f"{t}: palabra prohibida {mal} en «{txt}»")
+    if n > momentos.MAX_INTERRUPCIONES: f.append(f"{n} interrupciones en la partida (máx. {momentos.MAX_INTERRUPCIONES})")
+    return f
+
+
+def guion_de(fotos):
+    """El guion con tus partidas (DATOS_DIR) para el campeón, rival y rol de la partida grabada; None si no se puede."""
+    meta = next((m for d in fotos if (m := companion.meta_fase(d)) and m.get("modo") != "ARAM"), None)
+    if not meta: return None
+    try:
+        import guion
+        er = None
+        try:  # tus errores vigilados (Fase 7), como en la app; sin partidas suficientes, solo el plan de rol
+            import ciclo, score, vistas
+            e = vistas.errores(score.partidas()[0]); er = {"ciclo": ciclo.errores(e), "tipos": e.get("tipos")}
+        except Exception: pass
+        return guion.armar(meta["campeon"], meta.get("rival"), meta.get("pos"), guardar=False, errores=er)
+    except Exception: return None
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(); ap.add_argument("archivo"); ap.add_argument("--validar", action="store_true"); ap.add_argument("--precios", action="store_true")
+    ap.add_argument("--momentos", action="store_true")
     a = ap.parse_args(argv)
+    if a.momentos:
+        fotos = cargar(a.archivo)
+        with contextlib.nullcontext() if a.precios else sin_precios(): rs = repetir_momentos(fotos, guion_de(fotos))
+        for r in rs: print(texto_momentos(r))
+        fallos = validar_momentos(rs) if a.validar else []
+        for x in fallos: print("FALLO", x, file=sys.stderr)
+        if a.validar: print(f"{len(fallos)} fallo(s)", file=sys.stderr)
+        return 1 if fallos else 0
     with contextlib.nullcontext() if a.precios else sin_precios(): rs = repetir(cargar(a.archivo))
     for r in rs: print(texto(r))
     if a.validar:

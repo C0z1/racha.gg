@@ -24,6 +24,11 @@ class TestAjustes(unittest.TestCase):
         with self.assertRaises(ValueError): g.guardar_ajuste("../../algo", True)
         with self.assertRaises(ValueError): g.guardar_ajuste("overlay", "si")
 
+    def test_tamano_de_la_franja(self):
+        self.assertEqual(g.ajustes()["franja_tam"], "grande")
+        self.assertEqual(g.guardar_ajuste("franja_tam", "muy_grande")["franja_tam"], "muy_grande")
+        with self.assertRaises(ValueError): g.guardar_ajuste("franja_tam", "enorme")
+
     def test_archivo_roto(self):
         g.AJUSTES_F.write_text("{roto", encoding="utf-8")
         self.assertEqual(g.ajustes(), g.AJUSTES_DEF)

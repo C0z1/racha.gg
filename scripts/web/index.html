@@ -213,6 +213,7 @@ main>:nth-child(4),aside>:nth-child(4){animation-delay:.18s}main>:nth-child(5),a
 <button id="b-perfil" aria-label="Tu rendimiento" onclick="ver('perfil')"></button>
 <button id="b-partidas" aria-label="Tus partidas" onclick="ver('partidas')"></button>
 <button id="b-campeones" aria-label="Campeones" onclick="ver('campeones')"></button>
+<button id="b-tier" aria-label="Tier list por parche" onclick="ver('tier')"></button>
 <button id="b-errores" aria-label="Errores" onclick="ver('errores')"></button>
 <button id="b-ajustes" class="abajo" aria-label="Ajustes" onclick="ver('ajustes')"></button>
 </nav>
@@ -368,6 +369,16 @@ function franja(m, fin) {  // EnPartida_Vino: nivel con anillos (tú y tu rival)
   return `<div class="tres">${nv}${cs}${mu}</div>`;
 }
 
+function feedbackC(s, card) {  // «Tu partida»: qué hiciste bien, qué no (minuto y dato), por qué importa (tu WR) y tu foco
+  const rf = s.revision && s.revision.feedback, fb = rf || (s.fin && s.fin.feedback);
+  if (!fb || !((fb.bien || []).length || (fb.mal || []).length || fb.foco || fb.nota)) return "";
+  const li = xs => `<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px">${xs.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  return `<div class="${card ? "card" : "est"}" style="gap:8px"><span class="sub">Tu partida${rf ? " · con los datos de Riot" : ""}</span>
+    ${(fb.bien || []).length ? `<b style="color:var(--teal)">Bien</b>${li(fb.bien)}` : ""}
+    ${(fb.mal || []).length ? `<b style="color:var(--acc)">A mejorar</b>${li(fb.mal)}` : ""}
+    ${fb.foco ? `<b>${esc(fb.foco)}</b>` : fb.nota ? `<span class="sub">${esc(fb.nota)}</span>` : ""}</div>`;
+}
+
 function otraFase(s) {  // en partida, al terminar y esperando
   const r = s.revision, f = s.fin, bloques = [`<div><h1>${esc(FASES[s.fase] ?? s.fase)}</h1><span class="sub">${esc(s.perfil)}</span></div>`];
   if (s.meta && s.fase === "InProgress") bloques.push(`<span class="sub">${img("champion", s.meta.campeon, "item", s.meta.campeon)} ${esc(s.meta.campeon)} · min ${s.meta.minuto}</span>`, franja(s.meta, false));
@@ -376,6 +387,7 @@ function otraFase(s) {  // en partida, al terminar y esperando
   if (r) bloques.push(`<div class="card"><span class="tag ${r.win ? "ok" : "red"}">${r.win ? "Victoria" : "Derrota"}${r.min ? " · " + r.min + " min" : ""}</span>
     <b>${esc(r.champ)}${r.rival ? " vs " + esc(r.rival) : ""} ${esc(r.kda || "")}</b>
     <span class="sub">Oro al 14 ${esc(r.oro)} · CS al 14 ${esc(r.cs)} · muertes 14–25 ${esc(r.m25)} · score ${esc(r.score)}</span></div>`);
+  if (!f && r) bloques.push(feedbackC(s, true));  // la revisión llegó después de cerrar la foto en vivo
   if (s.espera) bloques.push(`<div class="card"><span class="sub">${esc(s.espera)}</span></div>`);
   if (bloques.length === 1) bloques.push(`<div class="card"><span class="sub">${EN_PARTIDA.includes(s.fase) ? "Esperando los datos en vivo: salen cuando carga el mapa." : enCliente(s.fase) ? "Aún no estás en partida: al empezar, Racha cambia aquí solo." : "Abre el cliente de LoL: aquí verás tu pick en champ select y la revisión al terminar."}</span></div>`);
   return bloques.join("");
@@ -576,6 +588,24 @@ function oroCard(r) {  // «Racha de oro al 14»: de tus últimas 5, cuántas ll
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><span class="forma" style="margin:0">${m.map(([c, t]) => `<i class="${c}" role="img" aria-label="${t}" title="${t}"${c == "s" ? ' style="background:var(--dark4)"' : ""}></i>`).join("")}</span>
     <span>En <b>${r.ok} de ${r.n}</b> partidas llegaste al 14 con oro igual o mayor que tu rival.${r.ok < r.n / 2 ? " Si vas abajo, prioriza XP y farm." : ""}</span></div></div>`;
 }
+function cicloRegla(V) {  // Sombra: la racha de tu regla (partidas seguidas cumpliéndola) y cuánto falta para graduarla (8 de 10)
+  const rh = V && V.regla_hoy, gr = Object.entries((V && V.ciclo) || {}).filter(([, x]) => x.graduada).map(([m]) => m);
+  if (!rh || rh.racha == null) return "";
+  const NOM = {muertes: "muertes del 14 al 25", nivel: "nivel al 6"};
+  return `<span class="sub" style="font-size:13px;padding:0 4px">Racha de tu regla: <b style="color:var(--txt)">${rh.racha}</b> seguida${rh.racha === 1 ? "" : "s"} · ${rh.falta ? `te faltan ${rh.falta} de 10 para graduarla` : "lista para graduarse"}${gr.length ? ` · graduada${gr.length > 1 ? "s" : ""}: ${gr.map(m => NOM[m] || m).join(", ")}` : ""}</span>`;
+}
+
+function tusErrores(V) {  // Sombra, Fase 7: el ciclo de corrección. Racha encuentra tu error, lo vigila en partida y te dice cuando ya lo corregiste
+  const c = V && V.ciclo_errores, NOM = {sin_objetivo: "Muerte sin objetivo", abajo_6: "Nivel abajo al 6", sin_pelea: "Pelea perdida sin ti"};
+  if (!c || !Object.keys(c.errores || {}).length) return "";
+  const fila = (k, i) => { const x = c.errores[k];
+    return `<div class="fila2" style="border:none"><span class="num" style="width:30px;height:30px;border-radius:8px;background:var(--dark4);color:var(--acc2);font-size:13px">E${i + 1}</span>
+      <div class="txt"><b>${esc(NOM[k] || k)}</b><small>En ${x.veces} de tus últimas 20 · lo evitas ${x.ok} de ${x.n}${x.falta ? ` · te faltan ${x.falta} para corregirlo` : ""}</small></div></div>`; };
+  return `<div class="card"><div class="cab2"><h2>Tus errores</h2><span class="sub" style="font-size:12px">la franja los vigila en partida</span></div>
+    ${(c.vigilados || []).map(fila).join("") || '<span class="sub">Ningún error repetido en tus últimas 20.</span>'}
+    ${(c.corregidos || []).length ? `<span class="sub" style="font-size:13px;padding:0 4px">Corregido${c.corregidos.length > 1 ? "s" : ""}: ${c.corregidos.map(k => `<b style="color:var(--teal)">✓ ${esc(NOM[k] || k)}</b>`).join(" · ")} (lo evitas 8 de 10 o más)</span>` : ""}</div>`;
+}
+
 function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un botón; rango, pick de hoy, oro y atajos al costado
   const R = s.rendimiento, t = R && R.tilt, ps = R ? R.resumen.partidas : [], [id, ...resto] = String(s.perfil || "").split(" · ");
   const nombre = id.includes("#") ? id.split("#")[0] : "", cliente = enCliente(s.fase);
@@ -608,7 +638,7 @@ function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un bo
     ${hoy.length ? `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${hoy.slice(-6).map(g => `<div class="mini">${img("champion", g.campeon, "item", g.campeon)}<b class="${g.win ? "v" : "d"}">${g.win ? "V" : "D"}</b>${esc(g.fecha || "")}</div>`).join("")}</div>`
       : `<span class="sub">Aún no juegas hoy. ${t && t.tras2 && t.tras2.n ? `Si llegas a 2 derrotas seguidas, Racha te muestra tu dato de descanso.` : ""}</span>`}</div>`;
   const regla = VS(s) && VS(s).reglas.length ? `<div class="card"><div class="cab2"><h2>Tu regla de hoy</h2><span class="sub" style="font-size:12px">la que más te cuesta</span></div>
-    ${reglaCumple(VS(s).reglas[0], 0)}</div>` : `<div class="card"><div class="cab2"><h2>Tu regla de hoy</h2><span class="sub" style="font-size:12px">del plan, con tus últimas partidas</span></div>
+    ${reglaCumple(VS(s).reglas[0], 0)}${cicloRegla(VS(s))}</div>` : `<div class="card"><div class="cab2"><h2>Tu regla de hoy</h2><span class="sub" style="font-size:12px">del plan, con tus últimas partidas</span></div>
     <div class="fila2" style="border:none"><span class="ic red">${ic("muertes")}</span>
       <div class="txt"><b>2 muertes o menos del 14 al 25</b><small>Morir a mitad de partida regala los objetivos.</small></div>
       ${d25.length ? `<span class="sub" style="font-size:12px">Cumples <b style="color:var(--txt)">${ok}/${d25.length}</b></span>` : '<span class="sub">Sin partidas aún</span>'}</div></div>`;
@@ -619,6 +649,7 @@ function inicio(s) {  // ritual de sesión: racha, regla de hoy, sesión y un bo
   ${pasos}
   ${descanso}
   ${regla}
+  ${tusErrores(VS(s))}
   ${racha ? `<div class="dos" style="align-items:stretch">${racha}${sesion}</div>` : sesion}
   ${s.rendimiento ? `<button class="btn principal" style="align-self:flex-start" onclick="ver('draft')">Empezar a subir</button>` : ""}`;
   const base = t && t.base.wr, x = w => Math.max(0, Math.min(100, (w - .45) / .2 * 100));
@@ -719,6 +750,44 @@ function campeonesCliente(cl) {  // sin historial descargado: WR por campeón de
     <div style="text-align:left;width:100%"><b style="font-size:18px">${esc(x.champ)}</b><br><span class="sub" style="font-size:12px">${x.n} ${x.n === 1 ? "partida" : "partidas"}</span></div>
     <div style="display:flex;align-items:center;gap:20px">${anillo(x.champ, x.v / x.n, 120)}<div style="text-align:left"><b style="font-size:30px">${pct(x.v / x.n)}</b><br><span class="sub" style="font-size:12px">${x.v}-${x.n - x.v}</span></div></div></div>`).join("")}</div>
   <div class="card"><span class="sub">Pocas partidas: tómalo como pista. Tus matchups y reglas por campeón llegan con tu historial completo.</span></div>`, ""];
+}
+
+let TIER = null, TIER_err = false, cargandoTier = false, tierRol = null;
+async function cargarTier() {  // la tier list una vez por sesión (builds.json no cambia con la ventana abierta)
+  cargandoTier = true;
+  try { const r = await fetch("/api/tier"); if (!r.ok) throw 0; TIER = await r.json(); TIER_err = false; } catch (e) { TIER_err = true; }
+  cargandoTier = false; v = -1; tick();
+}
+const TORD = {S: 3, A: 2, B: 1, "-": 0}, nomC = c => String(c || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+function tierCab(b, actual) {  // obligatoria: de qué parche y cuántas partidas son, y si el parche actual aún no tiene datos
+  if (!b) return "Aún no hay tier list: llega con las builds Master+ del ladder.";
+  const dias = (Date.now() - new Date(b.fecha + "T12:00:00")) / 864e5;
+  return [`Parche ${b.parche}`, `${b.partidas} partidas Master+ (LAN, KR, EUW)`, `datos del ${b.fecha.split("-").reverse().join("-")}`,
+    ...(actual && actual !== b.parche ? [`el parche actual es ${actual}: aún sin datos`] : []), ...(dias > 14 ? ["datos viejos"] : [])].join(" · ");
+}
+function tierV(s) {  // Tier list por parche (Master+): por rol, S/A/B con flecha contra el parche anterior o NEW, y tu pool marcado
+  if (!TIER && !cargandoTier && !TIER_err) cargarTier();
+  const V = VS(s), roles = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
+  const rol = tierRol || (V && roles.includes(V.pos) ? V.pos : "MIDDLE"), b = TIER && TIER[rol];
+  const pool = ((V && V.campeones) || []).filter(x => x.pos === rol), mio = c => pool.find(x => nomC(x.champ) === nomC(c));
+  const tabs = `<span role="group" aria-label="Rol" style="display:flex;gap:8px;flex-wrap:wrap">${roles.map(r => `<button class="btn2" aria-pressed="${r === rol}" ${r === rol ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} onclick="tierRol='${r}';v=-1;tick()">${ROL[r]}</button>`).join("")}</span>`;
+  const marca = c => c.antes == null ? `<span class="tag amber" style="align-self:auto">NEW</span>`
+    : TORD[c.t] > TORD[c.antes] ? `<b style="color:var(--teal)" role="img" aria-label="Sube desde ${c.antes === "-" ? "fuera de la lista" : c.antes}">▲</b>`
+    : TORD[c.t] < TORD[c.antes] ? `<b style="color:var(--red)" role="img" aria-label="Baja desde ${c.antes}">▼</b>` : "";
+  const fila = c => { const m = mio(c.c); return `<div class="filaV oscura" style="padding:6px 8px;${m ? "box-shadow:0 0 0 1px var(--acc) inset;border-radius:10px" : "background:none"}">
+    ${img("champion", c.c, "item", c.c)}<b style="flex:1">${esc(c.c)} ${marca(c)}</b>${m ? `<span class="sub" style="font-size:13px;color:var(--acc)">Tú: ${pct(m.wr)} (${m.n})</span>` : ""}
+    <b>${pct(c.wr)}</b><span class="sub" style="font-size:12px;width:120px;text-align:right">${c.n} partidas · ${(c.pr * 100).toFixed(1)}%</span></div>`; };
+  const cs = (b && b.campeones) || [];
+  const cuerpo = !TIER ? `<div class="card"><span class="sub">${TIER_err ? "No se pudo leer la tier list." : "Cargando…"}</span></div>`
+    : !b || !cs.length ? `<div class="card"><span class="sub">${esc(b && b.aviso || `Sin tier list de ${ROL[rol]} todavía.`)}</span></div>`
+    : ["S", "A", "B"].map(t => `<div class="card" style="gap:4px"><div class="cab2"><h2>${t}</h2><span class="sub" style="font-size:12px">WR · partidas · uso</span></div>${cs.filter(c => c.t === t).map(fila).join("")}</div>`).join("");
+  const main = `<div><h1>Tier list</h1><span class="sub">${esc(tierCab(b, TIER && TIER.actual))}</span></div>${tabs}${cuerpo}`;
+  const d = b && b.destacado, tier = c => (cs.find(x => nomC(x.c) === nomC(c)) || {}).t;
+  const aside = `${d ? `<div style="display:flex;gap:20px;align-items:center">${img("champion", d.c, "retrato2", d.c)}<div><span class="sub">Destacado</span><h2 style="font-size:24px">${esc(d.c)}</h2></div></div>
+    <div class="est"><span class="sub">${esc(d.texto)}</span></div>` : ""}
+  <div class="est" style="gap:8px"><span class="sub">Tu pool en ${esc(ROL[rol])}</span>${pool.length ? pool.map(x => `<div style="display:flex;align-items:center;gap:10px">${img("champion", x.champ, "item", x.champ)}<b style="flex:1">${esc(x.champ)}</b><span class="sub" style="font-size:13px">${tier(x.champ) ? "tier " + tier(x.champ) : "fuera de S, A y B"} · tú ${pct(x.wr)} (${x.n})</span></div>`).join("") : '<span class="sub">Sin campeones tuyos en este rol.</span>'}
+    <span class="sub" style="font-size:12px">El WR de cada campeón se acerca al promedio del rol cuando tiene pocas partidas: 40 al 60 % no gana a 400 al 55 %.</span></div>`;
+  return [main, aside];
 }
 
 function campeonesV(s) {  // Campeones_Vino: pool en tarjetas con anillo; panel con reglas y counters del elegido
@@ -890,10 +959,14 @@ function envivo(s) {  // EnPartida_Vino: tus reglas en esta partida con su estad
   ${f ? "" : rivalC + objC}
   ${(s.avisos || []).length ? `<div class="est" style="gap:8px"><span class="sub" id="avisos-t">Avisos de esta partida</span>
     <ol aria-labelledby="avisos-t" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">${s.avisos.map(a => `<li>${a.minuto != null ? `<b>Min ${a.minuto}</b> · ` : ""}${esc(a.texto)}</li>`).join("")}</ol></div>` : ""}
+  ${f ? feedbackC(s) : ""}
   ${f ? `<div class="est"><span class="sub">Al terminar</span><b>${esc(f.texto || "")}</b>${(f.momentos || []).length ? `<span class="sub" style="margin-top:6px">3 momentos clave (al instante, de lo que vio Racha en la partida)</span>
     <ol style="margin:4px 0 0 18px;padding:0;display:flex;flex-direction:column;gap:6px">${f.momentos.map(m => `<li>${esc(m)}</li>`).join("")}</ol>` : ""}
-    ${(s.avisos || []).length ? (f.sirvio ? `<span class="sub" style="margin-top:6px" role="status">Gracias: anotado.</span>`
-      : `<span class="sub" style="margin-top:6px">¿Te sirvieron los avisos de esta partida?</span><span style="display:flex;gap:8px;flex-wrap:wrap">${[["si", "Sí"], ["no", "No"], ["no_vi", "No los vi"]].map(([k, t]) => `<button class="btn2" onclick="sirvio('${k}')">${t}</button>`).join("")}</span>`) : ""}${f.cotejo === false ? '<span class="tag red">No cuadran tus muertes con los eventos</span>' : ""}</div>` : ""}
+    ${(s.avisos || []).length || (f.bitacora || []).some(x => x.mostrado) ? (f.sirvio ? `<span class="sub" style="margin-top:6px" role="status">Gracias: anotado.</span>`
+      : `<span class="sub" style="margin-top:6px">¿Te sirvieron las notas de esta partida?</span><span style="display:flex;gap:8px;flex-wrap:wrap">${[["si", "Sí"], ["no", "No"], ["no_vi", "No los vi"]].map(([k, t]) => `<button class="btn2" onclick="sirvio('${k}')">${t}</button>`).join("")}</span>`) : ""}${f.cotejo === false ? '<span class="tag red">No cuadran tus muertes con los eventos</span>' : ""}</div>` : ""}
+  ${(() => { const b = (f && f.bitacora) || (s.revision && s.revision.bitacora) || [], c = f && f.carta;
+    return b.length || (c || []).length ? `<div class="est" style="gap:8px"><span class="sub" id="bita-t">Lo que viste en partida</span>${(c || []).length ? `<b>${c.map(esc).join(" · ")}</b>` : ""}
+    ${b.length ? `<ol aria-labelledby="bita-t" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">${b.map(x => `<li><b>${esc(x.min)}</b> · ${esc(x.texto)}${x.mostrado ? "" : ` <span class="sub">(no se mostró: ${esc(x.motivo || "")})</span>`}</li>`).join("")}</ol>` : ""}</div>` : ""; })()}
   ${s.revision ? `<div class="est"><span class="sub">Revisión (Riot)</span><b>${esc(s.revision.champ)} ${esc(s.revision.kda || "")} · score ${esc(s.revision.score)}</b><span class="sub">Oro al 14 ${esc(s.revision.oro)} · CS al 14 ${esc(s.revision.cs)}</span></div>` : ""}
   ${s.revision && (s.revision.momentos || []).length ? `<div class="est"><span class="sub">3 momentos clave${s.revision.por_tipo ? ` · tus ${s.revision.libres ? s.revision.libres[1] : ""} muertes: ${Object.entries(s.revision.por_tipo).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${TIPO_MUERTE[k] || k}`).join(", ")}` : ""}</span>
     <ol style="margin:4px 0 0 18px;padding:0;display:flex;flex-direction:column;gap:6px">${s.revision.momentos.map(m => `<li>${esc(m)}</li>`).join("")}</ol></div>` : ""}
@@ -926,8 +999,16 @@ function ajustesV(s) {  // Ajustes_Vino: cuenta, apariencia y avisos en partida 
 </div>
       <div class="card"><div class="cab2"><h2>Franja en partida</h2></div>
         ${fila("Siempre encima en partida", "La franja queda sobre el juego (en modo sin bordes).", tog("t-overlay", aj.overlay !== false, false, `ajuste('overlay',${aj.overlay === false})`, "Siempre encima en partida"))}
+        ${fila("Estilo de la franja", "Sombra: tu regla, tu sombra (tus victorias minuto a minuto) y tus 4 marcas, siempre en el mismo lugar. Clásica: la pastilla de antes.", `<span role="group" aria-label="Estilo de la franja" style="display:flex;gap:8px">${[["sombra", "Sombra"], ["clasica", "Clásica"]].map(([k, t]) => `<button class="btn2" aria-pressed="${(aj.franja_estilo || "sombra") === k}" ${(aj.franja_estilo || "sombra") === k ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} onclick="ajuste('franja_estilo','${k}')">${t}</button>`).join("")}</span>`)}
+        ${(aj.franja_estilo || "sombra") === "sombra" ? av("solo_marcas", "Sombra: solo marcas", "Sin interrupciones: solo tus marcas al sellarse y el panel al morir.")
+          + (aj.solo_marcas ? "" : av("momento_nivel", "Sombra: nivel abajo al 6", "Del minuto 5 al 7, si tu rival de línea te lleva nivel.")
+            + av("momento_regreso", "Sombra: nivel abajo del 10 al 14", "Si sigues abajo de nivel antes de los objetivos del 14.")
+            + av("momento_pico", "Sombra: ítems de tu rival", "Cuando tu rival de línea completa más ítems que tú (se ve con Tab)."))
+          + fila("Sombra: modo ahorro", "Lee la partida cada 3 s en vez de cada 1 s, para PCs justas de FPS.", tog("t-sondeo_ahorro", !!aj.sondeo_ahorro, false, `ajuste('sondeo_ahorro',${!aj.sondeo_ahorro})`, "Sombra: modo ahorro"))
+          + fila("Sombra: sonido al sellar", "Un «tic» corto cuando se sella una marca.", tog("t-sonido_sello", !!aj.sonido_sello, false, `ajuste('sonido_sello',${!aj.sonido_sello})`, "Sombra: sonido al sellar")) : ""}
         ${fila("Posición de la franja", "Dónde se ve en partida.", `<span role="group" aria-label="Posición de la franja" style="display:flex;gap:8px">${[["arriba", "Arriba"], ["abajo", "Abajo"], ...(aj.franja_pos === "libre" ? [["libre", "Donde la dejaste"]] : [])].map(([k, t]) => `<button class="btn2" aria-pressed="${(aj.franja_pos || "arriba") === k}" ${(aj.franja_pos || "arriba") === k ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} onclick="ajuste('franja_pos','${k}')">${t}</button>`).join("")}</span>`)}
-        ${fila("Mover la franja", s.mover_franja ? "Arrástrala con el mouse a donde quieras: se guarda sola. Se apaga sola en 90 s (en partida, Alt+Tab a Racha y «Listo»)." : "Muéstrala y arrástrala a donde quieras (también fuera de partida).",
+        ${fila("Tamaño de la franja", "Qué tan grande se ve en partida.", `<span role="group" aria-label="Tamaño de la franja" style="display:flex;gap:8px">${[["normal", "Normal"], ["grande", "Grande"], ["muy_grande", "Muy grande"]].map(([k, t]) => `<button class="btn2" aria-pressed="${(aj.franja_tam || "grande") === k}" ${(aj.franja_tam || "grande") === k ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} onclick="ajuste('franja_tam','${k}')">${t}</button>`).join("")}</span>`)}
+        ${fila("Mover la franja", s.mover_franja ? "Arrástrala con el mouse a donde quieras: se guarda sola. Se apaga sola en 90 s (en partida, Alt+Tab a Racha y «Listo»)." : "Muéstrala y arrástrala a donde quieras (también fuera de partida). En partida, Ctrl+Shift+Z la vuelve clicable: Ocultar, Sombra, Stats, Build, Ajustes y Mover.",
           `<button class="btn2" aria-pressed="${!!s.mover_franja}" ${s.mover_franja ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} onclick="moverFranja(${!s.mover_franja})">${s.mover_franja ? "Listo" : "Mover"}</button>`)}
         ${av("franja_linea", "Franja: nivel y farm", "Hasta el minuto 14: tu nivel contra tu rival y tu CS contra tu ritmo.")}
         ${av("franja_regla", "Franja: muertes y peleas", "Del 14 al 25: tus muertes contra tu tope y tu participación en kills.")}
@@ -944,7 +1025,9 @@ function ajustesV(s) {  // Ajustes_Vino: cuenta, apariencia y avisos en partida 
       ${av("aviso_muertes", "Muertes del 14 al 25", "Al llegar a 2 muertes desde el 14.")}
       ${av("aviso_regreso", "Plan de regreso", "Del min 10 al 14, si vas abajo de nivel: un consejo para igualar.")}
       ${av("aviso_pico", "Pico de poder del rival", "Cuando tu rival termina un ítem completo y te saca ventaja en ítems.")}
-      ${"speechSynthesis" in window ? `<div class="cab2" style="margin-top:14px"><h2>Selección de campeón</h2></div>` + fila("Leer el draft en voz alta", "En champ select, Racha dice en voz alta sus comentarios nuevos.", tog("t-voz", aj.voz === true, false, `ajuste('voz',${aj.voz !== true})`, "Leer el draft en voz alta")) : ""}</div>
+      <div class="cab2" style="margin-top:14px"><h2>Selección de campeón</h2></div>
+      ${fila("Poner runas solas al fijar", "Una vez, al fijar tu campeón: el estilo que elegiste la última vez o el de mejor WR. Solo en la página de Racha o en un espacio libre, nunca en la tuya, y no si ya cambiaste tus runas.", tog("t-runas", aj.runas_solas !== false, false, `ajuste('runas_solas',${aj.runas_solas === false})`, "Poner runas solas al fijar"))}
+      ${"speechSynthesis" in window ? fila("Leer el draft en voz alta", "En champ select, Racha dice en voz alta sus comentarios nuevos.", tog("t-voz", aj.voz === true, false, `ajuste('voz',${aj.voz !== true})`, "Leer el draft en voz alta")) : ""}</div>
     ${ayudaV(s, aj)}
     ${coachV(s)}
     ${glosarioV()}
@@ -1063,20 +1146,26 @@ function matchupCard(fi, pos, s) {  // muchas partidas Master+: datos histórico
 }
 let runasMsg = "";
 let ultPick;
-function miPick(s) {  // tu campeón en hover o fijado: sus runas arriba, con el botón (Racha nunca las pone sin tu clic)
+function miPick(s) {  // tu campeón en hover o fijado: sus runas arriba, con 2 o 3 estilos para elegir (al fijar, Racha pone uno solo si lo dejas prendido en Ajustes)
   const p = s.fase === "ChampSelect" && s.mi_pick; if (!p) return "";
   const b = p.build, mu = p.matchup;  // con datos del matchup, su página manda (mains Master+ contra tu rival)
+  const ra = s.runas_auto || {}, msg = runasMsg || ra.mensaje || "";
+  const ests = [...((mu && mu.estilos) || []).map(e => ({...e, vs: true})), ...((b && b.fuente !== "riot" && b.estilos) || [])].filter(e => e.pagina_ids).slice(0, 3);
+  if (ests.length) return `<div class="card" style="gap:10px"><div style="display:flex;align-items:center;gap:14px">${img("champion", p.champ, "ico40")}
+    <b>${p.fijo ? "Tus runas con" : "Runas para"} ${esc(p.champ)}</b><span class="sub" style="font-size:12px;margin-left:auto">${mu ? `contra ${esc(p.rival)}: mains Master+` : b && b.fuente === "tu" ? "tu build" : "Master+"}</span></div>
+    <span role="group" aria-label="Estilos de runas" style="display:flex;gap:8px;flex-wrap:wrap">${ests.map(e => `<button class="btn2" aria-pressed="${ra.estilo === e.id}" ${ra.estilo === e.id ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} data-champ="${esc(p.champ)}" data-pos="${esc(p.pos)}" data-estilo="${esc(e.id)}" onclick="ponerRunas(this.dataset.champ,this.dataset.pos,undefined,this.dataset.estilo)">${e.vs ? `Contra ${esc(p.rival)}: ` : ""}${esc(e.nombre)} · ${pct(e.wr)} · ${e.n} partidas</button>`).join("")}</span>
+    <span class="sub" style="font-size:13px" role="status" aria-live="polite">${esc(msg)}</span></div>`;
   const txt = mu ? `${esc(mu.runa.nombre)} · ${pct(mu.runa.wr)} contra ${esc(p.rival)} (n=${mu.n}, mains Master+)`
     : b && b.fuente === "riot" ? `${esc(b.runa[0])} · recomendada por Riot` : b && b.runa ? `${esc(b.runa[0])} · ${pct(b.runa[1])} · ${b.fuente === "tu" ? "tu build" : quienBuild(b)}` : `Aún no hay build guardada de ${esc(p.champ)} en ${esc(ROL[p.pos] || p.pos)}.`;
   return `<div class="card" style="flex-direction:row;align-items:center;gap:14px;flex-wrap:wrap">${img("champion", p.champ, "ico40")}
     <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><b>${p.fijo ? "Tus runas con" : "Runas para"} ${esc(p.champ)}</b>
       <span class="sub" style="font-size:13px">${txt}</span></div>
     ${mu || (b && b.pagina_ids) ? `<button class="btn2" style="margin-left:auto" data-champ="${esc(p.champ)}" data-pos="${esc(p.pos)}" data-rival="${esc(mu ? p.rival : "")}" onclick="ponerRunas(this.dataset.champ,this.dataset.pos,this.dataset.rival || undefined)">Poner estas runas</button>
-      <span class="sub" style="font-size:13px" role="status" aria-live="polite">${esc(runasMsg)}</span>` : ""}</div>`;
+      <span class="sub" style="font-size:13px" role="status" aria-live="polite">${esc(msg)}</span>` : ""}</div>`;
 }
-async function ponerRunas(champ, pos, rival) {  // solo con tu clic; Racha no elige, banea ni acepta por ti. Con rival: la página del matchup
+async function ponerRunas(champ, pos, rival, estilo) {  // tu clic: un estilo (Racha lo recuerda) o la página de la build; con rival, la del matchup. Racha no elige, banea ni acepta por ti
   runasMsg = "Poniendo las runas…"; v = -1; tick();
-  try { const r = await fetch("/api/runas", {method: "POST", headers: {"X-HTC": "1", "Content-Type": "application/json"}, body: JSON.stringify({champ, pos, rival})}); runasMsg = (await r.json()).mensaje || ""; }
+  try { const r = await fetch("/api/runas", {method: "POST", headers: {"X-HTC": "1", "Content-Type": "application/json"}, body: JSON.stringify({champ, pos, rival, estilo})}); runasMsg = (await r.json()).mensaje || ""; }
   catch (e) { runasMsg = "No se pudo hablar con Racha."; }
   v = -1; tick();
 }
@@ -1179,6 +1268,7 @@ let ultVista;  // la vista pintada la última vez (Estela: entradas solo al camb
 let ultVistaPintada = false;  // la primera pintura no lleva transición
 let elegida = location.hash.slice(1).split("&")[0] || null, ultFase;  // #vista (y &medir para dev_medir.py)  // vista que eligió el usuario (o #vista en la URL); se olvida al cambiar de fase
 function ver(x) { elegida = x; v = -1; tick(); }
+let irVisto = null;
 
 let v = -1;
 async function tick() {
@@ -1186,6 +1276,7 @@ async function tick() {
     const r = await fetch("/api/estado?desde=" + v);
     if (r.status === 304) return;  // nada cambió
     const s = await r.json();
+    if (s.ir && s.ir[1] !== irVisto) { irVisto = s.ir[1]; elegida = s.ir[0]; }  // botón Ajustes de la franja
     if (document.activeElement && ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;  // no borrar lo que estás escribiendo
     if (s.v !== v) {
       v = s.v;
@@ -1196,7 +1287,7 @@ async function tick() {
       SIN_HIST = s.rendimiento ? "" : s.descarga || "";  // F12: el tope de muertes de tu coach en toda la app
       const vista = elegida || (s.fase === "ChampSelect" ? (s.draft ? "companion" : "draft") : EN_PARTIDA.includes(s.fase) || s.fin || s.revision ? "envivo" : "inicio");
       for (const b of VISTAS) { const e = document.getElementById("b-" + b); vista === b ? e.setAttribute("aria-current", "page") : e.removeAttribute("aria-current"); }
-      const [m, a] = vista === "inicio" ? inicio(s) : vista === "draft" ? draftV(s) : vista === "envivo" ? envivo(s) : vista === "campeones" ? campeonesV(s)
+      const [m, a] = vista === "inicio" ? inicio(s) : vista === "draft" ? draftV(s) : vista === "envivo" ? envivo(s) : vista === "campeones" ? campeonesV(s) : vista === "tier" ? tierV(s)
         : vista === "errores" ? erroresV(s) : vista === "ajustes" ? ajustesV(s) : vista === "companion" && !s.draft ? (s.previa ? champSelect({...s, draft: s.previa}) : draftV(s)) : vista === "perfil" ? perfil(s) : vista === "partidas" ? [partidas(s), ""] : s.draft ? champSelect(s) : [otraFase(s), ""];  // el último champ select se puede volver a ver en partida
       if (s.version && (VER0 ??= s.version) !== s.version) return location.reload();  // Racha se actualizó con la ventana abierta: la página nueva
       hablar(s); barraAct(s);
@@ -1222,7 +1313,7 @@ async function tick() {
       : `<h1>Racha</h1><div class="aviso red">Esta vista falló: ${esc(String(e && e.message || e))}. Prueba otra vista y repórtalo con este texto.</div>`;
   }
 }
-const VISTAS = ["inicio", "draft", "companion", "envivo", "perfil", "partidas", "campeones", "errores", "ajustes"];
+const VISTAS = ["inicio", "draft", "companion", "envivo", "perfil", "partidas", "campeones", "tier", "errores", "ajustes"];
 const NAV = {  // íconos de la barra lateral, tal cual Home_Vino (Inicio = logo: 28 px y rosa; el resto 22 px)
   inicio: ["Inicio", '<path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/>'],
   draft: ["Draft", '<path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><path d="M14.5 6.5L18 3h3v3l-3.5 3.5"/><path d="M5 14l4 4"/><path d="M7 17l-3 3"/><path d="M3 19l2 2"/>'],
@@ -1231,6 +1322,7 @@ const NAV = {  // íconos de la barra lateral, tal cual Home_Vino (Inicio = logo
   perfil: ["Perfil", '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>'],
   partidas: ["Partidas", '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'],
   campeones: ["Campeones", '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>'],
+  tier: ["Tier list", '<path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h6"/>'],
   errores: ["Errores", '<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>'],
   ajustes: ["Ajustes", '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>']};
 for (const [b, [t, p]] of Object.entries(NAV)) {

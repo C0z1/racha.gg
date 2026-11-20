@@ -16,7 +16,7 @@ class AvisoDict(unittest.TestCase):
     def test_post_partida_sin_cliente_va_a_la_cola(self):  # 0.30: no corre descargar.py aquí; pide la partida a la cola de descargas
         q = queue.Queue()
         orig = g.script, g.puede_descargar, g.guardar_del_cliente
-        g.script, g.puede_descargar, g.guardar_del_cliente = (lambda *a: self.fail("no debe correr scripts")), (lambda: True), (lambda q: False)
+        g.script, g.puede_descargar, g.guardar_del_cliente = (lambda *a: self.fail("no debe correr scripts")), (lambda: True), (lambda q, *a: False)
         try: g._post_partida(q)
         finally: g.script, g.puede_descargar, g.guardar_del_cliente = orig
         self.assertEqual(list(q.queue), [("bajar", 5)])
@@ -24,7 +24,7 @@ class AvisoDict(unittest.TestCase):
     def test_post_partida_sin_key_no_corre_descargar(self):  # beta sin key: no corre descargar.py; la partida se guarda del cliente (2026-11-12)
         q, corridos = queue.Queue(), []
         orig = g.script, g.puede_descargar, g.guardar_del_cliente
-        g.script, g.puede_descargar, g.guardar_del_cliente = (lambda *a: corridos.append(a) or (0, "")), (lambda: False), (lambda q: False)
+        g.script, g.puede_descargar, g.guardar_del_cliente = (lambda *a: corridos.append(a) or (0, "")), (lambda: False), (lambda q, *a: False)
         try:
             g._post_partida(q)
         finally:

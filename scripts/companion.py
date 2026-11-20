@@ -10,6 +10,7 @@ Uso:
 - EndOfGame/PreEndOfGame: una línea con la última foto en vivo (KDA, CS, muertes del 14 al 25; sirve sin key), espera 60 s y corre descargar.py 5 y revision.py 1 (si la key caducó, lo avisa).
 Lockfile: C:\\Riot Games\\League of Legends\\lockfile (o la variable LOL_LOCKFILE)."""
 import argparse, base64, http.client, json, os, pathlib, ssl, subprocess, sys, time, urllib.request
+import errores  # el detector de tus errores, el mismo del timeline (Sombra, Fase 7)
 
 sys.stdout.reconfigure(encoding="utf-8")
 DIR = pathlib.Path(__file__).resolve().parent
@@ -66,7 +67,7 @@ def lcu(path):
 
 
 def lcu_escribir(metodo, path, cuerpo=None):
-    """POST/PUT/DELETE a la API local del cliente; True si respondió 2xx. Solo la usa importar_runas (un clic del jugador)."""
+    """POST/PUT/DELETE a la API local del cliente; True si respondió 2xx. Solo la usa importar_runas (tu clic, o sola al fijar)."""
     try:
         _, _, port, pw, proto = _lock().read_text().split(":")
         auth = base64.b64encode(f"riot:{pw}".encode()).decode()
@@ -92,12 +93,13 @@ def runas_recomendadas(cid, pos, leer=None):
 RESPALDO_RUNAS = DIR.parent / "datos" / "cache" / "runas-respaldo"  # tu página tal como estaba antes de que Racha la usara
 
 
-def importar_runas(nombre, pagina, leer=None, escribir=None, respaldo=None):
+def importar_runas(nombre, pagina, leer=None, escribir=None, respaldo=None, solo_racha=False):
     """Pone en el cliente la página de runas `pagina` ({primaryStyleId, subStyleId, selectedPerkIds[9]}) y la deja activa,
-    como «racha.gg <campeón>». Solo en selección de campeón y solo cuando el jugador pulsa el botón: Racha nunca elige,
-    banea ni acepta por ti. Orden («como Blitz»): 1) reescribe la página de Racha si ya existe («racha.gg …»
-    o «Racha: …» de antes); 2) si hay espacio, crea una; 3) si está lleno, usa tu página seleccionada (editable), guardando
-    antes una copia en datos/cache/runas-respaldo. Nunca borra páginas ni toca las no editables. Devuelve (ok, mensaje)."""
+    como «racha.gg <campeón>». Solo en selección de campeón: cuando pulsas el botón o, con «Poner runas solas al fijar»,
+    una vez al fijar tu campeón. Racha nunca elige, banea ni acepta por ti. Orden («como Blitz»): 1) reescribe la página
+    de Racha si ya existe («racha.gg …» o «Racha: …» de antes); 2) si hay espacio, crea una; 3) si está lleno, usa tu
+    página seleccionada (editable), guardando antes una copia en datos/cache/runas-respaldo; con solo_racha (lo automático)
+    no hay paso 3: tu página nunca se toca. Nunca borra páginas ni toca las no editables. Devuelve (ok, mensaje)."""
     leer, escribir = leer or lcu, escribir or lcu_escribir
     ids = (pagina or {}).get("selectedPerkIds") or []
     if len(ids) != 9 or not all(isinstance(i, int) for i in ids + [pagina.get("primaryStyleId"), pagina.get("subStyleId")]):
@@ -113,6 +115,7 @@ def importar_runas(nombre, pagina, leer=None, escribir=None, respaldo=None):
         if (leer("/lol-perks/v1/inventory") or {}).get("canAddCustomPage", True):  # hay espacio: una página nueva de Racha
             ok = escribir("POST", "/lol-perks/v1/pages", cuerpo)
             return (True, "Listo: la página de runas ya está en tu cliente.") if ok else (False, "El cliente no aceptó la página de runas.")
+        if solo_racha: return False, "Sin espacio para una página de Racha: no toqué nada."
         act = leer("/lol-perks/v1/currentpage")
         destino = tuya = act if editable(act) else next((p for p in pags if editable(p)), None)
         if not destino: return False, "Tu cliente no tiene páginas de runas editables."
@@ -314,6 +317,15 @@ def valor_items(p, pr=None):
     return sum((pr.get(str(i.get("itemID"))) or 0) * (i.get("count") or 1) for i in (p or {}).get("items") or [])
 
 
+EVENTOS_DESDE = 270  # s: los errores se vigilan desde el 5:30 (y los objetivos cuentan 60 s antes)
+
+
+def vida(d):
+    """Tu vida actual / máxima (0–1), solo la tuya (activePlayer); None si no viene. Sombra la usa para no hablar en una pelea."""
+    s = (((d or {}).get("activePlayer") or {}).get("championStats") or {})
+    return round(s["currentHealth"] / s["maxHealth"], 3) if s.get("maxHealth") and s.get("currentHealth") is not None else None
+
+
 def meta_fase(d, m10=None):
     """La meta de la fase como números para la GUI: {minuto, campeon, nivel, rival, nivel_rival, cs, cs_meta, muertes14}; None sin tu jugador.
     muertes14: tus muertes desde el 14:00 (None antes del 14; meta ≤ 2 hasta el 25).
@@ -324,7 +336,7 @@ def meta_fase(d, m10=None):
     rs = (rival or {}).get("scores") or {}
     return {"minuto": int(((d.get("gameData") or {}).get("gameTime") or 0) // 60), "campeon": me.get("championName"),
             "nivel": me.get("level"), "rival": (rival or {}).get("championName"), "nivel_rival": (rival or {}).get("level"),
-            "cs": (me.get("scores") or {}).get("creepScore"), "muertes14": muertes14(d, me),
+            "cs": (me.get("scores") or {}).get("creepScore"), "muertes14": muertes14(d, me), "vision": (me.get("scores") or {}).get("wardScore"),
             "cs_meta": meta_cs(me, m10),
             "rival_kda": f"{rs.get('kills') or 0}/{rs.get('deaths') or 0}/{rs.get('assists') or 0}" if rival else None,
             "rival_cs": rs.get("creepScore"), "rival_items": [[i["itemID"], i.get("displayName") or ""] for i in (rival or {}).get("items") or [] if i.get("itemID") and not i.get("consumable") and i.get("slot") != 6][:6],  # slot 6 = trinket
@@ -333,6 +345,9 @@ def meta_fase(d, m10=None):
             "pos": POS.get(str(me.get("position") or "").lower(), "MIDDLE"),  # sin posición (normales a ciegas): mid, como draft.py
             "oro_actual": int((((d or {}).get("activePlayer") or {}).get("currentGold") or 0)),
             "muerto": bool(me.get("isDead")), "revive": round(me.get("respawnTimer") or 0) if me.get("isDead") else None,  # F4: solo los tuyos
+            "vida": vida(d), "ult_kill": max((e.get("EventTime") or 0 for e in ((d.get("events") or {}).get("Events") or []) if e.get("EventName") == "ChampionKill"), default=None),
+            "muertes": (me.get("scores") or {}).get("deaths"), "muertes6": muertes_en(d, me, 0, 360), "muertes14_25": muertes14(d, me, 1500),  # las marcas 6 y 25 de Sombra (momentos.py)
+            "eventos": [e for e in errores.de_vivo(d) if e["t"] >= EVENTOS_DESDE],  # Sombra, Fase 7: tus errores en vivo (errores.py)
             "items": [[i["itemID"], i.get("displayName") or ""] for i in me.get("items") or [] if i.get("itemID") and not i.get("consumable") and i.get("slot") != 6][:6]}
 
 
@@ -507,7 +522,9 @@ def resumen_fin(d):
     # cotejo: con muertes en el marcador y ningún evento con tu nombre, el formato de VictimName no es el esperado
     # y el aviso 14–25 no te cuenta (no se exige igualdad: las fotos de prueba traen eventos parciales)
     cotejo = None if not s.get("deaths") else muertes_en(d, me) > 0
-    return {**mf, "kda": f"{s.get('kills') or 0}/{s.get('deaths') or 0}/{s.get('assists') or 0}", "muertes14_25": muertes14(d, hasta=1500), "cotejo": cotejo}
+    practica = ((d.get("gameData") or {}).get("gameMode")) == "PRACTICETOOL"  # no cuenta para tu regla: sin «cumplida» ni racha +1
+    return {**mf, "kda": f"{s.get('kills') or 0}/{s.get('deaths') or 0}/{s.get('assists') or 0}",
+            "muertes14_25": None if practica else muertes14(d, hasta=1500), "cotejo": cotejo}
 
 
 def linea_fin(r, tope=2):

@@ -119,11 +119,17 @@ def ultima_partida(archivo=None):
                    muertes=[x["texto"] for x in postpartida.muertes(m, tl, puuid)],
                    libres=[libres["n"], libres["total"]] if libres["total"] else None, por_tipo=libres.get("por_tipo"))
     except (OSError, ValueError): pass
+    try:  # el feedback exacto (con CS y niveles del timeline), contra tus otras partidas del rol
+        import sombra
+        md = postpartida.medidas_partida(f, puuid)
+        if md: out["feedback"] = postpartida.feedback(md, [s for s in sombra.series() if s["t"] != md["t"]], me.get("teamPosition"))
+    except Exception: pass
     return out
 
 
 AJUSTES_F = REPO / "datos" / "cache" / "ajustes.json"
 AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "aviso_muertes": True, "aviso_regreso": True, "aviso_pico": True,  # Ajustes_Vino
+               "runas_solas": True,  # al fijar tu campeón, Racha pone sus runas una vez (nunca en tu página ni si las cambiaste)
                "metricas": False,  # métricas anónimas: solo si el amigo las prende
                "grupo": False,  # aparecer en la tabla del grupo (Riot ID y win rate a los demás): solo si lo prende
                "franja_linea": True, "franja_regla": True,  # piezas de la franja en partida
@@ -131,14 +137,40 @@ AJUSTES_DEF = {"overlay": True, "aviso_nivel": True, "aviso_minions": True, "avi
                "franja_plan": True,  # la franja muestra el match, tu regla y tu nota los primeros 90 s
                "franja_muerto": True,  # al morir la franja se expande con el marcador de objetivos y tu regla
                "franja_build": True,  # la franja muestra tu próximo ítem al morir o al comprar
+               "franja_estilo": "sombra",  # Sombra (3 zonas: regla, sombra, marcas) o la pastilla clásica, una versión más
+               "solo_marcas": False,  # Sombra sin interrupciones: solo las marcas y el panel al morir
+               "momento_nivel": True, "momento_regreso": True, "momento_pico": True,  # Sombra: cada interrupción se apaga sola
+               "sonido_sello": False,
+               "sondeo_ahorro": False,  # Sombra en PCs modestas: la partida se lee cada 3 s en vez de cada 1 s  # Sombra: un «tic» de 120 ms al sellar una marca (apagado por defecto)
+               "franja_poco": False,  # Sombra: 1 interrupción por partida (se prende sola tras dos «no» a «¿Te sirvieron?»)
+               "franja_por_res": {},  # posición libre por resolución: {"1920x1080": [fx, fy]}
+               "franja_tam": "grande", "franja_vista": "sombra", "franja_min": False,  # modo interactivo (Ctrl+Shift+Z): vista y minimizada  # Sombra: tamaño de la franja (overlay.py: ×1, ×1.25, ×1.5)
                "franja_pos": "arriba", "franja_x": 0.22, "franja_y": 0.0}  # esquina de la franja: único ajuste que no es booleano
-OPCIONES = {"franja_pos": ("arriba", "abajo", "libre")}  # lista blanca de los ajustes de texto
+OPCIONES = {"franja_pos": ("arriba", "abajo", "libre"), "franja_estilo": ("sombra", "clasica"), "franja_tam": ("normal", "grande", "muy_grande"), "franja_vista": ("sombra", "stats", "build")}  # lista blanca de los ajustes de texto
 FRACCIONES = ("franja_x", "franja_y")  # posición libre de la franja: fracción del juego (0–1), la eligió el usuario arrastrándola
 
 
 def valido(clave, v):
+    if clave == "franja_por_res":
+        import re
+        frac = lambda x: isinstance(x, (int, float)) and not isinstance(x, bool) and 0 <= x <= 1
+        return isinstance(v, dict) and len(v) <= 8 and all(isinstance(k, str) and re.fullmatch(r"\d{3,5}x\d{3,5}", k) and isinstance(p, list) and len(p) == 2 and all(map(frac, p)) for k, p in v.items())
     if clave in FRACCIONES: return isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1
     return v in OPCIONES[clave] if clave in OPCIONES else isinstance(v, bool)
+
+
+SIRVIO_F = REPO / "datos" / "cache" / "sirvio.json"
+
+
+def contar_sirvio(v):
+    """Guarda la respuesta a «¿Te sirvieron?» y dice si Sombra debe hablar menos: True tras dos «no» seguidos, False con
+    un «sí», None si no cambia (no los vi)."""
+    try: ult = json.loads(SIRVIO_F.read_text(encoding="utf-8"))[-1:]
+    except (OSError, ValueError, TypeError, KeyError): ult = []
+    ult = [x for x in ult if x in ("si", "no", "no_vi")] + [v]
+    try: SIRVIO_F.parent.mkdir(parents=True, exist_ok=True); SIRVIO_F.write_text(json.dumps(ult), encoding="utf-8")
+    except OSError: pass
+    return True if ult == ["no", "no"] else False if v == "si" else None
 
 
 def ajustes():
@@ -154,6 +186,28 @@ def guardar_ajuste(clave, on):
     a = {**ajustes(), clave: on}
     AJUSTES_F.parent.mkdir(parents=True, exist_ok=True); AJUSTES_F.write_text(json.dumps(a), encoding="utf-8")
     return a
+
+
+def rescatar_anidadas():
+    """Copia a su carpeta las partidas que quedaron anidadas en datos/cuentas/<a>/cuentas/<b>/raw (una actualización
+    reabría Racha con la carpeta de otra cuenta como base). Solo copia lo que falta: nunca pisa ni borra. Cuántas copió."""
+    import shutil
+    raiz = BASE.parent / "cuentas"
+    try: yo = json.loads((BASE / "perfil.json").read_text(encoding="utf-8"))["account"]["puuid"]
+    except (OSError, ValueError, KeyError, TypeError): yo = None
+    n = 0
+    for raw in raiz.glob("*/cuentas/**/raw"):
+        try: puuid = json.loads((raw / "perfil.json").read_text(encoding="utf-8"))["account"]["puuid"]
+        except (OSError, ValueError, KeyError, TypeError): continue  # sin dueño claro no se mueve nada
+        destino = BASE if puuid == yo else raiz / puuid / "raw"
+        if destino.resolve() == raw.resolve(): continue
+        for sub in ("", "timeline"):
+            (destino / sub).mkdir(parents=True, exist_ok=True)
+            for f in (raw / sub).glob("*_*.json"):
+                if not (destino / sub / f.name).exists():
+                    try: shutil.copy2(f, destino / sub / f.name); n += 1
+                    except OSError: pass
+    return n
 
 
 NOMBRES = {}  # championId -> nombre del cliente (companion_web.vigilar_cuenta), para quien no tiene partidas descargadas
@@ -322,6 +376,11 @@ def registrar_franja(txt):
     except OSError: pass
 
 
+def calentar_sombra():
+    try: import sombra; sombra.series()
+    except Exception: pass  # sin partidas o sin disco: el guion saldrá «Sin sombra aún»
+
+
 def plan_partida(campeon, rival, pos):
     """Lo de la franja al empezar, una vez por partida y con tu historial: tu récord y WR contra
     ese rival con ese campeón, tu regla con su meta y tu dato, y tu nota del matchup. None si no hay datos o cuenta ajena."""
@@ -347,7 +406,17 @@ DRAFT = threading.Lock()  # el reload de draft (hilo post-partida) no debe pisar
 POST = []  # el hilo post-partida vivo, si hay
 
 
-SONDEO_VIVO = 10  # s entre fotos en vivo: < 1 ms de cálculo por foto (medido); menos no aporta al coaching (plan en partida)
+SONDEO_VIVO = 10  # s entre fotos en vivo con la franja clásica: < 1 ms de cálculo por foto (medido)
+SONDEO_SOMBRA = 1  # con Sombra: una muerte o una compra en pantalla en ≤ 1,5 s, y la vida propia para no hablar en una pelea
+SONDEO_AHORRO = 3  # Sombra con «Ahorro»: menos peticiones al juego; la pelea se detecta sobre todo por las kills (la vida se ve menos)
+
+
+FRANJA_CAIDA = [False]  # el proceso de la franja cayó dos veces: sin franja, sin prisa
+
+
+def sondeo(aj):
+    if aj.get("overlay", True) is False or aj.get("franja_estilo") != "sombra" or FRANJA_CAIDA[0]: return SONDEO_VIVO
+    return SONDEO_AHORRO if aj.get("sondeo_ahorro") else SONDEO_SOMBRA
 
 
 def aviso(texto, tipo="error", minuto=None):
@@ -361,28 +430,35 @@ def post_partida(q):
     POST[:] = [threading.Thread(target=_post_partida, args=(q,), daemon=True)]; POST[0].start()
 
 
-CLIENTE_ESPERA, CLIENTE_INTENTOS = 20, 9  # s entre intentos y cuántos (3 min): el cliente publica la partida al rato de terminar
+CLIENTE_ESPERA, CLIENTE_INTENTOS = 20, 15  # s entre intentos y cuántos (5 min): el cliente publica la partida al rato de terminar
 
 
-def guardar_del_cliente(q, espera=None, intentos=None, dormir=None):
+def id_partida():
+    """El gameId de la partida que acaba de terminar (gameflow sigue en EndOfGame), o None si el cliente no responde."""
+    try: s = companion.lcu("/lol-gameflow/v1/session")
+    except Exception: return None
+    return ((s.get("gameData") or {}).get("gameId") if isinstance(s, dict) else None) or None
+
+
+def guardar_del_cliente(q, gid=None, espera=None, intentos=None, dormir=None):
     """Guarda la partida recién jugada desde tu propio cliente (sin key): cliente_v5 la baja a la carpeta de la cuenta
-    activa con su timeline. True si entró alguna partida nueva. Al salir de la partida
-    se guarda sola, también sin key y con otra cuenta."""
+    activa con su timeline. True si ya está en disco la partida gid (sin gid: si entró alguna nueva). El cliente publica
+    tarde y fuera de orden: otra partida vieja no cuenta, o la revisión saldría de esa."""
     import cliente_v5
     q.put(("post_espera", "Guardando tu partida desde el cliente…"))
     for _ in range(CLIENTE_INTENTOS if intentos is None else intentos):
         (dormir or time.sleep)(CLIENTE_ESPERA if espera is None else espera)  # time.sleep al llamar: las pruebas lo cambian
-        try: nuevas, _ = cliente_v5.descargar()
+        try: nuevas, _ = cliente_v5.descargar(gid=gid)
         except Exception: nuevas = 0  # cliente cerrándose o a medias: se reintenta
-        if nuevas: return True
-    q.put(("post_espera", "El cliente aún no publica la partida: se guarda sola la próxima vez que abras Racha."))
+        if any(RAW.glob(f"*_{gid}.json")) if gid else nuevas: return True
+    q.put(("post_espera", "El cliente aún no publica la partida: lo de arriba es lo que vio Racha; la revisión de Riot sale cuando se guarde."))
     return False
 
 
 def _post_partida(q):
     # la partida recién jugada llega primero desde tu cliente (al instante y sin gastar la key, aunque la cola esté
     # bajando tu historial); si el cliente no la da, la cola de descargas la pide a Riot con prioridad.
-    if not guardar_del_cliente(q):
+    if not guardar_del_cliente(q, id_partida()):
         if puede_descargar(): q.put(("bajar", 5))
         return
     if "draft" in sys.modules:
@@ -443,11 +519,12 @@ def trabajador(q):
     ult_disco = 0  # la foto se lee cada SONDEO_VIVO s (F4: ver la muerte a tiempo) pero al disco va cada 30 s
     error = foto = nl = tab_ant = None  # nl: championId -> alias del cliente, para el tablero de Draft
     while True:
-        fase = None  # si lcu() lanza, cuenta como cliente caído
+        fase, jugando = None, False  # si lcu() lanza, cuenta como cliente caído
         try:
             fase = companion.lcu("/lol-gameflow/v1/gameflow-phase")
             if fase != fase_ant and fase == "ChampSelect":  # metas de CS (F9): ~4 s la primera vez; en selección no frena la partida
                 threading.Thread(target=companion.metas_auto, daemon=True).start()
+                threading.Thread(target=calentar_sombra, daemon=True).start()  # las series de Sombra al índice: el guion sale en ~50 ms
             if fase != fase_ant and fase == "ChampSelect":  # LP fresco del cliente (sin key); ya asentado tras la partida anterior
                 q.put(("rango", companion.rango(companion.lcu("/lol-ranked/v1/current-ranked-stats"))))
             if fase != fase_ant: q.put(("fase", fase))
@@ -471,13 +548,14 @@ def trabajador(q):
                     q.put(("draft", pos, recomendaciones(pos, nombres), ocultos) if nombres else ("pos", pos))  # [] : su jungla o support, no tu rival
                 elif not ids and pos and visto != pos: q.put(("pos", pos)); visto = pos  # bans y picks antes del rival
             elif fase != "ChampSelect": visto = tab_ant = None
-            if jugando and time.time() - ult >= SONDEO_VIVO:
+            if jugando and time.time() - ult >= sondeo(aj := ajustes()) - 0.05:
                 d = companion.unir_eventos(companion.vivo(), foto if archivo else None); ult = time.time(); foto = d or foto  # Reconnect reinicia los eventos; sin archivo es otra partida (revisión del asistente, 12)
                 if ult - ult_disco >= 30: archivo, ult_disco = companion.capturar(archivo, d), ult
                 mf, avs = companion.paso_vivo(d, estado, ajustes())  # Ajustes_Vino: cada aviso se puede apagar
                 if mf and mf.get("modo") != "ARAM" and ajustes().get("franja_build", True) is not False:  # tu próximo ítem en la franja
                     if estado.get("build") is None and time.time() - estado.get("build_t", 0) > 30:  # falló: se reintenta cada 30 s (False = no hay)
                         estado["build"], estado["build_t"] = companion.build_partida(mf.get("campeon"), mf.get("pos")), time.time()
+                    if estado.get("build"): mf["core"] = estado["build"]  # la vista Build de la franja
                     try: import builds; mf["proximo"] = companion.proximo(estado["build"], mf.get("items"), mf.get("oro_actual"), builds.ddragon()[0])
                     except Exception as e: mf["proximo"] = None; registrar_franja(f"próximo ítem: {e!r}")
                 if mf and mf.get("modo") != "ARAM" and ajustes().get("franja_plan", True) is not False:  # MATCH, PLAN, CUIDADO (90 s) y el dato del matchup
@@ -485,12 +563,14 @@ def trabajador(q):
                         estado["plan"], estado["plan_t"] = plan_partida(mf.get("campeon"), mf.get("rival"), mf.get("pos")), time.time()
                     if (mf.get("t") or 0) < 120: mf["plan"] = estado["plan"]
                     mf["dato"] = (estado.get("plan") or {}).get("dato")  # la frase top del matchup, para la expandida al morir
-                if mf: q.put(("meta", mf))
+                if mf: mf["avisos"] = [(c, getattr(x, "corto", x)) for c, x, _ in avs]; q.put(("meta", mf))  # Sombra los vuelve datos (momentos.py)
+                if mf: import postpartida; postpartida.anotar_niveles(estado.setdefault("niveles", {}), mf)  # para el feedback al terminar
                 for _, txt, minuto in avs: q.put(aviso(txt, "consejo", minuto))
             elif not jugando and fase != "Reconnect": archivo = None; estado["avisado"] = set(); [estado.pop(k, None) for k in ("build", "build_t", "plan", "plan_t")]  # al reconectar es la misma partida
             if fase in FIN and real not in FIN:
                 if r := companion.resumen_fin(foto):  # sin key, esto es lo que hay al terminar
-                    try: import postpartida; r = {**r, "momentos": [m["texto"] for m in postpartida.momentos_vivo(foto)], "estela": postpartida.estela_vivo(foto)}  # F11: al instante
+                    try: import postpartida; r = {**r, "momentos": [m["texto"] for m in postpartida.momentos_vivo(foto)], "estela": postpartida.estela_vivo(foto),
+                                                  "medidas": postpartida.medidas_vivo(foto, estado.pop("niveles", None))}  # F11: al instante; medidas: el feedback
                     except Exception: pass
                     q.put(("fin", r))
                 foto = None; post_partida(q); m = None
@@ -500,4 +580,4 @@ def trabajador(q):
             if txt != error: q.put(aviso(txt)); error = txt  # el mismo error cada 3 s no inunda la ventana
         # fuera del try (como companion.main): una excepción no deja la fase vieja ni repite el evento de fase cada 3 s
         fase_ant, real, fallos = fase, fase or real, 0 if fase else fallos + 1
-        time.sleep(1 if fase == "ChampSelect" else companion.espera(fallos))  # en selección, el tablero sigue los hovers al segundo
+        time.sleep(1 if fase == "ChampSelect" or (jugando and sondeo(ajustes()) < SONDEO_VIVO) else companion.espera(fallos))  # en selección, el tablero sigue los hovers al segundo
