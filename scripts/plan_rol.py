@@ -83,6 +83,7 @@ def frase(k, v):
 
 def umbral(k, u):
     """La meta como umbral: «≥1 dragón al 14», «≤2 muertes 14–25», «0 muertes al 6»."""
+    if k.startswith("nivel") and u == 0: return f"sin nivel abajo al {k[5:]}"  # «≥+0» no se lee
     t = FRASE[k].replace("{}", ("≥" if MEDIDAS[k][2] == "+" else "≤") + "{}").format(valor(k, u)).replace("≤0 ", "0 ")
     return t.replace("muertes", "muerte").replace("dragones", "dragón") if u == 1 else t
 

@@ -62,7 +62,7 @@ class Plan(unittest.TestCase):
         p = plan_rol.plan(ss, "MIDDLE"); m = p["fases"][1]
         self.assertEqual((m["id"], m["v"], m["wr"]), ("muertes6", 1, 1.0))
         self.assertEqual(plan_rol.renglon(m), "≤1 muerte al 6: ganas 100%")
-        self.assertEqual(plan_rol.umbral("dragones14", 1), "≥1 dragón al 14"); self.assertEqual(plan_rol.umbral("muertes6", 0), "0 muertes al 6")
+        self.assertEqual(plan_rol.umbral("dragones14", 1), "≥1 dragón al 14"); self.assertEqual(plan_rol.umbral("muertes6", 0), "0 muertes al 6"); self.assertEqual(plan_rol.umbral("nivel3", 0), "sin nivel abajo al 3")
 
     def test_marcas_personales(self):
         plan = {"marcas": [{"id": "cs10", "minuto": 10, "v": 71, "etq": "CS al 10", "dato": "x"}]}
