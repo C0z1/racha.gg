@@ -61,11 +61,23 @@ class Ciclo(unittest.TestCase):
         w.anotar([dict(t=500, id="nivel", clase="interrupcion", dato="Nivel -1 vs Zed", mostrado=False, motivo="en pelea")], {"6": True, "10": False})
         w.evento(("fin", {"minuto": 30, "campeon": "Sylas", "kda": "1/1/1", "rival": "Zed", "cs": 200, "muertes14_25": 1, "cotejo": True}))
         f = w.ESTADO["fin"]
-        self.assertEqual(f["carta"], ["1 de 4 marcas", "Tu regla: cumplida · racha 4"])
+        self.assertEqual(f["carta"], ["1 de 2 marcas con dato", "Tu tope 14–25: cumplido · racha 4"])
         self.assertEqual([x["texto"] for x in f["bitacora"]], ["Marca 6 · 0 muertes", "Nivel -1 vs Zed"])
         self.assertEqual(bitacora.ultima()["marcas"], {"6": True, "10": False})
         w.evento(("revision", {"champ": "Sylas"}))
         self.assertEqual(len(w.ESTADO["revision"]["bitacora"]), 2)
+        self.assertEqual(w.ESTADO["fin"]["carta"], f["carta"])  # la revisión no borra la carta ni la bitácora
+
+    def test_sin_regla_la_carta_usa_el_tope_de_2(self):  # Zeri bot (2026-11-19): regla None, la carta salía vacía
+        w.ESTADO.update(guion={"campeon": "Zeri", "rival": "Draven"}, sombra=None)
+        w.anotar([], {"kp6": None, "dragones14": False, "sin_pelea": True})
+        w.evento(("fin", {"minuto": 30, "campeon": "Zeri", "kda": "1/3/1", "rival": "Draven", "cs": 200, "muertes14_25": 3, "cotejo": True}))
+        self.assertEqual(w.ESTADO["fin"]["carta"], ["1 de 2 marcas con dato · 1 sin dato", "Tu tope 14–25: sin cumplir"])
+
+    def test_sin_sombra_no_queda_la_bitacora_anterior(self):
+        w.ESTADO.update(guion=None, sombra=None, bitacora=[{"min": "6:00", "texto": "vieja"}])
+        w.evento(("fin", {"minuto": 30, "campeon": "Ekko", "kda": "1/1/1", "rival": None, "cs": 200, "muertes14_25": 1, "cotejo": True}))
+        self.assertIsNone(w.ESTADO["bitacora"])
 
 
 class Dibujo(unittest.TestCase):

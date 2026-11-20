@@ -116,12 +116,13 @@ def unificar(raw=None):
     return n
 
 
-def descargar(raw=None, leer=None, n=20):
-    with _UNO: return _descargar(raw, leer, n)
+def descargar(raw=None, leer=None, n=20, gid=None):
+    with _UNO: return _descargar(raw, leer, n, gid)
 
 
-def _descargar(raw=None, leer=None, n=20):
-    """Baja del cliente tus últimas n partidas (máx. 20) que aún no estén en datos/raw. Devuelve (nuevas, mensaje)."""
+def _descargar(raw=None, leer=None, n=20, gid=None):
+    """Baja del cliente tus últimas n partidas (máx. 20) que aún no estén en datos/raw. Devuelve (nuevas, mensaje).
+    gid: la partida recién jugada, primero, aunque el historial del cliente aún no la liste."""
     leer = leer or companion.lcu
     raw = pathlib.Path(raw or os.environ.get("DATOS_DIR") or pathlib.Path(__file__).resolve().parent.parent / "datos" / "raw")
     s = leer("/lol-summoner/v1/current-summoner") or {}
@@ -138,7 +139,8 @@ def _descargar(raw=None, leer=None, n=20):
     puuids = {s["puuid"]: viejo["puuid"]} if viejo and viejo.get("puuid") else {}  # tus partidas del cliente quedan con el puuid de tu perfil
     if not viejo: perfil.write_text(json.dumps({"account": {"puuid": s["puuid"], "gameName": s.get("gameName"), "tagLine": s.get("tagLine")}, "league": []}, indent=1), encoding="utf-8")
     campeones, nuevas = nombres_campeones(), 0
-    for g in (((h.get("games") or {}).get("games")) or [])[:n]:
+    gs = (((h.get("games") or {}).get("games")) or [])[:n]
+    for g in ([{"gameId": gid}] if gid and all(x.get("gameId") != gid for x in gs) else []) + gs:
         gid = g.get("gameId"); f = raw / f"{plat}_{gid}.json"
         if not gid or f.exists(): continue
         game, tl = leer(f"/lol-match-history/v1/games/{gid}"), leer(f"/lol-match-history/v1/game-timelines/{gid}")
