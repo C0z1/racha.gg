@@ -87,6 +87,21 @@
   footer .legal{margin-top:16px;font-size:.82rem;opacity:.85}
   .pie-enlaces{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
   .cuenta{display:inline-block;min-width:2ch;text-align:right;font-variant-numeric:tabular-nums}
+  /* Mascota: solo PC grande, en los márgenes y detrás del contenido. --u = px por unidad del dibujo (120 de alto, 82 de ancho), como en js/mascota.js */
+  .escena,.solo-movil{display:none}
+  @media (min-width:1400px) and (pointer:fine){
+    .escena{display:block;position:fixed;inset:0;z-index:-1;pointer-events:none;--m:calc((100% - 1200px)/2 + 24px);--u:min(1.35px,(var(--m)/2 - 8px)/41,(78vh - 80px)/120)}
+    .escena svg{position:absolute;left:calc(100% - var(--m)/2 - 41*var(--u));bottom:22%;width:calc(82*var(--u));height:auto;overflow:visible}  /* --u lleva % del ancho: solo en propiedades horizontales */
+    .escena canvas{position:absolute;inset:0;width:100%;height:100%}
+    .escena-lista .escena svg{opacity:0}
+  }
+  /* Celular: Racha es para PC; el principal es mandarse el enlace y el .exe queda como secundario */
+  .solo-movil{margin:24px 0 0;color:var(--suave)}
+  .solo-movil .btn{display:block;margin-top:12px;border:0;font:inherit;font-weight:800;cursor:pointer}
+  @media (pointer:coarse) and (max-width:700px){
+    .solo-movil{display:block}
+    .hero .btn[data-descarga]{background:transparent;color:var(--rosa2);border:2px solid var(--rosa);margin-top:16px}
+  }
   /* Movimiento: solo transform, opacity y outline; nada para quien pide movimiento reducido */
   @media (prefers-reduced-motion:no-preference){
     html{scroll-behavior:smooth}
@@ -100,6 +115,57 @@
 </style>
 </head>
 <body>
+<div class="escena" aria-hidden="true">
+<svg viewBox="14 -6 82 120" focusable="false">
+<defs>
+<linearGradient id="Tm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C25A85"/><stop offset="1" stop-color="#5E2440"/></linearGradient>
+<linearGradient id="Pm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E8EEF5"/><stop offset=".55" stop-color="#AFC0D2"/><stop offset="1" stop-color="#6F8296"/></linearGradient>
+<linearGradient id="Cm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C98E5A"/><stop offset="1" stop-color="#8A5A30"/></linearGradient>
+<linearGradient id="Rm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE6F0"/><stop offset=".45" stop-color="#F28DB0"/><stop offset="1" stop-color="#A33A63"/></linearGradient>
+<linearGradient id="Lm" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#F28DB0" stop-opacity="0"/><stop offset=".65" stop-color="#F28DB0" stop-opacity="0"/><stop offset="1" stop-color="#F8C3D6" stop-opacity=".9"/></linearGradient>
+<radialGradient id="Am"><stop offset="0" stop-color="#F28DB0" stop-opacity=".9"/><stop offset=".5" stop-color="#F28DB0" stop-opacity=".3"/><stop offset="1" stop-color="#F28DB0" stop-opacity="0"/></radialGradient>
+<radialGradient id="Om" cx=".5" cy=".1" r=".7"><stop offset="0" stop-color="#000" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+</defs>
+<g>
+<path d="M30 112 L36 82 Q44 66 62 64 Q80 64 90 82 L96 112 L87 106 L80 114 L71 106 L62 114 L53 106 L45 114 L38 106 Z" fill="url(#Tm)" stroke="url(#Lm)" stroke-width="1.6"/>
+<path d="M38 106 L45 114 L53 106 L62 114 L71 106 L80 114 L87 106" stroke="url(#Cm)" stroke-width="3" fill="none" stroke-linejoin="round"/>
+<path d="M48 104 Q48 88 54 76 M76 104 Q78 90 72 76" stroke="#3A1426" stroke-opacity=".6" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M42 66 Q40 34 58 20 Q64 15 70 22 Q86 38 84 66 Z" fill="url(#Tm)" stroke="url(#Lm)" stroke-width="1.6"/>
+<path d="M58 20 Q64 15 70 22 Q66 26 62 24 Z" fill="#C25A85" opacity=".6"/>
+<path d="M50 34 l4 4 M54 34 l-4 4 M70 30 l4 4 M74 30 l-4 4" stroke="#3A1426" stroke-width="1.6" stroke-linecap="round"/>
+<ellipse cx="62" cy="46" rx="16" ry="7" fill="url(#Om)"/>
+<path d="M32 66 Q62 56 92 66 L94 76 Q62 66 30 76 Z" fill="url(#Cm)" stroke="#5E3A1C" stroke-width=".8"/>
+<path d="M36 70 q3 -3 5 0 M84 70 q-3 -3 -5 0" stroke="#5E3A1C" stroke-width="1.4" fill="none"/>
+<path d="M33 68 Q62 59 91 68" stroke="#FBF2F6" stroke-opacity=".25" stroke-width="1" fill="none"/>
+<path d="M47 44 L77 44 L79 60 L63 76 L45 60 Z" fill="url(#Pm)" stroke="#6F8296" stroke-width=".8"/>
+<path d="M47 44 L77 44 L76 48 L48 48 Z" fill="#FBF2F6" opacity=".3"/>
+<path d="M63 76 L79 60 L77 44" stroke="#000" stroke-opacity=".15" stroke-width="3" fill="none"/>
+<g><path d="M50 53 L60 57 L51 59 Z M76 53 L66 57 L75 59 Z" fill="#0B1630"/><path d="M52 55 l5 2 M74 55 l-5 2" stroke="#F28DB0" stroke-width="1" opacity=".9"/></g>
+<path d="M62 45 L60 50 L63 53" stroke="#6F8296" stroke-width=".9" fill="none"/>
+<path d="M62 74 L75 81 L75 95 L62 102 L49 95 L49 81 Z" fill="url(#Pm)" stroke="#6F8296" stroke-width="1"/>
+<path d="M62 74 L75 81 L62 88 L49 81 Z" fill="#FBF2F6" opacity=".22"/>
+</g>
+<g>
+<path d="M28 44 L35 112" stroke="url(#Cm)" stroke-width="6" stroke-linecap="round"/>
+<path d="M29 54 l5 -1 M30 62 l5 -1 M31 70 l5 -1" stroke="#5E3A1C" stroke-width="1.3"/>
+<path d="M20 36 L36 34 L38 44 L22 46 Z" fill="url(#Pm)" stroke="#6F8296" stroke-width=".8"/>
+<path d="M20 36 L24 30 L28 36 M28 35 L32 29 L36 34" fill="url(#Pm)" stroke="#6F8296" stroke-width=".8"/>
+<circle cx="33" cy="66" r="5" fill="#7A2E52"/>
+<circle cx="28" cy="18" r="11" fill="none" stroke="#FFE6F0" stroke-width="1.2"/>
+<circle cx="28" cy="18" r="22" fill="url(#Am)"/>
+<g>
+<path d="M28 -6 L40 4 L38 26 L28 34 L18 26 L16 4 Z" fill="url(#Rm)"/>
+<path d="M28 -6 L40 4 L28 10 L16 4 Z" fill="#FFE6F0" opacity=".9"/>
+<path d="M16 4 L28 10 L28 34 L18 26 Z" fill="#A33A63" opacity=".35"/>
+<path d="M28 10 L40 4 L38 26 L28 34 Z" fill="#FBF2F6" opacity=".12"/>
+<path d="M14 14 L18 10 L20 22 L16 26 Z" fill="url(#Rm)" opacity=".9"/>
+<path d="M40 12 L45 16 L42 26 L38 24 Z" fill="url(#Rm)" opacity=".85"/>
+<path d="M21 3 L25 -2" stroke="#FBF2F6" stroke-width="1.6" stroke-linecap="round" opacity=".95"/>
+</g>
+<g><circle cx="22" cy="12" r="1.4" fill="#FFE6F0"/><circle cx="34" cy="6" r="1.1" fill="#FBF2F6"/><circle cx="28" cy="22" r="1.2" fill="#FFE6F0"/><circle cx="38" cy="16" r="1" fill="#FBF2F6"/></g>
+</g>
+</svg>
+</div>
 
 <nav class="barra" aria-label="Principal">
   <a class="marca" href="#">Ra<span>cha</span></a>
@@ -110,6 +176,7 @@
   <div>
     <h1>Deja de adivinar por qué pierdes.</h1>
     <p class="tagline">Racha aprende de tus partidas qué te hace perder <em>a ti</em> y te lo recuerda en champ select, en partida y al terminar.</p>
+    <p class="solo-movil" aria-live="polite">Racha es para PC con Windows. <button type="button" class="btn" data-compartir>Enviarme el enlace</button></p>
     <a class="btn" data-descarga href="https://github.com/C0z1/racha.gg/releases/latest">Descargar gratis para Windows</a>
     <p class="nota">Windows 10 y 11<span data-version></span> · 16 MB · beta · ¿No baja? <a href="https://github.com/C0z1/racha.gg/releases/latest">Descárgala desde GitHub</a></p>
     <ul class="confianza">
@@ -233,11 +300,29 @@ addEventListener("hashchange", abrirPregunta); abrirPregunta();
 </script>
 
 <script>
+// Celular: «Enviarme el enlace» lo comparte o lo copia, para abrirlo en la PC
+document.querySelector("[data-compartir]").addEventListener("click", e => { const b = e.currentTarget, url = location.href.split("#")[0];
+  if (navigator.share) return navigator.share({title: "Racha", url}).catch(() => {});
+  navigator.clipboard && navigator.clipboard.writeText(url).then(() => { b.textContent = "Enlace copiado"; }, () => {}); });
+</script>
+<script>
+// Mascota 3D: solo PC grande (≥1400 px, pointer fine), sin movimiento reducido y con WebGL2. three (js/mascota.js) se baja al primer scroll;
+// el resto ve el póster quieto (≥1400) o nada, y no descarga nada.
+(() => {
+  if (!matchMedia("(min-width:1400px) and (pointer:fine) and (prefers-reduced-motion:no-preference)").matches) return;
+  const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return;
+  const ext = gl.getExtension("WEBGL_lose_context"); ext && ext.loseContext();
+  document.documentElement.classList.add("con-escena");
+  addEventListener("scroll", () => { const s = document.createElement("script"); s.type = "module"; s.src = "js/mascota.js"; document.head.append(s); }, {once: true, passive: true});
+})();
+</script>
+
+<script>
 // Entrada de tarjetas (40 ms entre una y otra, nunca más de 3 moviéndose) y cuenta de las cifras, una sola vez.
 // Solo oculta lo que aún no se ve: lo que ya estás leyendo no se mueve. Sin JS o con movimiento reducido, todo queda quieto y visible.
 (() => {
   if (!("IntersectionObserver" in window) || !matchMedia("(prefers-reduced-motion: no-preference)").matches) return;
-  const cola = [], LUGARES = 3, PASO = 40; let libres = LUGARES, ultimo = 0;
+  const cola = [], LUGARES = document.documentElement.classList.contains("con-escena") ? 2 : 3, PASO = 40; let libres = LUGARES, ultimo = 0;
   const correr = () => {
     while (cola.length && libres) {
       const espera = Math.max(0, ultimo + PASO - performance.now());
