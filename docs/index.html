@@ -37,11 +37,12 @@
     --suave:#D9B8C6;
   }
   *{box-sizing:border-box}
-  html{scroll-behavior:smooth;scroll-padding-top:72px}
+  html{scroll-padding-top:72px}
   body{margin:0;font-family:Mulish,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto);line-height:1.6}
   a{color:var(--rosa2)}
   a:hover{color:var(--rosa)}
-  a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--rosa);outline-offset:3px}
+  a,button,summary{outline:3px solid transparent;outline-offset:0}
+  a:focus-visible,button:focus-visible,summary:focus-visible{outline-color:var(--rosa);outline-offset:3px}
   .contenedor{max-width:960px;margin-inline:auto;padding-inline:24px}
   .marca{font-weight:800;letter-spacing:-.02em;margin:0;color:var(--texto);text-decoration:none}
   .marca span{color:var(--rosa)}
@@ -83,6 +84,17 @@
   footer{border-top:1px solid var(--borde);padding:32px 0;color:var(--suave);font-size:.9rem}
   footer .legal{margin-top:16px;font-size:.82rem;opacity:.85}
   .pie-enlaces{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+  .cuenta{display:inline-block;min-width:2ch;text-align:right;font-variant-numeric:tabular-nums}
+  /* Movimiento: solo transform, opacity y outline; nada para quien pide movimiento reducido */
+  @media (prefers-reduced-motion:no-preference){
+    html{scroll-behavior:smooth}
+    a,button,summary{transition:outline-offset .2s ease-out,outline-color .2s ease-out}
+    .btn{transition:transform .15s ease-out,outline-offset .2s ease-out,outline-color .2s ease-out}
+    .btn:active{transform:scale(.97)}
+    .tarjeta{transition:opacity .2s ease-out,transform .2s ease-out}
+    .tarjeta.oculta{opacity:0;transform:translateY(8px)}
+    @media (hover:hover){.tarjeta:hover{transform:translateY(-4px)}}
+  }
 </style>
 </head>
 <body>
@@ -127,7 +139,7 @@
     <h2>Qué es Racha</h2>
     <p>Las guías te dicen cómo juega un Challenger. <strong>Racha te dice qué te hace perder <em>a ti</em></strong>, y te lo recuerda justo cuando importa.</p>
     <div class="grid">
-      <div class="tarjeta"><h3>Hecho con tus partidas</h3><p>Nada de «farmea más». Racha descubre, por ejemplo, que con 2 muertes o menos del minuto 14 al 25 ganas el 65&nbsp;%, y con 3 o más, el 44&nbsp;%.</p></div>
+      <div class="tarjeta"><h3>Hecho con tus partidas</h3><p>Nada de «farmea más». Racha descubre, por ejemplo, que con 2 muertes o menos del minuto 14 al 25 ganas el <span class="cuenta" data-n="65">65</span>&nbsp;%, y con 3 o más, el <span class="cuenta" data-n="44">44</span>&nbsp;%.</p></div>
       <div class="tarjeta"><h3>Aparece sola</h3><p>Se abre cuando abres LoL y cambia de pantalla según la fase: champ select, partida y final. Cero clics.</p></div>
       <div class="tarjeta"><h3>Juego limpio</h3><p>Lee lo que el cliente ofrece a las apps. Lo único que escribe es la página de runas, al fijar campeón y solo en la página de Racha (se apaga en Ajustes). Sin timers enemigos: no juega por ti.</p><p><a href="https://github.com/C0z1/racha.gg/blob/main/docs/CUMPLIMIENTO.md">Qué lee y qué escribe, punto por punto</a></p></div>
       <div class="tarjeta"><h3>Tus datos son tuyos</h3><p>Tus partidas viven en tu computadora. La cuenta en la nube es opcional y la borras con un botón.</p></div>
@@ -219,5 +231,33 @@ const abrirPregunta = () => { const d = document.getElementById(location.hash.sl
 addEventListener("hashchange", abrirPregunta); abrirPregunta();
 </script>
 
+<script>
+// Entrada de tarjetas (40 ms entre una y otra, nunca más de 3 moviéndose) y cuenta de las cifras, una sola vez.
+// Solo oculta lo que aún no se ve: lo que ya estás leyendo no se mueve. Sin JS o con movimiento reducido, todo queda quieto y visible.
+(() => {
+  if (!("IntersectionObserver" in window) || !matchMedia("(prefers-reduced-motion: no-preference)").matches) return;
+  const cola = [], LUGARES = 3, PASO = 40; let libres = LUGARES, ultimo = 0;
+  const correr = () => {
+    while (cola.length && libres) {
+      const espera = Math.max(0, ultimo + PASO - performance.now());
+      if (espera) return setTimeout(correr, espera);
+      const [hacer, dura] = cola.shift(); libres--; ultimo = performance.now(); hacer();
+      setTimeout(() => { libres++; correr(); }, dura);
+    }
+  };
+  const contar = el => { const n = +el.dataset.n, t0 = performance.now();
+    const paso = t => { const k = Math.min(1, (t - t0) / 700); el.textContent = Math.round(n * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); };
+    requestAnimationFrame(paso); };
+  const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; io.unobserve(e.target);
+    cola.push([() => e.target.classList.remove("oculta"), 220]);
+    e.target.querySelectorAll(".cuenta").forEach(c => cola.push([() => contar(c), 750]));
+    correr(); }), {threshold: .15});
+  const preparar = () => document.querySelectorAll(".tarjeta").forEach(t => { if (t.getBoundingClientRect().top <= innerHeight) return;
+    t.style.transition = "none"; t.classList.add("oculta"); t.offsetHeight; t.style.transition = "";  // se oculta al instante, sin desvanecerse
+    t.querySelectorAll(".cuenta").forEach(c => { c.style.width = c.getBoundingClientRect().width + "px"; c.textContent = "0"; });  // ancho fijo: la frase no salta
+    io.observe(t); });
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(preparar);  // medir con Mulish ya cargada
+})();
+</script>
 </body>
 </html>
