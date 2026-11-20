@@ -2,19 +2,27 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<link rel="icon" type="image/png" href="img/icono.png">
+<link rel="icon" type="image/png" sizes="32x32" href="img/icono-32.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Racha — Tu coach de League of Legends, hecho con tus propias partidas</title>
 <meta name="description" content="Racha te dice qué te hace perder en League of Legends y te lo recuerda justo cuando importa. Gratis y de código abierto, hecho con tus propias partidas.">
 <meta name="theme-color" content="#24111A">
 <link rel="canonical" href="https://racha-gg.vercel.app/">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Racha">
 <meta property="og:locale" content="es_LA">
 <meta property="og:url" content="https://racha-gg.vercel.app/">
 <meta property="og:title" content="Racha: tu coach, hecho con tus propias partidas">
 <meta property="og:description" content="Deja de adivinar por qué pierdes. Gratis para Windows.">
-<meta property="og:image" content="https://racha-gg.vercel.app/img/readme/hero.png">
+<meta property="og:image" content="https://racha-gg.vercel.app/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Racha: deja de adivinar por qué pierdes. Coach gratis de League of Legends para Windows.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Racha: tu coach, hecho con tus propias partidas">
+<meta name="twitter:description" content="Deja de adivinar por qué pierdes. Gratis para Windows.">
+<meta name="twitter:image" content="https://racha-gg.vercel.app/img/og.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;800&display=swap" rel="stylesheet">
@@ -29,34 +37,49 @@
     --suave:#D9B8C6;
   }
   *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;scroll-padding-top:72px}
   body{margin:0;font-family:Mulish,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto);line-height:1.6}
   a{color:var(--rosa2)}
   a:hover{color:var(--rosa)}
-  a:focus-visible,button:focus-visible{outline:3px solid var(--rosa);outline-offset:2px;border-radius:6px}
-  .contenedor{max-width:960px;margin:0 auto;padding:0 24px}
-  header{padding:56px 0 24px;text-align:center}
-  .logo{font-size:3rem;font-weight:800;letter-spacing:-.02em;margin:0}
-  .logo span{color:var(--rosa)}
-  .tagline{color:var(--suave);font-size:1.25rem;max-width:640px;margin:12px auto 0}
+  a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--rosa);outline-offset:3px}
+  .contenedor{max-width:960px;margin-inline:auto;padding-inline:24px}
+  .marca{font-weight:800;letter-spacing:-.02em;margin:0;color:var(--texto);text-decoration:none}
+  .marca span{color:var(--rosa)}
+  .barra{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:10px 24px;background:color-mix(in srgb,var(--fondo) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--borde)}
+  .barra .marca{font-size:1.4rem}
+  .hero{display:grid;gap:32px;align-items:center;padding-block:48px 32px}
+  .hero .marca{font-size:1.6rem}
+  .hero h1{font-size:clamp(2.2rem,5vw,3.4rem);line-height:1.05;font-weight:800;letter-spacing:-.02em;margin:.25em 0 0}
+  .tagline{color:var(--suave);font-size:1.2rem;max-width:560px;margin:16px 0 0}
   .btn{display:inline-block;background:var(--rosa);color:var(--fondo);font-weight:800;text-decoration:none;padding:14px 28px;border-radius:999px;margin-top:24px}
   .btn:hover{background:var(--rosa2);color:var(--fondo)}
-  .nota{color:var(--suave);font-size:.9rem;margin:10px auto 0;max-width:520px}
+  .btn-chico{margin:0;padding:8px 18px}
+  .nota{color:var(--suave);font-size:.9rem;margin:10px 0 0;max-width:520px}
+  .confianza{display:flex;flex-wrap:wrap;gap:8px 18px;list-style:none;padding:0;margin:16px 0 0;color:var(--suave);font-size:.95rem}
+  .confianza li::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rosa);margin-right:8px;vertical-align:middle}
   img{max-width:100%;height:auto;border:1px solid var(--borde);border-radius:14px;display:block}
-  .hero-img{margin:32px auto 0;max-width:760px}
-  section{padding:40px 0}
+  .hero-img{max-width:min(100%,760px);margin-inline:auto;border:0;border-radius:18px}
+  @media (min-width:900px){.hero{grid-template-columns:1fr 1.15fr;max-width:1200px}}
+  section{padding-block:40px}
   h2{font-size:1.75rem;margin:0 0 16px;color:var(--rosa2)}
   .que-es p{max-width:720px}
-  .grid{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+  .grid{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
   .tarjeta{background:var(--fondo2);border:1px solid var(--borde);border-radius:14px;padding:20px}
   .tarjeta h3{margin:0 0 8px;color:var(--rosa)}
-  .captura{margin:0 0 40px}
-  .captura figure{margin:0}
-  .captura figcaption{color:var(--suave);margin-top:10px;font-size:.95rem}
+  .pasos{list-style:none;counter-reset:paso;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));padding:0;margin:0}
+  .pasos li{counter-increment:paso;display:flex;gap:12px;align-items:baseline;color:var(--suave)}
+  .pasos li::before{content:counter(paso);flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--rosa);color:var(--fondo);font-weight:800}
+  .pasos b{color:var(--texto)}
+  .fila{display:grid;gap:20px 40px;align-items:center;margin-block:48px}
+  .fila h3{margin:0 0 8px;color:var(--rosa);font-size:1.3rem}
+  .fila p{margin:0 0 8px;color:var(--suave)}
+  .fila>div:only-child{grid-column:1/-1;max-width:720px}
+  @media (min-width:800px){.fila{grid-template-columns:1fr 1.3fr}.fila:nth-of-type(even)>div{order:2}.fila.ancha{grid-template-columns:1fr}}
+  .fila img{margin-inline:auto}
   .faq details{background:var(--fondo2);border:1px solid var(--borde);border-radius:12px;padding:14px 18px;margin-bottom:12px}
   .faq summary{cursor:pointer;font-weight:600;color:var(--rosa2)}
   .faq p{margin:10px 0 0;color:var(--suave)}
-  .descarga{text-align:center;padding:48px 0}
+  .descarga{text-align:center;padding-block:48px}
   footer{border-top:1px solid var(--borde);padding:32px 0;color:var(--suave);font-size:.9rem}
   footer .legal{margin-top:16px;font-size:.82rem;opacity:.85}
   .pie-enlaces{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
@@ -64,52 +87,74 @@
 </head>
 <body>
 
-<header class="contenedor">
-  <h1 class="logo">Ra<span>cha</span></h1>
-  <p class="tagline">Deja de adivinar por qué pierdes. Tu coach de League of Legends, hecho con tus propias partidas.</p>
-  <a class="btn" data-descarga href="https://github.com/C0z1/racha.gg/releases/latest">Descargar para Windows (.exe, gratis)</a>
-  <p class="nota">Windows 10 y 11<span data-version></span>. Windows puede avisar porque la app aún no tiene firma: Más información → Ejecutar de todas formas.</p>
-  <img class="hero-img" width="1600" height="800" fetchpriority="high" src="img/readme/hero.png" alt="Racha. Deja de adivinar por qué pierdes. Tu coach de League of Legends, hecho con tus propias partidas.">
+<nav class="barra" aria-label="Principal">
+  <a class="marca" href="#">Ra<span>cha</span></a>
+  <a class="btn btn-chico" data-descarga href="https://github.com/C0z1/racha.gg/releases/latest">Descargar</a>
+</nav>
+
+<header class="contenedor hero">
+  <div>
+    <p class="marca">Ra<span>cha</span></p>
+    <h1>Deja de adivinar por qué pierdes.</h1>
+    <p class="tagline">Racha aprende de tus partidas qué te hace perder <em>a ti</em> y te lo recuerda en champ select, en partida y al terminar.</p>
+    <a class="btn" data-descarga href="https://github.com/C0z1/racha.gg/releases/latest">Descargar gratis para Windows</a>
+    <p class="nota">Windows 10 y 11<span data-version></span> · 16 MB · beta · ¿No baja? <a href="https://github.com/C0z1/racha.gg/releases/latest">Descárgala desde GitHub</a></p>
+    <ul class="confianza">
+      <li>Gratis y sin anuncios</li>
+      <li>Tus partidas viven en tu PC (la cuenta en la nube es opcional)</li>
+      <li>Sin Overwolf</li>
+    </ul>
+    <p class="nota">Windows puede avisar porque la app aún no tiene firma: <a href="#smartscreen">qué hacer</a>.</p>
+  </div>
+  <picture>
+    <source type="image/avif" srcset="img/readme/hero-app-800.avif 800w, img/readme/hero-app-1200.avif 1200w" sizes="(min-width:900px) 640px, 100vw">
+    <source type="image/webp" srcset="img/readme/hero-app-800.webp 800w, img/readme/hero-app-1200.webp 1200w" sizes="(min-width:900px) 640px, 100vw">
+    <img class="hero-img" src="img/readme/hero-app-1200.webp" width="1200" height="900" fetchpriority="high" alt="Racha en champ select: tu récord contra Viktor con Sylas, tu win rate, tu plan de 3 reglas y, encima, la franja Sombra de la partida con tu tope de muertes y tu CS contra tu sombra.">
+  </picture>
 </header>
 
 <main>
+  <section class="contenedor" aria-labelledby="t-pasos">
+    <h2 id="t-pasos">En tres pasos</h2>
+    <ol class="pasos">
+      <li><span><b>Descarga</b> e instala (16 MB).</span></li>
+      <li><span><b>Abre LoL.</b> Racha se abre sola.</span></li>
+      <li><span><b>Juega.</b> Cambia de pantalla según la fase: champ select, partida y final.</span></li>
+    </ol>
+  </section>
+
   <section class="contenedor que-es">
     <h2>Qué es Racha</h2>
     <p>Las guías te dicen cómo juega un Challenger. <strong>Racha te dice qué te hace perder <em>a ti</em></strong>, y te lo recuerda justo cuando importa.</p>
     <div class="grid">
       <div class="tarjeta"><h3>Hecho con tus partidas</h3><p>Nada de «farmea más». Racha descubre, por ejemplo, que con 2 muertes o menos del minuto 14 al 25 ganas el 65&nbsp;%, y con 3 o más, el 44&nbsp;%.</p></div>
       <div class="tarjeta"><h3>Aparece sola</h3><p>Se abre cuando abres LoL y cambia de pantalla según la fase: champ select, partida y final. Cero clics.</p></div>
-      <div class="tarjeta"><h3>Juego limpio</h3><p>Lee lo que el cliente ofrece a las apps. Lo único que escribe es la página de runas, al fijar campeón y solo en la página de Racha (se apaga en Ajustes). Sin timers enemigos: no juega por ti.</p></div>
+      <div class="tarjeta"><h3>Juego limpio</h3><p>Lee lo que el cliente ofrece a las apps. Lo único que escribe es la página de runas, al fijar campeón y solo en la página de Racha (se apaga en Ajustes). Sin timers enemigos: no juega por ti.</p><p><a href="https://github.com/C0z1/racha.gg/blob/main/docs/CUMPLIMIENTO.md">Qué lee y qué escribe, punto por punto</a></p></div>
       <div class="tarjeta"><h3>Tus datos son tuyos</h3><p>Tus partidas viven en tu computadora. La cuenta en la nube es opcional y la borras con un botón.</p></div>
     </div>
   </section>
 
-  <section class="contenedor">
-    <h2>Qué ves en cada momento</h2>
-    <div class="captura">
-      <figure>
-        <img loading="lazy" width="1600" height="1000" src="img/readme/champ-select.webp" alt="Champ select: tu récord contra el rival, tu win rate, tu plan con el campeón y la build.">
-        <figcaption>Tu récord contra ese rival, tu mejor pick y 3 reglas para esa partida. Al fijar, tus runas se ponen solas, con 2 o 3 estilos y su win rate.</figcaption>
-      </figure>
-    </div>
-    <div class="captura">
-      <figure>
-        <img loading="lazy" width="1600" height="1000" src="img/readme/sombra.webp" alt="La franja Sombra en partida y la vista Stats: tu oro, CS, peleas, visión y nivel contra tu sombra.">
-        <figcaption>En partida juegas contra tu sombra: la mediana de tus victorias, minuto a minuto. Con Ctrl+Shift+Z, Stats y Build.</figcaption>
-      </figure>
-    </div>
-    <div class="captura">
-      <figure>
-        <img loading="lazy" width="1600" height="1029" src="img/readme/tier.webp" alt="Tier list del parche por rol, con tus campeones y tu win rate.">
-        <figcaption>Tier list del parche con partidas Master+, y tus campeones marcados con tu win rate.</figcaption>
-      </figure>
-    </div>
-    <div class="captura">
-      <figure>
-        <img loading="lazy" width="1600" height="1000" src="img/readme/campeones.webp" alt="Tus campeones: win rate, últimas 5 partidas, mejores y peores matchups y reglas por campeón.">
-        <figcaption>Con quién ganas de verdad, contra quién sufres y qué cuidar con cada campeón.</figcaption>
-      </figure>
-    </div>
+  <section class="contenedor" aria-labelledby="t-momentos">
+    <h2 id="t-momentos">Antes, durante y después de cada partida</h2>
+    <article class="fila">
+      <div><h3>Champ select: tu plan para esta partida</h3><p>Tu récord contra ese rival, tu win rate con el campeón, el estimado contra él y 3 reglas para esa partida, sacadas de tus números.</p><p>Si aún no sabes contra quién vas, Racha espera a que tu rival de línea elija.</p></div>
+      <img loading="lazy" width="780" height="905" src="img/readme/champ-select-recorte.webp" alt="Champ select con Sylas contra Viktor: 3-2 contra él, 55 % en 108 partidas y tu plan de 3 reglas, como «2 muertes o menos del 14 al 25: cumpliéndola ganas 65 %».">
+    </article>
+    <article class="fila">
+      <div><h3>Runas solas al fijar</h3><p>Al fijar tu campeón, Racha pone sus runas una vez: el estilo que usaste la última vez o el de mejor win rate. Ves 2 o 3 estilos con su win rate y sus partidas para cambiar con un clic.</p><p>Solo usa la página de Racha o un espacio libre, nunca la tuya, y si ya cambiaste tus runas no toca nada. Se apaga en Ajustes.</p></div>
+    </article>
+    <article class="fila ancha">
+      <div><h3>En partida: juegas contra tu sombra</h3><p>Tu sombra es la mediana de tus victorias con ese campeón, minuto a minuto: tu tope de muertes, tu CS (desde el 14, tus peleas) contra tu sombra y tus 4 marcas. Habla 3 veces por partida como mucho y nunca en una pelea.</p><p>Con <b>Ctrl+Shift+Z</b>: <b>Stats</b>, tu oro, CS, peleas y visión por minuto y tu nivel contra tu sombra; y <b>Build</b>, tu core con lo comprado apagado y lo que sigue marcado.</p></div>
+      <img loading="lazy" width="1480" height="405" src="img/readme/sombra-recorte.webp" alt="La franja Sombra: 0 de 2 muertes de tope, 10 de CS bajo tu sombra y tus marcas; al lado, Stats con tu oro, CS, peleas, visión y nivel contra tu sombra.">
+    </article>
+    <article class="fila">
+      <div><h3>Al terminar: tu partida y lo que repites</h3><p>Qué hiciste bien y qué no, con el minuto de cada muerte y de cada error, por qué importa con tus propias partidas del rol y un foco para la próxima. Sale al instante, sin esperar a Riot.</p><p>Y los errores que repites, con el minuto exacto para buscarlos en el replay.</p></div>
+      <img loading="lazy" width="760" height="710" src="img/readme/errores-recorte.webp" alt="Lo que se repite en tus últimas 20 partidas: muertes del 14 al 25 sin nada a cambio en 13 de 20, qué probar y el minuto de cada una contra cada rival.">
+    </article>
+    <article class="fila">
+      <div><h3>Tier list del parche</h3><p>Por rol, los campeones S, A y B del último parche, con partidas Master+ de LAN, KR y EUW. Flechas si suben o bajan y tus campeones marcados con tu win rate.</p><p>Siempre dice de qué parche y cuántas partidas son.</p></div>
+      <img loading="lazy" width="545" height="550" src="img/readme/tier-recorte.webp" alt="Tu pool en mid dentro de la tier list: cada campeón con su tier y tu win rate, como Yone tier A, tú 60 % en 87 partidas.">
+    </article>
   </section>
 
   <section class="contenedor faq">
@@ -126,9 +171,17 @@
       <summary>¿Funciona en mi servidor?</summary>
       <p>Sí: LAN, LAS, NA, EUW, KR y el resto de servidores de Riot.</p>
     </details>
-    <details>
+    <details id="smartscreen">
       <summary>Windows dice «Windows protegió su PC». ¿Es seguro?</summary>
       <p>Pasa con las apps nuevas que todavía no tienen firma digital. Dale a Más información → Ejecutar de todas formas. El código está publicado, a la vista de todos.</p>
+    </details>
+    <details>
+      <summary>¿Qué datos guarda?</summary>
+      <p>Tus partidas y tus ajustes viven en tu computadora. Si activas la cuenta en la nube, guarda tu Riot ID, tus ajustes y un resumen de tus partidas (no la partida completa); los borras con un botón. Nada de MMR ni ELO. Los detalles están en la <a href="privacidad.html">política de privacidad</a>.</p>
+    </details>
+    <details>
+      <summary>¿Es beta?</summary>
+      <p>Sí. Se actualiza sola, nunca a mitad de partida, y comprueba que el instalador sea el original.</p>
     </details>
   </section>
 
@@ -142,6 +195,7 @@
     <nav class="pie-enlaces" aria-label="Legal">
       <a href="privacidad.html">Política de privacidad</a>
       <a href="terminos.html">Términos de uso</a>
+      <a href="https://github.com/C0z1/racha.gg/blob/main/CHANGELOG.md">Novedades</a>
       <a href="https://github.com/C0z1/racha.gg">Código fuente</a>
     </nav>
     <p class="legal">Racha isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
@@ -158,6 +212,11 @@
     .then(r => { r = {tag_name: r.tag_name, assets: r.assets.map(a => ({name: a.name, browser_download_url: a.browser_download_url}))};
       try { localStorage.setItem("racha-release", JSON.stringify({t: Date.now(), r})); } catch (e) {} poner(r); }).catch(() => {});
 })();
+</script>
+<script>
+// «qué hacer» abre la pregunta de SmartScreen: un enlace a un <details> cerrado no lo abre solo
+const abrirPregunta = () => { const d = document.getElementById(location.hash.slice(1)); if (d && d.tagName === "DETAILS") d.open = true; };
+addEventListener("hashchange", abrirPregunta); abrirPregunta();
 </script>
 
 </body>
