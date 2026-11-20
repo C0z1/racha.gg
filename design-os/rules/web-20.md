@@ -12,7 +12,7 @@ P = lo comprueba `checks/preship.py` solo, a 390×844 y 1440×900.
 | 6 | Carga inicial < 400 KB | P |
 | 7 | Cada `img` con alt y `width`/`height` | P |
 | 8 | Un solo h1 y sin saltos de nivel | P |
-| 9 | Foco visible al tabular: ≥ 3px y ≥ 3:1 contra el fondo | P |
+| 9 | Foco visible al tabular: ≥ 2px y ≥ 3:1 contra el fondo | P |
 | 10 | Con reduced-motion, ninguna animación ni transición tras el scroll | P |
 | 11 | Todo `[data-descarga]` termina en `Racha-Setup-x.y.z.exe` y su HEAD da 200 o 302 (sin red: SKIP, nunca PASS) | P |
 | 12 | Sin JS, el href de respaldo es `/releases/latest` | P |

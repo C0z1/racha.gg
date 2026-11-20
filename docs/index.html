@@ -40,8 +40,10 @@
   body{margin:0;font-family:Mulish,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto);line-height:1.6}
   a{color:var(--rosa2)}
   a:hover{color:var(--rosa)}
-  a,button,summary{outline:3px solid transparent;outline-offset:0}
-  a:focus-visible,button:focus-visible,summary:focus-visible{outline-color:var(--rosa);outline-offset:3px}
+  :root{--ease-out:cubic-bezier(.2,.7,.2,1);--t-fast:180ms;--t-med:260ms}
+  a,button,summary{outline:2px solid transparent;outline-offset:0}
+  a:focus-visible,button:focus-visible,summary:focus-visible{outline-color:currentColor;outline-offset:3px}
+  .btn:focus-visible{outline-color:var(--rosa)}  /* el texto del botón es oscuro: un anillo de ese color no se vería sobre el fondo */
   .contenedor{max-width:960px;margin-inline:auto;padding-inline:24px}
   .marca{font-weight:800;letter-spacing:-.02em;margin:0;color:var(--texto);text-decoration:none}
   .marca span{color:var(--rosa)}
@@ -88,12 +90,12 @@
   /* Movimiento: solo transform, opacity y outline; nada para quien pide movimiento reducido */
   @media (prefers-reduced-motion:no-preference){
     html{scroll-behavior:smooth}
-    a,button,summary{transition:outline-offset .2s ease-out,outline-color .2s ease-out}
-    .btn{transition:transform .15s ease-out,outline-offset .2s ease-out,outline-color .2s ease-out}
+    a,button,summary{transition:outline-offset var(--t-fast) var(--ease-out),outline-color var(--t-fast) var(--ease-out)}
+    .btn{transition:transform var(--t-fast) var(--ease-out),outline-offset var(--t-fast) var(--ease-out),outline-color var(--t-fast) var(--ease-out)}
     .btn:active{transform:scale(.97)}
-    .tarjeta{transition:opacity .2s ease-out,transform .2s ease-out}
+    .tarjeta{transition:opacity var(--t-med) var(--ease-out),transform var(--t-med) var(--ease-out),box-shadow var(--t-med) var(--ease-out)}
     .tarjeta.oculta{opacity:0;transform:translateY(8px)}
-    @media (hover:hover){.tarjeta:hover{transform:translateY(-4px)}}
+    @media (hover:hover){.tarjeta:hover{transform:translateY(-4px);box-shadow:0 14px 30px -12px rgb(0 0 0 / .25)}}
   }
 </style>
 </head>
@@ -248,7 +250,7 @@ addEventListener("hashchange", abrirPregunta); abrirPregunta();
     const paso = t => { const k = Math.min(1, (t - t0) / 700); el.textContent = Math.round(n * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); };
     requestAnimationFrame(paso); };
   const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; io.unobserve(e.target);
-    cola.push([() => e.target.classList.remove("oculta"), 220]);
+    cola.push([() => e.target.classList.remove("oculta"), 280]);
     e.target.querySelectorAll(".cuenta").forEach(c => cola.push([() => contar(c), 750]));
     correr(); }), {threshold: .15});
   const preparar = () => document.querySelectorAll(".tarjeta").forEach(t => { if (t.getBoundingClientRect().top <= innerHeight) return;

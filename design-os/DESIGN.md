@@ -7,6 +7,7 @@ colors:
   fondo2: "#2E1622"       # tarjetas, details
   borde: "#4A2436"        # bordes de 1px, solo decorativo
   rosa: "#F28DB0"         # EL acento: botón, marca, viñetas, foco (= app --acc = franja ROSA)
+  sombra: "#000000"       # solo la sombra de la tarjeta al pasar el mouse, al 25 % (usuario, 20-nov-2026)
   rosa2: "#F8C3D6"        # tinte del acento: enlaces, h2, hover del botón (= app --acc2, overlay.py L11 ROSA2)
   texto: "#FBF2F6"        # texto principal de la portada
   suave: "#D9B8C6"        # texto secundario, 9.9:1 sobre fondo
@@ -44,7 +45,7 @@ components:
   tarjeta: {bg: "{colors.fondo2}", border: "1px {colors.borde}", radius: "{rounded.tarjeta}", padding: 20px}
   faq: {bg: "{colors.fondo2}", border: "1px {colors.borde}", radius: "{rounded.faq}", padding: "14px 18px", summary: "{colors.rosa2}"}
   barra: {position: sticky, padding: "10px 24px", border-bottom: "1px {colors.borde}"}
-  foco: {outline: "3px {colors.rosa}", offset: 3px}
+  foco: {outline: "2px currentColor; en botones {colors.rosa}", offset: 3px}
   vineta-confianza: {size: "{rounded.vineta}", color: "{colors.rosa}"}
 ---
 
@@ -80,7 +81,7 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 ## Elevation & Depth
 - Es plana. La profundidad viene del paso `fondo` → `fondo2` más un borde de 1px en `borde`.
 - La única excepción es la barra fija, con `color-mix` de `fondo` al 88 % y `blur(8px)`. Se mide con preship: si empeora el LCP, el CLS o el contraste, va con fondo sólido.
-- No se usan sombras en la UI de la página. Las sombras de `hero-app` vienen horneadas en la composición.
+- Una sola sombra: la de la tarjeta al pasar el mouse, `0 14px 30px -12px rgb(0 0 0 / .25)` (decisión del usuario, 20-nov-2026). Fuera de eso, sin sombras; las de `hero-app` vienen horneadas en la composición.
 
 ## Shapes
 - La píldora (999px) es solo para botones. Radios de 18 (hero), 14 (tarjeta) y 12 (FAQ).
@@ -93,14 +94,14 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 - **Tarjeta**: fondo `fondo2`, borde de 1px, radio 14 y padding de 20.
 - **FAQ**: `details` con fondo `fondo2`, radio 12, padding de 14px 18px y `summary` en `rosa2`.
 - **Barra**: sticky, padding de 10px 24px y borde inferior de 1px.
-- **Foco**: outline de 3px en `rosa`, offset de 3px, en `a`, `button` y `summary`.
+- **Foco**: outline de 2px del color del texto (`currentColor`), offset de 3px, en `a`, `button` y `summary`. En `.btn` es `rosa`, porque su texto es `fondo` y el anillo no se vería. Entra en 180 ms.
 - **Viñeta de confianza**: punto de 8px en `rosa`, nunca un emoji ni un ícono.
 - Todo `[data-descarga]` apunta a `/releases/latest` en el HTML; el JS lo cambia al `.exe`. La regex `^Racha-Setup-[\d.]+\.exe$` no se toca.
 
 ## Do's and Don'ts
 - Do: escribir cada dato con su base y su parche o número de partidas («55 % en 108 partidas»).
 - Do: usar capturas reales de la app, en AVIF o WebP, con `width`/`height` y `loading="lazy"` salvo el LCP.
-- Do: animar solo `transform`, `opacity` y el outline del foco, en 150 a 700 ms, y nada con `prefers-reduced-motion`.
+- Do: animar solo `transform`, `opacity`, el outline del foco y la sombra de la tarjeta, con `cubic-bezier(.2,.7,.2,1)` en 180 ms (botón, foco) o 260 ms (tarjeta), la cuenta en 700 ms, y nada con `prefers-reduced-motion`.
 - Don't: decir «aprobada por Riot» ni «Riot Approved». Fuente: CUMPLIMIENTO L19 (preguntas abiertas con Riot).
 - Don't: poner contadores de usuarios o descargas ni prueba social inventada. Fuente: portada-propuesta §1 (1 estrella y 0 descargas en la API).
 - Don't: dar órdenes de juego. Fuente: CUMPLIMIENTO L8 e `IMPERATIVOS` en herramientas/replay.py L112.

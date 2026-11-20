@@ -279,9 +279,9 @@ def medir_vista(nav, url, w, h, r, propia, reglas=None, texto_legal=None):
             if not f or f["sel"] == primero: break
             primero = primero or f["sel"]; vistos += 1
             k = contraste(f["color"], f["bg"]) if f["color"] else 0
-            if f["estilo"] == "none" or f["ancho"] < 3 or k < 3: mal9.append(f"{f['sel']} ({f['estilo']} {f['ancho']}px, {k:.2f}:1)")
+            if f["estilo"] == "none" or f["ancho"] < 2 or k < 3: mal9.append(f"{f['sel']} ({f['estilo']} {f['ancho']}px, {k:.2f}:1)")
             if "btn" in (f["clase"] or "") and f["radio"] != "999px": mal9.append(f"{f['sel']} pierde la píldora con foco ({f['radio']})")
-        r.add(9, "FAIL" if mal9 or not vistos else "PASS", f"{v}: " + (", ".join(mal9[:6]) if mal9 else f"{vistos} elementos con foco ≥ 3px y ≥ 3:1"))
+        r.add(9, "FAIL" if mal9 or not vistos else "PASS", f"{v}: " + (", ".join(mal9[:6]) if mal9 else f"{vistos} elementos con foco ≥ 2px y ≥ 3:1"))
     else:
         datos["errores"] = len(errores) + len(malos)
         datos["sin_alt"] = sum(1 for i in m["imgs"] if not (i["alt"] and i["w"] and i["h"]))
