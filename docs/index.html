@@ -5,7 +5,16 @@
 <link rel="icon" type="image/png" href="img/icono.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Racha — Tu coach de League of Legends, hecho con tus propias partidas</title>
-<meta name="description" content="Racha te dice qué te hace perder en League of Legends y te lo recuerda justo cuando importa. Gratis, de código abierto y solo lee datos de tu cliente.">
+<meta name="description" content="Racha te dice qué te hace perder en League of Legends y te lo recuerda justo cuando importa. Gratis y de código abierto, hecho con tus propias partidas.">
+<meta name="theme-color" content="#24111A">
+<link rel="canonical" href="__URL__/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_LA">
+<meta property="og:url" content="__URL__/">
+<meta property="og:title" content="Racha: tu coach, hecho con tus propias partidas">
+<meta property="og:description" content="Deja de adivinar por qué pierdes. Gratis para Windows.">
+<meta property="og:image" content="__URL__/img/readme/hero.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;800&display=swap" rel="stylesheet">
@@ -32,6 +41,7 @@
   .tagline{color:var(--suave);font-size:1.25rem;max-width:640px;margin:12px auto 0}
   .btn{display:inline-block;background:var(--rosa);color:var(--fondo);font-weight:800;text-decoration:none;padding:14px 28px;border-radius:999px;margin-top:24px}
   .btn:hover{background:var(--rosa2);color:var(--fondo)}
+  .nota{color:var(--suave);font-size:.9rem;margin:10px auto 0;max-width:520px}
   img{max-width:100%;height:auto;border:1px solid var(--borde);border-radius:14px;display:block}
   .hero-img{margin:32px auto 0;max-width:760px}
   section{padding:40px 0}
@@ -57,8 +67,9 @@
 <header class="contenedor">
   <h1 class="logo">Ra<span>cha</span></h1>
   <p class="tagline">Deja de adivinar por qué pierdes. Tu coach de League of Legends, hecho con tus propias partidas.</p>
-  <a class="btn" href="https://github.com/C0z1/racha.gg/releases/latest">Descargar para Windows (gratis)</a>
-  <img class="hero-img" src="img/readme/hero.png" alt="Racha. Deja de adivinar por qué pierdes. Tu coach de League of Legends, hecho con tus propias partidas.">
+  <a class="btn" data-descarga href="https://github.com/C0z1/racha.gg/releases/latest">Descargar para Windows (.exe, gratis)</a>
+  <p class="nota">Windows 10 y 11<span data-version></span>. Windows puede avisar porque la app aún no tiene firma: Más información → Ejecutar de todas formas.</p>
+  <img class="hero-img" width="1600" height="800" fetchpriority="high" src="img/readme/hero.png" alt="Racha. Deja de adivinar por qué pierdes. Tu coach de League of Legends, hecho con tus propias partidas.">
 </header>
 
 <main>
@@ -66,9 +77,9 @@
     <h2>Qué es Racha</h2>
     <p>Las guías te dicen cómo juega un Challenger. <strong>Racha te dice qué te hace perder <em>a ti</em></strong>, y te lo recuerda justo cuando importa.</p>
     <div class="grid">
-      <div class="tarjeta"><h3>Hecho con tus partidas</h3><p>Nada de «farmea más». Racha descubre, por ejemplo, que con 2 muertes o menos del minuto 14 al 25 ganas el 68&nbsp;%, y con 3 o más, el 43&nbsp;%.</p></div>
+      <div class="tarjeta"><h3>Hecho con tus partidas</h3><p>Nada de «farmea más». Racha descubre, por ejemplo, que con 2 muertes o menos del minuto 14 al 25 ganas el 65&nbsp;%, y con 3 o más, el 44&nbsp;%.</p></div>
       <div class="tarjeta"><h3>Aparece sola</h3><p>Se abre cuando abres LoL y cambia de pantalla según la fase: champ select, partida y final. Cero clics.</p></div>
-      <div class="tarjeta"><h3>Juego limpio</h3><p>Solo lee lo que el cliente ofrece a las apps. No juega por ti, no toca el juego y no da ventajas injustas.</p></div>
+      <div class="tarjeta"><h3>Juego limpio</h3><p>Lee lo que el cliente ofrece a las apps. Lo único que escribe es la página de runas, al fijar campeón y solo en la página de Racha (se apaga en Ajustes). Sin timers enemigos: no juega por ti.</p></div>
       <div class="tarjeta"><h3>Tus datos son tuyos</h3><p>Tus partidas viven en tu computadora. La cuenta en la nube es opcional y la borras con un botón.</p></div>
     </div>
   </section>
@@ -77,19 +88,25 @@
     <h2>Qué ves en cada momento</h2>
     <div class="captura">
       <figure>
-        <img src="img/readme/champ-select.webp" alt="Champ select: tu récord contra el rival, tu win rate, tu plan con el campeón y la build.">
-        <figcaption>Tu récord contra ese rival, tu mejor pick y 3 reglas para esa partida, antes de que cargue la pantalla.</figcaption>
+        <img loading="lazy" width="1600" height="1000" src="img/readme/champ-select.webp" alt="Champ select: tu récord contra el rival, tu win rate, tu plan con el campeón y la build.">
+        <figcaption>Tu récord contra ese rival, tu mejor pick y 3 reglas para esa partida. Al fijar, tus runas se ponen solas, con 2 o 3 estilos y su win rate.</figcaption>
       </figure>
     </div>
     <div class="captura">
       <figure>
-        <img src="img/readme/en-vivo.webp" alt="En partida: nivel y CS contra tu rival, muertes desde el 14, tu regla de hoy, tu build, tu rival y los objetivos.">
-        <figcaption>Tu nivel y tus minions contra los de tu rival, sus ítems y cuánto falta para dragón y barón, sin salir del juego.</figcaption>
+        <img loading="lazy" width="1600" height="1000" src="img/readme/sombra.webp" alt="La franja Sombra en partida y la vista Stats: tu oro, CS, peleas, visión y nivel contra tu sombra.">
+        <figcaption>En partida juegas contra tu sombra: la mediana de tus victorias, minuto a minuto. Con Ctrl+Shift+Z, Stats y Build.</figcaption>
       </figure>
     </div>
     <div class="captura">
       <figure>
-        <img src="img/readme/campeones.webp" alt="Tus campeones: win rate, últimas 5 partidas, mejores y peores matchups y reglas por campeón.">
+        <img loading="lazy" width="1600" height="1029" src="img/readme/tier.webp" alt="Tier list del parche por rol, con tus campeones y tu win rate.">
+        <figcaption>Tier list del parche con partidas Master+, y tus campeones marcados con tu win rate.</figcaption>
+      </figure>
+    </div>
+    <div class="captura">
+      <figure>
+        <img loading="lazy" width="1600" height="1000" src="img/readme/campeones.webp" alt="Tus campeones: win rate, últimas 5 partidas, mejores y peores matchups y reglas por campeón.">
         <figcaption>Con quién ganas de verdad, contra quién sufres y qué cuidar con cada campeón.</figcaption>
       </figure>
     </div>
@@ -99,7 +116,7 @@
     <h2>Preguntas frecuentes</h2>
     <details>
       <summary>¿Me pueden banear por usarla?</summary>
-      <p>Racha solo lee la información que el propio cliente de LoL ofrece a las apps, la misma que ya ves en tu pantalla. No pickea, no banea, no acepta partidas y no modifica el juego.</p>
+      <p>Racha lee la información que el propio cliente de LoL ofrece a las apps, la misma que ya ves en tu pantalla. Lo único que escribe es tu página de runas. No pickea, no banea, no acepta partidas y no modifica el juego.</p>
     </details>
     <details>
       <summary>¿Cuánto cuesta?</summary>
@@ -116,7 +133,7 @@
   </section>
 
   <section class="descarga">
-    <a class="btn" href="https://github.com/C0z1/racha.gg/releases/latest">Descargar Racha</a>
+    <a class="btn" data-descarga href="https://github.com/C0z1/racha.gg/releases/latest">Descargar Racha (.exe)</a>
   </section>
 </main>
 
@@ -130,6 +147,18 @@
     <p class="legal">Racha isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
   </div>
 </footer>
+<script>
+// El botón baja el instalador más reciente directo; sin JS o si GitHub no responde, queda el enlace a la página del release.
+(() => {
+  const poner = r => { const a = (r.assets || []).find(a => /^Racha-Setup-[\d.]+\.exe$/.test(a.name)); if (!a) return;
+    document.querySelectorAll("[data-descarga]").forEach(b => b.href = a.browser_download_url);
+    document.querySelectorAll("[data-version]").forEach(v => v.textContent = " · versión " + r.tag_name.replace(/^v/, "")); };
+  try { const c = JSON.parse(localStorage.getItem("racha-release") || "null"); if (c && Date.now() - c.t < 36e5) return poner(c.r); } catch (e) {}
+  fetch("https://api.github.com/repos/C0z1/racha.gg/releases/latest").then(r => r.ok ? r.json() : Promise.reject())
+    .then(r => { r = {tag_name: r.tag_name, assets: r.assets.map(a => ({name: a.name, browser_download_url: a.browser_download_url}))};
+      try { localStorage.setItem("racha-release", JSON.stringify({t: Date.now(), r})); } catch (e) {} poner(r); }).catch(() => {});
+})();
+</script>
 
 </body>
 </html>
