@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://c0z1.github.io/racha.gg/">Página del proyecto</a> ·
+  <a href="https://racha-gg.vercel.app">Página del proyecto</a> ·
   <a href="CHANGELOG.md">Novedades</a> ·
   <a href="https://c0z1.github.io/racha.gg/privacidad.html">Privacidad</a> ·
   <a href="https://c0z1.github.io/racha.gg/terminos.html">Términos</a>
