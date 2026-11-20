@@ -213,6 +213,7 @@ main>:nth-child(4),aside>:nth-child(4){animation-delay:.18s}main>:nth-child(5),a
 <button id="b-perfil" aria-label="Tu rendimiento" onclick="ver('perfil')"></button>
 <button id="b-partidas" aria-label="Tus partidas" onclick="ver('partidas')"></button>
 <button id="b-campeones" aria-label="Campeones" onclick="ver('campeones')"></button>
+<button id="b-tier" aria-label="Tier list por parche" onclick="ver('tier')"></button>
 <button id="b-errores" aria-label="Errores" onclick="ver('errores')"></button>
 <button id="b-ajustes" class="abajo" aria-label="Ajustes" onclick="ver('ajustes')"></button>
 </nav>
@@ -751,6 +752,44 @@ function campeonesCliente(cl) {  // sin historial descargado: WR por campeón de
   <div class="card"><span class="sub">Pocas partidas: tómalo como pista. Tus matchups y reglas por campeón llegan con tu historial completo.</span></div>`, ""];
 }
 
+let TIER = null, TIER_err = false, cargandoTier = false, tierRol = null;
+async function cargarTier() {  // la tier list una vez por sesión (builds.json no cambia con la ventana abierta)
+  cargandoTier = true;
+  try { const r = await fetch("/api/tier"); if (!r.ok) throw 0; TIER = await r.json(); TIER_err = false; } catch (e) { TIER_err = true; }
+  cargandoTier = false; v = -1; tick();
+}
+const TORD = {S: 3, A: 2, B: 1, "-": 0}, nomC = c => String(c || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+function tierCab(b, actual) {  // obligatoria: de qué parche y cuántas partidas son, y si el parche actual aún no tiene datos
+  if (!b) return "Aún no hay tier list: llega con las builds Master+ del ladder.";
+  const dias = (Date.now() - new Date(b.fecha + "T12:00:00")) / 864e5;
+  return [`Parche ${b.parche}`, `${b.partidas} partidas Master+ (LAN, KR, EUW)`, `datos del ${b.fecha.split("-").reverse().join("-")}`,
+    ...(actual && actual !== b.parche ? [`el parche actual es ${actual}: aún sin datos`] : []), ...(dias > 14 ? ["datos viejos"] : [])].join(" · ");
+}
+function tierV(s) {  // Tier list por parche (Master+): por rol, S/A/B con flecha contra el parche anterior o NEW, y tu pool marcado
+  if (!TIER && !cargandoTier && !TIER_err) cargarTier();
+  const V = VS(s), roles = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
+  const rol = tierRol || (V && roles.includes(V.pos) ? V.pos : "MIDDLE"), b = TIER && TIER[rol];
+  const pool = ((V && V.campeones) || []).filter(x => x.pos === rol), mio = c => pool.find(x => nomC(x.champ) === nomC(c));
+  const tabs = `<span role="group" aria-label="Rol" style="display:flex;gap:8px;flex-wrap:wrap">${roles.map(r => `<button class="btn2" aria-pressed="${r === rol}" ${r === rol ? 'style="border-color:var(--rosa,#F28DB0)"' : ""} onclick="tierRol='${r}';v=-1;tick()">${ROL[r]}</button>`).join("")}</span>`;
+  const marca = c => c.antes == null ? `<span class="tag amber" style="align-self:auto">NEW</span>`
+    : TORD[c.t] > TORD[c.antes] ? `<b style="color:var(--teal)" role="img" aria-label="Sube desde ${c.antes === "-" ? "fuera de la lista" : c.antes}">▲</b>`
+    : TORD[c.t] < TORD[c.antes] ? `<b style="color:var(--red)" role="img" aria-label="Baja desde ${c.antes}">▼</b>` : "";
+  const fila = c => { const m = mio(c.c); return `<div class="filaV oscura" style="padding:6px 8px;${m ? "box-shadow:0 0 0 1px var(--acc) inset;border-radius:10px" : "background:none"}">
+    ${img("champion", c.c, "item", c.c)}<b style="flex:1">${esc(c.c)} ${marca(c)}</b>${m ? `<span class="sub" style="font-size:13px;color:var(--acc)">Tú: ${pct(m.wr)} (${m.n})</span>` : ""}
+    <b>${pct(c.wr)}</b><span class="sub" style="font-size:12px;width:120px;text-align:right">${c.n} partidas · ${(c.pr * 100).toFixed(1)}%</span></div>`; };
+  const cs = (b && b.campeones) || [];
+  const cuerpo = !TIER ? `<div class="card"><span class="sub">${TIER_err ? "No se pudo leer la tier list." : "Cargando…"}</span></div>`
+    : !b || !cs.length ? `<div class="card"><span class="sub">${esc(b && b.aviso || `Sin tier list de ${ROL[rol]} todavía.`)}</span></div>`
+    : ["S", "A", "B"].map(t => `<div class="card" style="gap:4px"><div class="cab2"><h2>${t}</h2><span class="sub" style="font-size:12px">WR · partidas · uso</span></div>${cs.filter(c => c.t === t).map(fila).join("")}</div>`).join("");
+  const main = `<div><h1>Tier list</h1><span class="sub">${esc(tierCab(b, TIER && TIER.actual))}</span></div>${tabs}${cuerpo}`;
+  const d = b && b.destacado, tier = c => (cs.find(x => nomC(x.c) === nomC(c)) || {}).t;
+  const aside = `${d ? `<div style="display:flex;gap:20px;align-items:center">${img("champion", d.c, "retrato2", d.c)}<div><span class="sub">Destacado</span><h2 style="font-size:24px">${esc(d.c)}</h2></div></div>
+    <div class="est"><span class="sub">${esc(d.texto)}</span></div>` : ""}
+  <div class="est" style="gap:8px"><span class="sub">Tu pool en ${esc(ROL[rol])}</span>${pool.length ? pool.map(x => `<div style="display:flex;align-items:center;gap:10px">${img("champion", x.champ, "item", x.champ)}<b style="flex:1">${esc(x.champ)}</b><span class="sub" style="font-size:13px">${tier(x.champ) ? "tier " + tier(x.champ) : "fuera de S, A y B"} · tú ${pct(x.wr)} (${x.n})</span></div>`).join("") : '<span class="sub">Sin campeones tuyos en este rol.</span>'}
+    <span class="sub" style="font-size:12px">El WR de cada campeón se acerca al promedio del rol cuando tiene pocas partidas: 40 al 60 % no gana a 400 al 55 %.</span></div>`;
+  return [main, aside];
+}
+
 function campeonesV(s) {  // Campeones_Vino: pool en tarjetas con anillo; panel con reglas y counters del elegido
   const cl = delCliente(s); if (cl) return campeonesCliente(cl);
   const V = VS(s); if (!V) return sinDatos("Campeones");
@@ -1240,7 +1279,7 @@ async function tick() {
       SIN_HIST = s.rendimiento ? "" : s.descarga || "";  // F12: el tope de muertes de tu coach en toda la app
       const vista = elegida || (s.fase === "ChampSelect" ? (s.draft ? "companion" : "draft") : EN_PARTIDA.includes(s.fase) || s.fin || s.revision ? "envivo" : "inicio");
       for (const b of VISTAS) { const e = document.getElementById("b-" + b); vista === b ? e.setAttribute("aria-current", "page") : e.removeAttribute("aria-current"); }
-      const [m, a] = vista === "inicio" ? inicio(s) : vista === "draft" ? draftV(s) : vista === "envivo" ? envivo(s) : vista === "campeones" ? campeonesV(s)
+      const [m, a] = vista === "inicio" ? inicio(s) : vista === "draft" ? draftV(s) : vista === "envivo" ? envivo(s) : vista === "campeones" ? campeonesV(s) : vista === "tier" ? tierV(s)
         : vista === "errores" ? erroresV(s) : vista === "ajustes" ? ajustesV(s) : vista === "companion" && !s.draft ? (s.previa ? champSelect({...s, draft: s.previa}) : draftV(s)) : vista === "perfil" ? perfil(s) : vista === "partidas" ? [partidas(s), ""] : s.draft ? champSelect(s) : [otraFase(s), ""];  // el último champ select se puede volver a ver en partida
       if (s.version && (VER0 ??= s.version) !== s.version) return location.reload();  // Racha se actualizó con la ventana abierta: la página nueva
       hablar(s); barraAct(s);
@@ -1266,7 +1305,7 @@ async function tick() {
       : `<h1>Racha</h1><div class="aviso red">Esta vista falló: ${esc(String(e && e.message || e))}. Prueba otra vista y repórtalo con este texto.</div>`;
   }
 }
-const VISTAS = ["inicio", "draft", "companion", "envivo", "perfil", "partidas", "campeones", "errores", "ajustes"];
+const VISTAS = ["inicio", "draft", "companion", "envivo", "perfil", "partidas", "campeones", "tier", "errores", "ajustes"];
 const NAV = {  // íconos de la barra lateral, tal cual Home_Vino (Inicio = logo: 28 px y rosa; el resto 22 px)
   inicio: ["Inicio", '<path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/>'],
   draft: ["Draft", '<path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><path d="M14.5 6.5L18 3h3v3l-3.5 3.5"/><path d="M5 14l4 4"/><path d="M7 17l-3 3"/><path d="M3 19l2 2"/>'],
@@ -1275,6 +1314,7 @@ const NAV = {  // íconos de la barra lateral, tal cual Home_Vino (Inicio = logo
   perfil: ["Perfil", '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>'],
   partidas: ["Partidas", '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'],
   campeones: ["Campeones", '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>'],
+  tier: ["Tier list", '<path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h6"/>'],
   errores: ["Errores", '<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>'],
   ajustes: ["Ajustes", '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>']};
 for (const [b, [t, p]] of Object.entries(NAV)) {

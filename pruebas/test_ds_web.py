@@ -84,6 +84,19 @@ class TestServidor(unittest.TestCase):
         code, _, _ = self.s.get("/img/champion/" + "a" * 41 + ".png")
         self.assertEqual(code, 404)
 
+    def test_api_tier(self):  # la tier list por rol de builds.json, con el parche actual de Data Dragon
+        import builds, tempfile
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(builds, "META", Path(d)), \
+                mock.patch.object(builds, "get", return_value=["16.23.1"]):
+            (Path(d) / "builds.json").write_text(json.dumps({"Tier|TOP": {"parche": "16.22", "campeones": []}, "Jax|TOP": {"n": 5}}), encoding="utf-8")
+            code, tipo, cuerpo = self.s.get("/api/tier")
+            self.assertEqual((code, json.loads(cuerpo)), (200, {"TOP": {"parche": "16.22", "campeones": []}, "actual": "16.23"}))
+            (Path(d) / "builds.json").unlink()
+            with mock.patch.object(builds, "get", side_effect=OSError):
+                self.assertEqual(json.loads(self.s.get("/api/tier")[2]), {"actual": None})  # sin datos ni red: la vista lo dice
+        _, _, html = self.s.get("/")
+        self.assertIn(b'id="b-tier" aria-label="Tier list por parche"', html)
+
     def test_boton_partidas_con_aria_label(self):  # iter 15 (b): el nav trae la vista Partidas etiquetada
         _, _, cuerpo = self.s.get("/")
         self.assertIn(b'id="b-partidas" aria-label="Tus partidas"', cuerpo)
