@@ -1,7 +1,7 @@
 """Fase 7 de Sombra: tus errores con un solo detector (timeline y en vivo), el plan de tu rol, las marcas personales, el panel
 al morir y el ciclo de corrección de errores."""
 import pathlib as _p, sys as _s; _s.path.insert(0, str(_p.Path(__file__).resolve().parent.parent / "scripts"))  # la app vive en scripts/
-import pathlib, tempfile, unittest
+import copy, pathlib, tempfile, unittest
 
 import ciclo, errores, guion, momentos as M, plan_rol
 
@@ -78,12 +78,19 @@ def foto(t, **k): return {"t": t, "nivel": 6, "nivel_rival": 6, "cs": 70, "items
 
 
 class Motor(unittest.TestCase):
+    def test_frases_caben_y_se_leen(self):
+        extremos = {"kp6": 1.0, "kp25": 1.0, "muertes6": 10, "muertes14": 10, "muertes14_25": 10, "cs10": 175, "dragones14": 4, "nivel3": -1.5, "nivel10": -1.5}
+        for k, v in extremos.items():
+            self.assertLessEqual(len("Tus victorias: " + plan_rol.frase(k, v)), M.RENGLON_MAX, k)
+            self.assertLessEqual(len("≈" + plan_rol.frase(k, v) + " · sin cumplir"), M.RENGLON_MAX, k)
+        self.assertEqual(plan_rol.frase("dragones14", 1), "1 dragón al 14"); self.assertEqual(plan_rol.frase("kp6", .25), "25% en kills al 6")
+
     def test_plan_y_fase(self):
         e, esc, n = M.paso(None, foto(361), G, 361)
-        self.assertEqual(esc["renglon"], "6–14 · CS al 10 · victorias 71")
+        self.assertEqual(esc["renglon"], "Tus victorias: 71 CS al 10")
         e, esc, n = M.paso(e, foto(601, cs=70), G, 601)
         self.assertIs(e["marcas"]["cs10"], True)  # 70 en vivo ≈ 75 reales ≥ 71
-        self.assertTrue(esc["renglon"].startswith("CS al 10: ≈75 · victorias 71"))
+        self.assertTrue(esc["renglon"].startswith("≈75 CS al 10 · cumplida"))
         self.assertEqual([x["motivo"] for x in n if x["clase"] == "sello"], [None, "otro sello"])  # abajo_6 evitado en la misma foto
         self.assertEqual([m["etq"] for m in esc["marcas"]], ["10", "6", "E1", "E2"])
 
@@ -94,6 +101,8 @@ class Motor(unittest.TestCase):
         self.assertIs(e["marcas"]["abajo_6"], False)
         self.assertEqual([(x["clase"], x["mostrado"]) for x in n], [("error", False), ("sello", False)])
         self.assertIsNone(esc["renglon"])  # sin interrumpir: el punto se pone rojo y ya
+        e2, _, n2 = M.paso(copy.deepcopy(e), foto(1561, muerto=True), G, 1561)
+        self.assertNotIn("sin_objetivo", e2["marcas"]); self.assertFalse([x for x in n2 if "evitado" in (x["dato"] or "")])  # muerto: el «evitado» espera
         e, esc, n = M.paso(e, foto(1561), G, 1561)
         self.assertIs(e["marcas"]["sin_objetivo"], True); self.assertEqual(esc["renglon"], "Muerte sin objetivo: evitado")
 
@@ -119,7 +128,7 @@ class Motor(unittest.TestCase):
 
     def test_carta_con_plan_y_errores(self):
         c = M.carta_carga({**G, "matchup": {"v": 4, "n": 7}, "regla": {"tope": 2, "racha": 2}})
-        self.assertEqual(c[-2:], ["Tu plan: CS al 10 71", "Vigilas: E1 muerte sin objetivo · E2 nivel abajo al 6"])
+        self.assertEqual(c[-2:], ["Tus victorias: 71 CS al 10", "Vigilas: E1 muerte sin objetivo · E2 nivel abajo al 6"])
         import lienzo
         self.assertEqual(lienzo.pintar_carta(c).size, (lienzo.CARTA_W, lienzo.CARTA_H + lienzo.CARTA_RENGLON))
 

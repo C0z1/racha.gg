@@ -65,6 +65,17 @@ def plan(ss, pos):
 def valor(k, v): return _coma(MEDIDAS[k][5].format(v))
 
 
+FRASE = {"muertes6": "{} muertes al 6", "kp6": "{} en kills al 6", "nivel3": "nivel {} al 3", "cs10": "{} CS al 10",
+         "muertes14": "{} muertes al 14", "dragones14": "{} dragones al 14", "nivel10": "nivel {} al 10",
+         "muertes14_25": "{} muertes 14–25", "kp25": "{} en kills al 25"}
+
+
+def frase(k, v):
+    """El valor con su unidad, para leerse solo: «1 dragón al 14», «25% en kills al 6»."""
+    t = FRASE[k].format(valor(k, v))
+    return t.replace("muertes", "muerte").replace("dragones", "dragón") if v == 1 else t
+
+
 def dato(k, x):
     """«CS al 10: victorias 71 · derrotas 68», como dato."""
     return f"{MEDIDAS[k][4]}: victorias {valor(k, x['v'])} · derrotas {valor(k, x['d'])}"

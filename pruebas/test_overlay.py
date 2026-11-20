@@ -136,6 +136,17 @@ class TestPintar(unittest.TestCase):
         self.assertEqual(sum(overlay.SACUDIDA), -1 + 0)  # termina en 0 y casi simétrica: la ventana vuelve a su lugar
         self.assertEqual(overlay.SACUDIDA[-1], 0)
 
+    def test_retrato_reintenta_el_icono(self):  # si ddragon falla una vez, la inicial no se queda toda la partida
+        try: from PIL import Image
+        except ImportError: self.skipTest("sin Pillow")
+        import io
+        png = io.BytesIO(); Image.new("RGBA", (8, 8), (0, 200, 0, 255)).save(png, "PNG")
+        hay = [False]
+        icono = lambda tipo, nombre: png.getvalue() if hay[0] else None
+        a = overlay._retrato("Reintento", 20, icono); hay[0] = True; b = overlay._retrato("Reintento", 20, icono)
+        self.assertNotEqual(a.getpixel((10, 10)), b.getpixel((10, 10)))
+        self.assertIs(overlay._retrato("Reintento", 20, icono), b)  # el icono real sí queda en caché
+
     def test_premultiplicado_sin_halos(self):  # rojo al 50 %: B=0 G=0 R=128 A=128; transparente: todo 0 (si no, halo)
         try: from PIL import Image
         except ImportError: self.skipTest("sin Pillow")
@@ -143,7 +154,9 @@ class TestPintar(unittest.TestCase):
         self.assertEqual(overlay.bgra_premultiplicado(im), bytes([0, 0, 128, 128, 0, 0, 0, 0]))
 
     def test_escala(self):
-        self.assertEqual([overlay.escala(None), overlay.escala((0, 0, 1280, 720)), overlay.escala((0, 0, 3840, 2160)), overlay.escala((0, 0, 9, 4000))], [1.0, 0.75, 2.0, 2.0])
+        n = "normal"
+        self.assertEqual([overlay.escala(None, n), overlay.escala((0, 0, 1280, 720), n), overlay.escala((0, 0, 3840, 2160), n), overlay.escala((0, 0, 9, 4000), n)], [1.0, 0.75, 2.0, 2.0])
+        self.assertEqual([overlay.escala(None), overlay.escala(None, "muy_grande"), overlay.escala((0, 0, 3840, 2160), "muy_grande"), overlay.escala(None, "raro")], [1.25, 1.5, 2.5, 1.25])
 
 
 class TestVisible(unittest.TestCase):  # D2 + D3 del plan En vivo

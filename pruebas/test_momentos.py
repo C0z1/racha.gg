@@ -147,9 +147,15 @@ class Escena(unittest.TestCase):
         e, _, _ = M.paso(None, foto(600, items=[[1, "a"]]), G, 600)
         e["regreso"] = True  # el primer regreso ya pasó
         e, esc, n = M.paso(e, foto(601, items=[[1, "a"], [2, "b"]], proximo=p), G, 601)
-        self.assertEqual(esc["renglon"], "Sheen · faltan 350"); self.assertEqual(n[0]["clase"], "compra")
-        e, esc, n = M.paso(e, foto(700, items=[[1, "a"], [2, "b"], [3, "c"]], proximo=p), G, 700, {"franja_build": False})
+        self.assertEqual(esc["renglon"], "Faltan 350 · Sheen"); self.assertEqual(n[0]["clase"], "compra")
+        e, esc, n = M.paso(e, foto(650, items=[[1, "a"], [2, "b"], [9, "poción"]], proximo={**p, "falta": 900}), G, 650)
+        self.assertEqual(n, [])  # mismo ítem objetivo: no se repite aunque cambie tu oro o compres una poción
+        y = {"nombre": "Flechas Salvajes de Yun Tal", "falta": 2400}
+        e, esc, n = M.paso(e, foto(680, items=[[1, "a"], [2, "b"]], proximo=y), G, 680)
+        self.assertEqual(esc["renglon"], "Faltan 2400 · Flechas Salvajes")  # cortado por palabra, nunca «falt»
+        e, esc, n = M.paso(e, foto(700, items=[[1, "a"], [2, "b"], [3, "c"]], proximo={"nombre": "Liche", "falta": 0}), G, 700, {"franja_build": False})
         self.assertEqual(n, [])  # apagado en Ajustes
+        self.assertEqual(M._cabe("x" * 40)[:3], "xxx"); self.assertEqual(M._cabe("Corto"), "Corto")
 
     def test_carta_con_marcas_de_distinto_n(self):
         g = {**G, "marcas": {"6": {"ok": 3, "n": 4}, "10": {"ok": 5, "n": 10}}}

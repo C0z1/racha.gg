@@ -195,6 +195,8 @@ def textos(e):
 FUENTES = [d / "fuentes" / "Roboto-Bold.ttf" for d in (pathlib.Path(__file__).resolve().parent, pathlib.Path(getattr(__import__("sys"), "_MEIPASS", ".")))]
 FUENTES.append(pathlib.Path(r"C:\Windows\Fonts\segoeuib.ttf"))  # Roboto (OFL, en el instalador): cifras de ancho fijo, los números no bailan
 _CACHE = {}
+_FALLOS, RETRATO_REINTENTOS = {}, 5  # retrato sin icono: se reintenta 5 veces y luego se queda la inicial
+TAM = {"normal": 1.0, "grande": 1.25, "muy_grande": 1.5}  # Ajustes → tamaño de la franja (por defecto, grande)
 
 
 def _fuente(px):
@@ -222,12 +224,15 @@ def _retrato(nombre, px, icono, apagado=False, item=None):
     k = ("r", item or nombre, px, apagado)
     if k in _CACHE: return _CACHE[k]
     im = _png(icono, "item", item, px) if item else _png(icono, "champion", nombre, px)
+    respaldo = im is None and _FALLOS.setdefault(k, 0) < RETRATO_REINTENTOS  # la inicial no se fija: el icono puede llegar después
+    if respaldo: _FALLOS[k] += 1
     if im is None:
         im = Image.new("RGBA", (px, px), ROSA3 + (255,))
         ImageDraw.Draw(im).text((px / 2, px / 2), (nombre or "?")[:1], font=_fuente(int(px * .5)), fill=TXT + (255,), anchor="mm")
     if apagado: im = ImageOps.grayscale(im).point(lambda v: int(v * .7)).convert("RGBA")
     mask = Image.new("L", (px, px), 0); ImageDraw.Draw(mask).ellipse((0, 0, px - 1, px - 1), fill=255)
-    im.putalpha(mask); _CACHE[k] = im
+    im.putalpha(mask)
+    if not respaldo: _CACHE[k] = im
     return im
 
 
@@ -441,10 +446,11 @@ SACUDIDA = (-5, 5, -3, 3, -1, 0)  # px, cada 60 ms al entrar un aviso (≈ 0,4 s
 PULSOS = (True, False, True, False)  # borde grueso / normal cada 250 ms: dos pulsos al entrar un aviso o un momento
 
 
-def escala(juego):
-    """Tamaño de la pastilla según el alto del juego (1080 = 1), en pasos de 0,25 entre 0,75 y 2."""
+def escala(juego, tam=None):
+    """Tamaño de la pastilla según el alto del juego (1080 = 1, en pasos de 0,25 entre 0,75 y 2) por el tamaño de Ajustes;
+    tope 2,5 para que nunca pase de ~45 % del ancho del juego."""
     alto = (juego[3] - juego[1]) if juego else 1080
-    return max(0.75, min(2.0, round(alto / 1080 * 4) / 4))
+    return min(2.5, max(0.75, min(2.0, round(alto / 1080 * 4) / 4)) * TAM.get(tam, TAM["grande"]))
 
 
 def bgra_premultiplicado(im):
@@ -605,7 +611,7 @@ def correr(leer, seguir, x=0.22, y=6, registrar=lambda txt: None, icono=None, gu
         if not e:
             if mostrada[0]: root.withdraw(); mostrada[0] = False
             ultimo[0] = tipo_ant[0] = None; gen[0] += 1; return
-        juego = rect_juego(); esc = escala(juego)
+        juego = rect_juego(); esc = escala(juego, aj.get("franja_tam"))
         if e.get("carta"):  # al centro abajo, sobre la pantalla de carga; nada que mover ni animar
             x0, y0, x1, y1 = juego or (0, 0, root.winfo_screenwidth(), root.winfo_screenheight())
             w, h = round(lienzo.CARTA_W * esc), round(lienzo.carta_alto(e["carta"]) * esc); px, py = x0 + (x1 - x0 - w) // 2, y0 + int((y1 - y0) * 0.80) - h

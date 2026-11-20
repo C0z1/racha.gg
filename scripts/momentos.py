@@ -4,7 +4,7 @@ foto = companion.meta_fase (+ «proximo» y «avisos» del trabajador); guion = 
 La escena tiene 3 zonas fijas (regla, sombra, marcas) y, a veces, un renglón o el panel al morir. Las anotaciones van a
 la bitácora: cada marca, cada compra y cada interrupción, mostrada o no, con el motivo.
 Solo datos, nunca órdenes (Riot: no dictar decisiones); todo lo que se muestra es tuyo o se ve con Tab."""
-import copy
+import copy, re
 
 import errores, plan_rol
 
@@ -21,6 +21,11 @@ OPACIDAD_TARDE = 0.6
 TARDE_S = PELEAS
 TRAZO_MIN = 5  # minutos del trazo de la zona Sombra
 RENGLON_MAX = 34  # caracteres del renglón (6 palabras)
+
+
+def _cabe(s):
+    """El texto en RENGLON_MAX caracteres, cortado por palabra (nunca «falt»), sin conectores colgando al final."""
+    return s if len(s) <= RENGLON_MAX else re.sub(r"( (de|del|y|la|el|·))+$", "", s[:RENGLON_MAX + 1].rsplit(" ", 1)[0])
 
 
 def nuevo():
@@ -131,7 +136,7 @@ def _sellar(e, foto, g, t, det):
             cae = [x for x in det.get(k) or [] if lo <= x < hi]
             if cae:
                 out.append((k, False, f"{mk['nombre']} · min {int(cae[0] // 60)}", "error")); continue
-            if t < mk["min"]: continue
+            if t < mk["min"] or foto.get("muerto"): continue  # «evitado» espera a que revivas para verse
             sin = k == "abajo_6" and e.get("nivel6") is None  # llegaste después del 6: no se sabe tu nivel
             out.append((k, None if sin else True, None if sin else f"{mk['nombre']}: evitado", "sello")); continue
         if t < mk["min"]: continue
@@ -140,7 +145,7 @@ def _sellar(e, foto, g, t, det):
         else:
             v = VIVO[k](foto) if k in VIVO and (not tarde or k in EXACTAS) else None
             ok = plan_rol.cumple(k, v, mk["meta"]) if v is not None else None
-            dato = f"{mk['nombre']}: {'≈' if k == 'cs10' else ''}{plan_rol.valor(k, v)} · victorias {plan_rol.valor(k, mk['meta'])}" if v is not None else None
+            dato = f"{'≈' if k == 'cs10' else ''}{plan_rol.frase(k, v)}" if v is not None else None  # la meta ya salió en el renglón de fase
         if dato and len(x := dato + (" · cumplida" if ok else " · sin cumplir")) <= RENGLON_MAX: dato = x
         out.append((k, ok, dato, "sello"))
     for k, ok, _, _ in out: e["marcas"][k] = ok
@@ -253,8 +258,9 @@ def paso(estado, foto, guion, ahora, aj=None):
         if (r := ((g.get("sombra") or {}).get("regreso"))) is not None:
             dato = f"Primer regreso · sombra: min {r:g}".replace(".", ",")
             nota("regreso1", "compra", f"{dato} (tú: min {t / 60:.1f})".replace(".", ","), True); e["renglon"] = [dato, ahora + COMPRA_S, "compra"]
-    if e["items"] is not None and items != e["items"] and (p := foto.get("proximo")) and (aj.get("franja_build", True) is not False)             and not (e["renglon"] and e["renglon"][0].startswith("Primer regreso") and ahora < e["renglon"][1]):
-        dato = f"{p['nombre']} · faltan {p['falta']}"[:RENGLON_MAX]
+    if e["items"] is not None and items != e["items"] and (p := foto.get("proximo")) and p.get("id", p["nombre"]) != e.get("prox") and (aj.get("franja_build", True) is not False)             and not (e["renglon"] and e["renglon"][0].startswith("Primer regreso") and ahora < e["renglon"][1]):
+        e["prox"] = p.get("id", p["nombre"])  # una vez por ítem objetivo: «falta» sube y baja con tu oro, no se repite
+        dato = _cabe(f"{'Faltan ' + str(p['falta']) if p['falta'] else 'Oro completo'} · {p['nombre']}")
         nota("compra", "compra", dato, True); e["renglon"] = [dato, ahora + COMPRA_S, "compra"]
     e["items"] = items
 
@@ -276,7 +282,7 @@ def paso(estado, foto, guion, ahora, aj=None):
     renglon = dibujo = None
     if e["renglon"] and ahora < e["renglon"][1]: renglon, dibujo = e["renglon"][0], (e["renglon"][3:] or [None])[0]
     elif t < ARRANQUE and (mu := g.get("matchup")):
-        renglon = mu["nota"][:RENGLON_MAX] if mu.get("nota") else f"vs {g.get('rival')} · {mu['v']} de {mu['n']} tuyas" if mu.get("n") else None
+        renglon = _cabe(mu["nota"]) if mu.get("nota") else f"vs {g.get('rival')} · {mu['v']} de {mu['n']} tuyas" if mu.get("n") else None
     panel = _panel(e, foto, g, t)
     if panel and renglon: panel, renglon, dibujo = panel[:1] + [renglon], None, None  # muerto: el renglón pasa al panel (como texto)
     ms = lista(g)
@@ -294,15 +300,13 @@ FASES = {"1": (ARRANQUE, "0–6"), "2": (360, "6–14"), "3": (840, "14–25")}
 
 
 def _fase(e, g, t):
-    """El renglón al empezar cada fase de tu plan de rol (en sus primeros 20 s, una vez): «6–14 · CS al 10 · victorias 71»."""
+    """El renglón al empezar cada fase de tu plan de rol (en sus primeros 20 s, una vez): «Tus victorias: 71 CS al 10»."""
     fs = (((g or {}).get("plan") or {}).get("fases")) or {}
     for k, (ini, nombre) in FASES.items():
         x = fs.get(k) or fs.get(int(k))  # en JSON las llaves son texto; recién armado, números
         if ini <= t < ini + 20 and k not in e["fases"] and x:
             e["fases"].append(k)
-            v = plan_rol.valor(x["id"], x["v"])
-            largo, corto = f"{nombre} · {x['etq']} · victorias {v}", f"{x['etq']} · victorias {v}"
-            return largo if len(largo) <= RENGLON_MAX else corto[:RENGLON_MAX]
+            return _cabe("Tus victorias: " + plan_rol.frase(x["id"], x["v"]))
     return None
 
 
@@ -320,7 +324,7 @@ def carta_carga(g):
     es = [m for m in g.get("marcas_p") or [] if m["tipo"] == "error"]
     l4 = None
     if ps or es:  # Fase 7: tu plan de rol y tus errores vigilados en lugar de las tasas de las marcas fijas
-        l3 = ("Tu plan: " + " · ".join(f"{m['nombre']} {plan_rol.valor(m['id'], m['meta'])}" for m in ps)) if ps else None
+        l3 = ("Tus victorias: " + " · ".join(plan_rol.frase(m["id"], m["meta"]) for m in ps)) if ps else None
         l4 = ("Vigilas: " + " · ".join(f"E{m['rango']} {m['nombre'].lower()}" for m in es)) if es else None
         if r.get("racha"): l2 = (l2 + " · " if l2 else "") + f"racha {r['racha']}"
     return [x for x in (l1, l2, l3, l4) if x]
