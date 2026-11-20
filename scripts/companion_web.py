@@ -141,6 +141,16 @@ def cerrar_sombra(r):
     except Exception as x: gui.registrar_franja(f"bitácora: {x!r}"); return {}
 
 
+def feedback_fin(r):
+    """Qué hiciste bien, qué no y tu foco (postpartida.feedback) con lo que vio Racha en vivo y tu historial; None con un
+    historial ajeno en disco o si algo falla (la línea final sale igual)."""
+    try:
+        import postpartida, sombra
+        if gui.ajeno(gui.CUENTA[0]): return None
+        return postpartida.feedback(r.get("medidas"), sombra.series(), r.get("pos"))
+    except Exception as x: gui.registrar_franja(f"feedback: {x!r}"); return None
+
+
 def evento(e):
     """Aplica un evento de la cola (los mismos que App.evento de companion_gui) al estado."""
     tipo, s = e[0], {}
@@ -170,6 +180,7 @@ def evento(e):
         tope = ((((ESTADO.get("rendimiento") or {}).get("vistas") or {}).get("regla_hoy")) or {}).get("tope", 2)
         s = {"fin": {**e[1], "texto": companion.linea_fin(e[1], tope)}}
         x = cerrar_sombra(e[1]) if ESTADO.get("sombra") or ESTADO.get("guion") else {}
+        s["fin"]["feedback"] = feedback_fin(e[1])
         s["fin"].update(x); s["bitacora"] = x.get("bitacora")  # carta de cierre y bitácora; sin Sombra, nada de la partida anterior
         threading.Thread(target=ping, daemon=True).start()
     elif tipo == "post_espera": s = {"espera": e[1]}

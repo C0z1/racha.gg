@@ -368,6 +368,16 @@ function franja(m, fin) {  // EnPartida_Vino: nivel con anillos (tú y tu rival)
   return `<div class="tres">${nv}${cs}${mu}</div>`;
 }
 
+function feedbackC(s, card) {  // «Tu partida»: qué hiciste bien, qué no (minuto y dato), por qué importa (tu WR) y tu foco
+  const rf = s.revision && s.revision.feedback, fb = rf || (s.fin && s.fin.feedback);
+  if (!fb || !((fb.bien || []).length || (fb.mal || []).length || fb.foco || fb.nota)) return "";
+  const li = xs => `<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px">${xs.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  return `<div class="${card ? "card" : "est"}" style="gap:8px"><span class="sub">Tu partida${rf ? " · con los datos de Riot" : ""}</span>
+    ${(fb.bien || []).length ? `<b style="color:var(--teal)">Bien</b>${li(fb.bien)}` : ""}
+    ${(fb.mal || []).length ? `<b style="color:var(--acc)">A mejorar</b>${li(fb.mal)}` : ""}
+    ${fb.foco ? `<b>${esc(fb.foco)}</b>` : fb.nota ? `<span class="sub">${esc(fb.nota)}</span>` : ""}</div>`;
+}
+
 function otraFase(s) {  // en partida, al terminar y esperando
   const r = s.revision, f = s.fin, bloques = [`<div><h1>${esc(FASES[s.fase] ?? s.fase)}</h1><span class="sub">${esc(s.perfil)}</span></div>`];
   if (s.meta && s.fase === "InProgress") bloques.push(`<span class="sub">${img("champion", s.meta.campeon, "item", s.meta.campeon)} ${esc(s.meta.campeon)} · min ${s.meta.minuto}</span>`, franja(s.meta, false));
@@ -376,6 +386,7 @@ function otraFase(s) {  // en partida, al terminar y esperando
   if (r) bloques.push(`<div class="card"><span class="tag ${r.win ? "ok" : "red"}">${r.win ? "Victoria" : "Derrota"}${r.min ? " · " + r.min + " min" : ""}</span>
     <b>${esc(r.champ)}${r.rival ? " vs " + esc(r.rival) : ""} ${esc(r.kda || "")}</b>
     <span class="sub">Oro al 14 ${esc(r.oro)} · CS al 14 ${esc(r.cs)} · muertes 14–25 ${esc(r.m25)} · score ${esc(r.score)}</span></div>`);
+  if (!f && r) bloques.push(feedbackC(s, true));  // la revisión llegó después de cerrar la foto en vivo
   if (s.espera) bloques.push(`<div class="card"><span class="sub">${esc(s.espera)}</span></div>`);
   if (bloques.length === 1) bloques.push(`<div class="card"><span class="sub">${EN_PARTIDA.includes(s.fase) ? "Esperando los datos en vivo: salen cuando carga el mapa." : enCliente(s.fase) ? "Aún no estás en partida: al empezar, Racha cambia aquí solo." : "Abre el cliente de LoL: aquí verás tu pick en champ select y la revisión al terminar."}</span></div>`);
   return bloques.join("");
@@ -909,6 +920,7 @@ function envivo(s) {  // EnPartida_Vino: tus reglas en esta partida con su estad
   ${f ? "" : rivalC + objC}
   ${(s.avisos || []).length ? `<div class="est" style="gap:8px"><span class="sub" id="avisos-t">Avisos de esta partida</span>
     <ol aria-labelledby="avisos-t" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">${s.avisos.map(a => `<li>${a.minuto != null ? `<b>Min ${a.minuto}</b> · ` : ""}${esc(a.texto)}</li>`).join("")}</ol></div>` : ""}
+  ${f ? feedbackC(s) : ""}
   ${f ? `<div class="est"><span class="sub">Al terminar</span><b>${esc(f.texto || "")}</b>${(f.momentos || []).length ? `<span class="sub" style="margin-top:6px">3 momentos clave (al instante, de lo que vio Racha en la partida)</span>
     <ol style="margin:4px 0 0 18px;padding:0;display:flex;flex-direction:column;gap:6px">${f.momentos.map(m => `<li>${esc(m)}</li>`).join("")}</ol>` : ""}
     ${(s.avisos || []).length || (f.bitacora || []).some(x => x.mostrado) ? (f.sirvio ? `<span class="sub" style="margin-top:6px" role="status">Gracias: anotado.</span>`

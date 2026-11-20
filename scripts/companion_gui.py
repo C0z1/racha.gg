@@ -119,6 +119,11 @@ def ultima_partida(archivo=None):
                    muertes=[x["texto"] for x in postpartida.muertes(m, tl, puuid)],
                    libres=[libres["n"], libres["total"]] if libres["total"] else None, por_tipo=libres.get("por_tipo"))
     except (OSError, ValueError): pass
+    try:  # el feedback exacto (con CS y niveles del timeline), contra tus otras partidas del rol
+        import sombra
+        md = postpartida.medidas_partida(f, puuid)
+        if md: out["feedback"] = postpartida.feedback(md, [s for s in sombra.series() if s["t"] != md["t"]], me.get("teamPosition"))
+    except Exception: pass
     return out
 
 
@@ -557,11 +562,13 @@ def trabajador(q):
                     if (mf.get("t") or 0) < 120: mf["plan"] = estado["plan"]
                     mf["dato"] = (estado.get("plan") or {}).get("dato")  # la frase top del matchup, para la expandida al morir
                 if mf: mf["avisos"] = [(c, getattr(x, "corto", x)) for c, x, _ in avs]; q.put(("meta", mf))  # Sombra los vuelve datos (momentos.py)
+                if mf: import postpartida; postpartida.anotar_niveles(estado.setdefault("niveles", {}), mf)  # para el feedback al terminar
                 for _, txt, minuto in avs: q.put(aviso(txt, "consejo", minuto))
             elif not jugando and fase != "Reconnect": archivo = None; estado["avisado"] = set(); [estado.pop(k, None) for k in ("build", "build_t", "plan", "plan_t")]  # al reconectar es la misma partida
             if fase in FIN and real not in FIN:
                 if r := companion.resumen_fin(foto):  # sin key, esto es lo que hay al terminar
-                    try: import postpartida; r = {**r, "momentos": [m["texto"] for m in postpartida.momentos_vivo(foto)], "estela": postpartida.estela_vivo(foto)}  # F11: al instante
+                    try: import postpartida; r = {**r, "momentos": [m["texto"] for m in postpartida.momentos_vivo(foto)], "estela": postpartida.estela_vivo(foto),
+                                                  "medidas": postpartida.medidas_vivo(foto, estado.pop("niveles", None))}  # F11: al instante; medidas: el feedback
                     except Exception: pass
                     q.put(("fin", r))
                 foto = None; post_partida(q); m = None
