@@ -92,13 +92,15 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 - Anchos de lectura: 520px (nota), 560px (tagline) y 720px (texto de una fila sola). La marca de la barra mide 1.4rem. `scroll-padding-top` de 72px para que la barra fija no tape el destino de un ancla (valores en uso en docs/index.html).
 - Orden: barra, hero (mensaje, botón y confianza; UI real a la derecha), 3 pasos, qué es, antes/durante/después, FAQ, botón final y pie.
 - El botón principal y la lista de confianza se ven sin scroll a 390×844 y a 1440×900. En celular (pointer coarse, ≤700px) el principal es «Enviarme el enlace» y el `.exe` queda como secundario.
-- Mascota: ≥1400 px y pointer fine, en los márgenes, nunca sobre texto; cambia de lado hundiéndose en su cristal (escala a 0). Va en una capa fija detrás del contenido (`.escena`, z-index -1).
+- Carrusel (≥1400 px, ≥760 px de alto, pointer fine, sin reduced-motion; clase `con-carrusel` en `<head>`): la página es un anillo de 10 paneles alrededor de la mascota (`.carrusel > .escenario` sticky, perspectiva 3600px, radio 1500px, 50° entre paneles). Se lee de frente el panel del fondo del anillo; la mascota se para delante, en el hueco central de 240px (texto a la izquierda, imagen a la derecha), nunca sobre texto. Cada panel ocupa 100vh de scroll: 70 % quieto y 30 % girando; el siguiente entra por la derecha. Solo el panel del frente recibe el mouse; con Tab o un enlace, el panel destino pasa al frente.
+- Mascota fuera del carrusel (≥1400 px de ancho y <760 de alto): en los márgenes, nunca sobre texto; cambia de lado hundiéndose en su cristal (capa fija detrás del contenido, `.escena`, z-index -1).
 
 ## Elevation & Depth
 - Es plana. La profundidad viene del paso `fondo` → `fondo2` más un borde de 1px en `borde`.
 - La única excepción es la barra fija, con `color-mix` de `fondo` al 88 % y `blur(8px)`. Se mide con preship: si empeora el LCP, el CLS o el contraste, va con fondo sólido.
 - Una sola sombra: la de la tarjeta al pasar el mouse, `0 14px 30px -12px rgb(0 0 0 / .25)` (decisión del usuario, 20-nov-2026). Fuera de eso, sin sombras; las de `hero-app` vienen horneadas en la composición.
 - La luz y el flat shading de la mascota son del dibujo y no cuentan como sombra. Sin sombra proyectada ni elipse bajo los pies.
+- El giro 3D del carrusel es la única excepción a «plano»: solo transform y perspectiva, sin sombras nuevas; todos los paneles con radio 18 y fondo `fondo2`.
 
 ## Shapes
 - La píldora (999px) es solo para botones. Radios de 18 (hero), 14 (tarjeta) y 12 (FAQ).
@@ -124,7 +126,7 @@ Racha es la portada de descargas y la app de un coach de LoL que usa tus propias
 - Don't: dar órdenes de juego. Fuente: CUMPLIMIENTO L8 e `IMPERATIVOS` en herramientas/replay.py L112.
 - Don't: usar emojis. Fuente: el usuario, nov-2026.
 - Don't: usar splash art ni logos de LoL o Riot. Fuente: portada-propuesta P2.
-- Do: la mascota es la única excepción a «solo transform/opacity»: dibuja en WebGL solo cuando hay scroll (sin bucle en reposo), cuenta como 1 de las 3 cosas en movimiento y con reduced-motion queda el póster quieto.
+- Do: la mascota es la única excepción a «solo transform/opacity»: dibuja en WebGL solo cuando hay scroll (sin bucle en reposo), cuenta como 1 de las 3 cosas en movimiento y con reduced-motion queda el póster quieto. En el carrusel, el anillo es otra de las 3 y la entrada de tarjetas no corre.
 - Don't: animar otra cosa que `transform`/`opacity`, ni animar con reduced-motion. Fuente: docs/index.html y pruebas/test_ds_estela.py.
 - Don't: ponerle a la mascota (ni al logo) el escudo de Order ni la runa, ni llamarla «minion» o «caster» en la página. Fuente: memory/corrections.md, 2026-11-20.
 - Don't: usar los estados como decoración. Fuente: esta guía, sección Colors.

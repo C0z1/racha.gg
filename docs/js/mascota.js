@@ -1,9 +1,11 @@
-// Mascota 3D de la portada: el mago vino (sin escudo ni runa) acompaña el scroll por los márgenes y hace una acción por sección.
+// Mascota 3D de la portada: el mago vino (sin escudo ni runa). En el carrusel (≥1400 px y ≥760 de alto) se queda al centro y la página gira
+// a su alrededor; si no, acompaña el scroll por los márgenes. En los dos casos hace una acción por sección.
 // La carga el arranque de index.html solo con ≥1400 px, pointer fine, sin reduced-motion y con WebGL2. Dibuja cuando hay scroll
 // (un cuadro por rAF como mucho, con 200 ms de suavizado); en reposo no hay bucle. Unidades del dibujo = las del SVG del póster.
 import * as THREE from "../vendor/three/0.185.0/three.module.min.js";
 
-const C = {tunica: "#C25A85", gema: "#7A2E52", costura: "#3A1426", piedra: "#E8EEF5", piedraMedia: "#AFC0D2", cuero: "#8A5A30",
+const C = {tunica: "#C25A85", tunicaOscura: "#5E2440", gema: "#7A2E52", costura: "#3A1426", piedra: "#E8EEF5", piedraMedia: "#AFC0D2", piedraOscura: "#6F8296",
+  cuero: "#8A5A30", cueroClaro: "#C98E5A", cueroOscuro: "#5E3A1C",
   cristal: "#FFE6F0", cristalOscuro: "#A33A63", ojos: "#0B1630", brillo: "#F28DB0", rosa2: "#F8C3D6", fondo: "#24111A", texto: "#FBF2F6"};
 const U = 1.8, MEDIO = 41, ALTO = 120, CUERPO = 7;  // px por unidad a escala 1; medio ancho y alto del dibujo; el eje del cuerpo, 7 a la derecha del centro
 const POSTER = {lado: "Dh", rotY: -25, s: .75};     // = el SVG del póster (pies a .78 del alto)
@@ -12,17 +14,41 @@ const clamp = x => Math.min(1, Math.max(0, x)), suave = x => (x = clamp(x), x * 
 
 // --- Modelo: low-poly procedural; x' = x - 62 e y = 114 - y del SVG ----------------------------------------------------------
 const lambert = (color, extra) => new THREE.MeshLambertMaterial({color, flatShading: true, side: THREE.DoubleSide, ...extra});
-const aditivo = (color, opacity) => new THREE.MeshBasicMaterial({color, transparent: true, opacity, blending: THREE.AdditiveBlending, premultipliedAlpha: true, depthWrite: false});  // el lienzo es transparente
+// luz que suma color sin tocar el alfa del lienzo transparente (si sumara alfa, el brillo se vería como un disco opaco sobre la página)
+const SUMA = {transparent: true, depthWrite: false, premultipliedAlpha: true, blending: THREE.CustomBlending,
+  blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor};
+const aditivo = (color, opacity) => new THREE.MeshBasicMaterial({color, opacity, ...SUMA});
+const RESPLANDOR = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d"), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, "rgb(255,255,255)"); r.addColorStop(.45, "rgb(110,110,110)"); r.addColorStop(1, "rgb(0,0,0)");  // la caída va en el color: al sumar, negro = nada
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
 const malla = (geo, mat, x = 0, y = 0, z = 0, nombre) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (nombre) m.name = nombre; return m; };
 
+// Degradado de la tela como en el póster (tunica arriba, tunica-oscura abajo): color por vértice según la altura
+function degradado(geo, y0, y1, arriba = C.tunica, abajo = C.tunicaOscura) {
+  const p = geo.attributes.position, a = new THREE.Color(arriba), b = new THREE.Color(abajo), c = new THREE.Color(), col = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) { c.copy(b).lerp(a, clamp((p.getY(i) - y0) / (y1 - y0))); col.set([c.r, c.g, c.b], i * 3); }
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3)); return geo;
+}
+
 function modelo() {
-  const raiz = new THREE.Group(), tela = lambert(C.tunica), piedra = lambert(C.piedra), cuero = lambert(C.cuero);
-  const tunica = new THREE.CylinderGeometry(15, 31, 46, 9, 1, true), pos = tunica.attributes.position;
-  for (let i = 0; i < pos.count; i++) if (pos.getY(i) < 0 && (i % 10) % 9 % 2) pos.setY(i, pos.getY(i) + 7);  // borde en zigzag
-  raiz.add(malla(tunica, tela, 0, 27, 0));
-  raiz.add(malla(new THREE.LatheGeometry([V2(20, 46), V2(23, 60), V2(19, 76), V2(11, 89), V2(3, 96), V2(0, 98)], 7), tela));  // capucha
+  const raiz = new THREE.Group(), tela = lambert(C.piedra, {vertexColors: true}), piedra = lambert(C.piedra), cuero = lambert(C.cuero);
+  tela.color.setRGB(1, 1, 1);  // el color va en los vértices
+  const tunica = new THREE.CylinderGeometry(15, 31, 46, 9, 4, true), pos = tunica.attributes.position;
+  for (let i = 0; i < pos.count; i++) if (pos.getY(i) < -22.9 && (i % 10) % 9 % 2) pos.setY(i, pos.getY(i) + 7);  // borde en zigzag (fila de abajo)
+  raiz.add(malla(degradado(tunica, -23, 23, C.tunica, C.tunicaOscura), tela, 0, 27, 0));
+  raiz.add(malla(degradado(new THREE.LatheGeometry([V2(20, 46), V2(23, 60), V2(19, 76), V2(11, 89), V2(3, 96), V2(0, 98)], 8), 46, 98, C.tunica, C.tunicaOscura), tela));  // capucha
+  // collar de cuero sobre los hombros y costuras en X de la capucha (del póster)
+  raiz.add(malla(new THREE.CylinderGeometry(21, 27, 8, 10, 1, true), lambert(C.cueroClaro), 0, 47, 0));
+  const hilo = lambert(C.costura);
+  for (const [x, y] of [[-10, 79], [10, 83]]) {
+    const z = Math.sqrt(Math.max(0, 18.5 ** 2 - x * x)) + .6, x0 = new THREE.Group(); x0.position.set(x, y, z); x0.rotation.y = Math.atan2(x, z);
+    for (const a of [.8, -.8]) { const b = new THREE.Mesh(new THREE.BoxGeometry(6, 1.3, 1), hilo); b.rotation.z = a; x0.add(b); }
+    raiz.add(x0);
+  }
   const cara = new THREE.Shape([V2(-15, 70), V2(15, 70), V2(17, 54), V2(1, 38), V2(-17, 54)]);
-  raiz.add(malla(new THREE.ExtrudeGeometry(cara, {depth: 4, bevelEnabled: false}), piedra, 0, 0, 19));  // máscara
+  raiz.add(malla(new THREE.ExtrudeGeometry(cara, {depth: 3, bevelEnabled: true, bevelThickness: 1, bevelSize: 1, bevelSegments: 1}), piedra, 0, 0, 19));  // máscara
+  raiz.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 69, 24.2), new THREE.Vector3(-2, 64, 24.2), new THREE.Vector3(1, 61, 24.2)]),
+    new THREE.LineBasicMaterial({color: C.piedraOscura})));  // grieta de la máscara
   const ojo = new THREE.ShapeGeometry(new THREE.Shape([V2(-12, 61), V2(-2, 57), V2(-11, 55)]));
   const ojoMat = new THREE.MeshBasicMaterial({color: C.ojos, side: THREE.DoubleSide}), brillo = new THREE.LineBasicMaterial({color: C.brillo});
   for (const k of [1, -1]) {
@@ -30,11 +56,12 @@ function modelo() {
     const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-10 * k, 59, 23.4), new THREE.Vector3(-5 * k, 57, 23.4)]), brillo);
     raiz.add(l);
   }
-  const placa = malla(new THREE.CylinderGeometry(14, 14, 3, 6), lambert(C.piedraMedia), 0, 26, 22, "placa");  // lisa
+  const placa = malla(new THREE.CylinderGeometry(14, 13, 3.5, 6), lambert(C.piedraMedia), 0, 26, 22, "placa");  // lisa, con el borde biselado
   placa.geometry.rotateX(Math.PI / 2); raiz.add(placa);
 
   const baston = new THREE.Group(); baston.name = "baston"; baston.position.set(-31, 42, 10); raiz.add(baston);
   const palo = malla(new THREE.CylinderGeometry(3, 3, 70, 5), cuero, .5, -6); palo.rotation.z = Math.atan(7 / 68); baston.add(palo);
+  for (const t of [-.14, -.02, .1]) { const a = malla(new THREE.CylinderGeometry(3.6, 3.6, 1.8, 5), lambert(C.cueroOscuro), 0, t * 70, 0); palo.add(a); }  // amarres de cuero
   baston.add(malla(new THREE.IcosahedronGeometry(5), lambert(C.gema), 2, 6, 3));
   const cristal = new THREE.Group(); cristal.name = "cristal"; cristal.position.set(-3, 58, 0); baston.add(cristal);
   const vidrio = lambert(C.cristal, {emissive: C.cristalOscuro, emissiveIntensity: .35});
@@ -42,7 +69,8 @@ function modelo() {
   const esquirla = new THREE.LatheGeometry([V2(0, -6), V2(2.5, 0), V2(0, 6)], 6);
   cristal.add(malla(esquirla, vidrio, -12, -4, 0)).add(malla(esquirla, vidrio, 14, -5, 0));
   cristal.children[1].rotation.z = .3; cristal.children[2].rotation.z = -.3;
-  cristal.add(malla(new THREE.IcosahedronGeometry(16, 1), aditivo(C.brillo, .35), 0, 0, 0, "orbe"));
+  const orbe = new THREE.Sprite(new THREE.SpriteMaterial({map: RESPLANDOR, color: C.brillo, opacity: .35, ...SUMA}));  // resplandor suave, como el radialGradient del póster
+  orbe.name = "orbe"; cristal.add(orbe);
   const chico = new THREE.IcosahedronGeometry(3);
   for (let i = 0; i < 3; i++) cristal.add(malla(chico, aditivo(C.brillo, 0), 0, 0, 0, "chico" + i));
   const anillo = malla(new THREE.RingGeometry(18, 22, 9), aditivo(C.brillo, 0), 0, 0, 0, "anillo"); raiz.add(anillo);
@@ -78,6 +106,34 @@ const GUION = [
   {el: q(".faq"), at: -.3, lado: "D", rotY: -15, s: .9, act: guardia},          // 11 FAQ
   {el: q(".descarga"), lado: "D", rotY: 0, s: 1.1, act: celebra},      // 12 descarga
 ];
+
+// --- Carrusel (html.con-carrusel): la página es un anillo de paneles y la mascota se queda al centro, en el hueco del panel del frente.
+// Cada panel ocupa 100vh de scroll: en el 70 % quieto hace su acción; en el 30 % de giro se voltea hacia el panel que entra por la derecha.
+const CARRUSEL = document.documentElement.classList.contains("con-carrusel");
+const UC = 190 / 82;  // px por unidad = el póster del carrusel (190 px de ancho, 82 unidades)
+const disparaC = (p, u) => { dispara(p, u); p.orbeX *= -.5; };  // dispara hacia la imagen (derecha), nunca sobre el texto
+const GUION_C = [
+  {rotY: -25, s: .75, act: saluda},      // hero (= póster)
+  {rotY: -60, s: .75, act: camina},      // en tres pasos
+  {rotY: 0, s: .75, act: orbeCrece},     // qué es
+  {rotY: 30, s: .75, act: apunta},       // champ select: apunta a la captura
+  {rotY: -25, s: .75, act: golpe},       // runas
+  {rotY: 90, s: .75, act: corre},        // sombra: corre con su clon
+  {rotY: -35, s: .75, act: giraCristal}, // al terminar
+  {rotY: 40, s: .75, act: disparaC},     // tier list
+  {rotY: 0, s: .75, act: guardia},       // FAQ
+  {rotY: 0, s: .82, act: celebra},       // descarga
+];
+const base = o => Object.assign({m: 1, dy: 0, tilt: 0, baston: 0, bastonY: 0, bastonZ: 0, brillo: 0, orbe: 1, orbeX: 0, orbeO: 1, chicos: 0, giro: 0, placa: 0,
+  anillo: {o: 0, s: 1}, clon: 0, cristalRot: 0}, o);
+function poseC(y) {
+  const car = document.querySelector(".carrusel"), n = GUION_C.length, r = Math.max(0, (y - car.offsetTop) / innerHeight);
+  const i = Math.min(Math.floor(r), n - 1), f = i === n - 1 ? Math.min(r - i, .7) : r - i, g = GUION_C[i], sig = GUION_C[Math.min(i + 1, n - 1)];
+  const t = suave((f - .7) / .3);
+  const p = base({lado: "C", desde: "C", hasta: "C", k: 0, rotY: g.rotY + (sig.rotY - g.rotY) * t + 50 * env(t), s: g.s + (sig.s - g.s) * t});
+  g.act(p, clamp(f / .7), sig);
+  return p;
+}
 
 // Centro de la vista (scrollY + alto/2) de cada clave, creciente y sin pasar del máximo alcanzable
 function anclas(H) {
@@ -128,14 +184,15 @@ const centro = lado => lado === "I" ? margen(lado) / 2 : W - margen(lado) / 2;
 const escala = (lado, s) => Math.min(U * s, (margen(lado) / 2 - 8) / MEDIO, (.78 * H - 80) / ALTO);
 
 function aplicar(o, p, esClon) {
-  const x0 = centro(p.desde), x1 = centro(p.hasta), u = escala(p.lado, p.s) * p.m, ry = rad(p.rotY);
-  let x = x0 + (x1 - x0) * p.k + CUERPO * u, y = .78 * H - p.dy;
+  const x0 = CARRUSEL ? W / 2 - 61 + MEDIO * UC : centro(p.desde), x1 = CARRUSEL ? x0 : centro(p.hasta);
+  const u = (CARRUSEL ? UC * p.s / POSTER.s : escala(p.lado, p.s)) * p.m, ry = rad(p.rotY);
+  let x = x0 + (x1 - x0) * p.k + CUERPO * u, y = (CARRUSEL ? H / 2 + 150 : .78 * H) - p.dy;  // carrusel: pies donde los del póster
   if (p.m < 1) { x += (1 - p.m) * escala(p.lado, p.s) * -34 * Math.cos(ry); y -= (1 - p.m) * escala(p.lado, p.s) * 100; }  // se hunde hacia el cristal
   if (esClon) { x += (p.lado === "I" ? -22 : 22) * u; o.position.z = -60 * u; }
   o.position.x = x; o.position.y = -y; o.scale.setScalar(Math.max(u, 1e-4)); o.rotation.set(0, ry, rad(p.tilt));
   const b = o.getObjectByName("baston"); b.rotation.z = rad(p.baston); b.position.y = 42 + p.bastonY; b.position.z = 10 + p.bastonZ;
   const cr = o.getObjectByName("cristal"); cr.rotation.y = rad(p.cristalRot);
-  const orbe = o.getObjectByName("orbe"); orbe.scale.setScalar(Math.max(p.orbe, 1e-4)); orbe.position.x = p.orbeX; orbe.material.opacity = .35 * p.orbeO;
+  const orbe = o.getObjectByName("orbe"); orbe.scale.setScalar(Math.max(p.orbe, 1e-4) * 46);  // sprite: 46 unidades de diámetro = el orbe de 16 de radio con su halo orbe.position.x = p.orbeX; orbe.material.opacity = .35 * p.orbeO;
   for (let i = 0; i < 3; i++) { const ch = o.getObjectByName("chico" + i), t = p.giro + i * 2.094;
     ch.position.set(14 * Math.cos(t), 30 + 4 * Math.sin(t * 1.5), 14 * Math.sin(t)); ch.material.opacity = .8 * p.chicos; }
   o.getObjectByName("placa").rotation.z = rad(p.placa);
@@ -146,7 +203,7 @@ function aplicar(o, p, esClon) {
 const vista = matchMedia("(min-width:1400px) and (pointer:fine)");
 function dibujar(y) {
   if (!vista.matches) return;
-  const p = pose(y, H);
+  const p = CARRUSEL ? poseC(y) : pose(y, H);
   aplicar(yo, p, false);
   clon.visible = p.clon > 0; if (clon.visible) { aplicar(clon, p, true); sombra.opacity = p.clon; }
   vidrio.emissiveIntensity = .35 + .9 * p.brillo;
@@ -155,8 +212,8 @@ function dibujar(y) {
 
 medir();
 escena.append(lienzo);
-{ const p = pose(0, H, anclas(H));  // la pose de arriba es la del póster
-  console.assert(p.lado === POSTER.lado && p.rotY === POSTER.rotY && p.s === POSTER.s && p.dy === 0 && p.baston === 0, "pose(0) != póster", p); }
+{ const p = CARRUSEL ? poseC(0) : pose(0, H, anclas(H));  // la pose de arriba es la del póster
+  console.assert((CARRUSEL || p.lado === POSTER.lado) && p.rotY === POSTER.rotY && p.s === POSTER.s && p.dy === 0 && p.baston === 0, "pose(0) != póster", p); }
 
 let objetivo = scrollY, actual = scrollY, raf = 0, previo = 0;
 const pedir = () => { if (!raf && !document.hidden) raf = requestAnimationFrame(cuadro); };

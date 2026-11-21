@@ -125,6 +125,7 @@ matchMedia("(min-width:1400px) and (min-height:760px) and (pointer:fine) and (pr
   .con-carrusel .faq{display:block;columns:2;column-gap:var(--hueco)}
   .con-carrusel .faq h2{column-span:all}
   .con-carrusel .faq details{break-inside:avoid}
+  .con-carrusel .panel:focus-visible{outline:2px solid var(--rosa);outline-offset:-4px}
   .con-carrusel .descarga{display:flex;justify-content:center;align-items:flex-start;min-height:70vh}  /* el botón arriba; la mascota celebra debajo */
   .con-carrusel .escena{display:block;position:absolute;inset:0;z-index:500;pointer-events:none}
   .con-carrusel .escena svg{position:absolute;left:calc(50% - 61px);bottom:calc(50vh - 150px);width:190px;height:auto;overflow:visible}
@@ -338,7 +339,7 @@ document.querySelector("[data-compartir]").addEventListener("click", e => { cons
 // Mascota 3D: solo PC grande (≥1400 px, pointer fine), sin movimiento reducido y con WebGL2. three (js/mascota.js) se baja al primer scroll;
 // el resto ve el póster quieto (≥1400) o nada, y no descarga nada.
 (() => {
-  if (!matchMedia("(min-width:1400px) and (pointer:fine) and (prefers-reduced-motion:no-preference)").matches || document.documentElement.classList.contains("con-carrusel")) return;
+  if (!matchMedia("(min-width:1400px) and (pointer:fine) and (prefers-reduced-motion:no-preference)").matches) return;
   const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return;
   const ext = gl.getExtension("WEBGL_lose_context"); ext && ext.loseContext();
   document.documentElement.classList.add("con-escena");
@@ -392,6 +393,16 @@ document.querySelector("[data-compartir]").addEventListener("click", e => { cons
     html.style.setProperty("--fase", fa); };
   addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(pintar); }, {passive: true});
   addEventListener("resize", pintar); pintar();
+  // Teclado y anclas: el panel que recibe el foco (o el destino del enlace) pasa al frente. Tab encadena panel → contenido → panel siguiente.
+  const irA = (k, sinGiro) => { if (k < 0) return; scrollTo({top: car.offsetTop + k * innerHeight, behavior: sinGiro ? "instant" : "smooth"}); };
+  P.forEach((p, i) => { if (i) p.tabIndex = 0; });
+  document.addEventListener("focusin", e => { const k = P.findIndex(p => p.contains(e.target)); if (k >= 0 && k !== Math.round(faseDe(scrollY))) requestAnimationFrame(() => irA(k, true)); });
+  const alHash = () => { const d = location.hash && document.getElementById(location.hash.slice(1)); if (d) requestAnimationFrame(() => irA(P.findIndex(p => p.contains(d)), true)); };
+  addEventListener("hashchange", alHash); alHash();
+  // Tab desde la barra de arriba con el anillo girado: los primeros paneles están ocultos y el foco saltaría a uno lejano; primero se vuelve al inicio
+  addEventListener("keydown", e => { if (e.key !== "Tab" || e.shiftKey || scrollY <= car.offsetTop) return;
+    const a = document.activeElement; if (a && a !== document.body && !(car.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_PRECEDING)) return;
+    scrollTo({top: 0, behavior: "instant"}); pintar(); });
   window.rachaCarrusel = {faseDe, paneles: P};
 })();
 </script>

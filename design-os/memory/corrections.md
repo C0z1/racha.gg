@@ -11,3 +11,5 @@ Formato: `AAAA-MM-DD · regla`. La más nueva, abajo. Cada una es una regla que 
 - 2026-11-20 · El logo publicado también va sin escudo ni runa (htc-icono.svg, sus PNG, htc.ico, og.jpg y hero.png). El ícono del exe cambia en el próximo release; no se publica un release solo por esto.
 - 2026-11-20 · La mascota 3D solo aparece en PC grande: ≥1400 px, pointer fine, sin reduced-motion y con WebGL2. En laptop chica, tablet y celular no aparece y no se descarga nada.
 - 2026-11-20 · En celular el botón principal es «Enviarme el enlace» (navigator.share o portapapeles); el del .exe queda como secundario, con contorno rosa y texto rosa2, y sigue enlazado.
+- 2026-11-20 · La mascota es el mago original (docs/js/mascota.js, modelo()), mejorado un poco (degradado, collar de cuero, costuras, grieta, amarres); el personaje nuevo de la rama `hechizos` se descartó.
+- 2026-11-20 · En PC grande la página es un carrusel 3D que gira alrededor de la mascota: ella al centro, cada sección un panel que pasa al frente al bajar (maqueta aprobada por el usuario por Discord).
