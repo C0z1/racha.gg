@@ -110,7 +110,7 @@ const GUION = [
 // --- Carrusel (html.con-carrusel): la página es un anillo de paneles y la mascota se queda al centro, en el hueco del panel del frente.
 // Cada panel ocupa 100vh de scroll: en el 70 % quieto hace su acción; en el 30 % de giro se voltea hacia el panel que entra por la derecha.
 const CARRUSEL = document.documentElement.classList.contains("con-carrusel");
-const UC = 190 / 82;  // px por unidad = el póster del carrusel (190 px de ancho, 82 unidades)
+let UC = 190 / 82, X0C = 0, PIESC = 0;  // carrusel: px por unidad, centro del dibujo y pies, medidos del póster SVG (el CSS manda el tamaño)
 const disparaC = (p, u) => { dispara(p, u); p.orbeX *= -.5; };  // dispara hacia la imagen (derecha), nunca sobre el texto
 const GUION_C = [
   {rotY: -25, s: .75, act: saluda},      // hero (= póster)
@@ -176,6 +176,10 @@ function medir() {
   W = document.documentElement.clientWidth; H = innerHeight;
   render.setPixelRatio(Math.min(devicePixelRatio, 2)); render.setSize(W, H, false);
   Object.assign(camara, {right: W, bottom: -H}); camara.updateProjectionMatrix();
+  if (CARRUSEL) {  // el póster sigue maquetado aunque esté apagado: de él salen tamaño y lugar en cualquier escalón de CSS
+    const r = escena.querySelector("svg").getBoundingClientRect(), e = escena.getBoundingClientRect();
+    UC = r.width / 82; X0C = r.left - e.left + MEDIO * UC; PIESC = r.bottom - e.top;
+  }
 }
 
 // px por unidad: la escala pedida, sin salir del margen (ancho) ni subir a la barra (alto)
@@ -184,9 +188,9 @@ const centro = lado => lado === "I" ? margen(lado) / 2 : W - margen(lado) / 2;
 const escala = (lado, s) => Math.min(U * s, (margen(lado) / 2 - 8) / MEDIO, (.78 * H - 80) / ALTO);
 
 function aplicar(o, p, esClon) {
-  const x0 = CARRUSEL ? W / 2 - 61 + MEDIO * UC : centro(p.desde), x1 = CARRUSEL ? x0 : centro(p.hasta);
+  const x0 = CARRUSEL ? X0C : centro(p.desde), x1 = CARRUSEL ? x0 : centro(p.hasta);
   const u = (CARRUSEL ? UC * p.s / POSTER.s : escala(p.lado, p.s)) * p.m, ry = rad(p.rotY);
-  let x = x0 + (x1 - x0) * p.k + CUERPO * u, y = (CARRUSEL ? H / 2 + 150 : .78 * H) - p.dy;  // carrusel: pies donde los del póster
+  let x = x0 + (x1 - x0) * p.k + CUERPO * u, y = (CARRUSEL ? PIESC : .78 * H) - p.dy;  // carrusel: pies donde los del póster
   if (p.m < 1) { x += (1 - p.m) * escala(p.lado, p.s) * -34 * Math.cos(ry); y -= (1 - p.m) * escala(p.lado, p.s) * 100; }  // se hunde hacia el cristal
   if (esClon) { x += (p.lado === "I" ? -22 : 22) * u; o.position.z = -60 * u; }
   o.position.x = x; o.position.y = -y; o.scale.setScalar(Math.max(u, 1e-4)); o.rotation.set(0, ry, rad(p.tilt));
@@ -200,9 +204,9 @@ function aplicar(o, p, esClon) {
   if (p.anillo.cristal) { an.position.set(-34, 100 + p.bastonY, 0); an.rotation.set(0, -ry, 0); } else { an.position.set(0, 1, 0); an.rotation.set(-Math.PI / 2 + .3, 0, 0); }
 }
 
-const vista = matchMedia("(min-width:1400px) and (pointer:fine)");
+const vista = matchMedia("(min-width:1400px) and (pointer:fine)"), activa = () => CARRUSEL || vista.matches;
 function dibujar(y) {
-  if (!vista.matches) return;
+  if (!activa()) return;
   const p = CARRUSEL ? poseC(y) : pose(y, H);
   aplicar(yo, p, false);
   clon.visible = p.clon > 0; if (clon.visible) { aplicar(clon, p, true); sombra.opacity = p.clon; }

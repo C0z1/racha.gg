@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 
 RAIZ = pathlib.Path(__file__).resolve().parents[2]
 DOS, DOCS = RAIZ / "design-os", RAIZ / "docs"
-VISTAS = [(390, 844), (1440, 900)]
+VISTAS = [(390, 844), (1440, 900), (1366, 650), (1280, 600)]  # 1366×650 y 1280×600: alto útil de laptops (carrusel compacto)
 SECCIONES = ["Overview", "Colors", "Typography", "Layout", "Elevation & Depth", "Shapes", "Components", "Do's and Don'ts",
              "Iconography", "Voice"]
 EXE = re.compile(r"/Racha-Setup-[\d.]+\.exe$")

@@ -24,7 +24,7 @@
 <meta name="twitter:description" content="Deja de adivinar por qué pierdes. Gratis para Windows.">
 <meta name="twitter:image" content="https://racha-gg.vercel.app/img/og.jpg">
 <script>/* Carrusel: solo PC grande sin movimiento reducido; antes del primer pintado, así nada salta */
-matchMedia("(min-width:1400px) and (min-height:760px) and (pointer:fine) and (prefers-reduced-motion:no-preference)").matches && document.documentElement.classList.add("con-carrusel");</script>
+matchMedia("(min-width:1280px) and (min-height:580px) and (pointer:fine) and (prefers-reduced-motion:no-preference)").matches && document.documentElement.classList.add("con-carrusel");</script>
 <link rel="preload" href="fonts/mulish.woff2" as="font" type="font/woff2" crossorigin>
 <style>
   @font-face{font-family:Mulish;src:url(fonts/mulish.woff2) format("woff2");font-weight:200 1000;font-display:swap}
@@ -106,7 +106,7 @@ matchMedia("(min-width:1400px) and (min-height:760px) and (pointer:fine) and (pr
   }
   /* Carrusel (PC grande): la página es un anillo de paneles alrededor de la mascota. Se lee el panel del fondo del anillo, de frente;
      la mascota se para delante, en el hueco central de cada panel (texto a la izquierda, imagen a la derecha). Solo transform y visibility cambian. */
-  .con-carrusel{--hueco:240px;--panel:min(1240px,100vw - 120px)}
+  .con-carrusel{--hueco:240px;--panel:min(1240px,100vw - 120px);--pw:190px}  /* --pw: ancho del póster; mascota.js toma de él tamaño y lugar */
   .con-carrusel .carrusel{height:calc(10.7 * 100vh);position:relative}
   .con-carrusel .escenario{position:sticky;top:0;height:100vh;overflow:clip;perspective:3600px;z-index:1}
   .con-carrusel main,.con-carrusel [aria-labelledby="t-momentos"]{display:contents}
@@ -128,7 +128,30 @@ matchMedia("(min-width:1400px) and (min-height:760px) and (pointer:fine) and (pr
   .con-carrusel .panel:focus-visible{outline:2px solid var(--rosa);outline-offset:-4px}
   .con-carrusel .descarga{display:flex;justify-content:center;align-items:flex-start;min-height:70vh}  /* el botón arriba; la mascota celebra debajo */
   .con-carrusel .escena{display:block;position:absolute;inset:0;z-index:500;pointer-events:none}
-  .con-carrusel .escena svg{position:absolute;left:calc(50% - 61px);bottom:calc(50vh - 150px);width:190px;height:auto;overflow:visible}
+  .con-carrusel .escena svg{position:absolute;left:calc(50% - var(--pw)/2);bottom:calc(50vh - var(--pw)*.79);width:var(--pw);height:auto;overflow:visible}
+  .con-carrusel.escena-lista .escena svg{opacity:0}  /* primer cuadro 3D: el póster se apaga (también entre 1280 y 1399) */
+  /* Laptops: escalones por ancho y alto para que cada panel quepa sin scroll interno */
+  @media (max-width:1399px){.con-carrusel{--hueco:200px}}
+  @media (max-height:759px){
+    .con-carrusel{--pw:160px}
+    .con-carrusel .panel{top:64px;bottom:16px;max-height:calc(100vh - 80px);padding:24px;row-gap:12px}
+    .con-carrusel .hero{padding-block:24px}
+    .con-carrusel .hero h1{font-size:2.6rem}
+    .con-carrusel .tarjeta{padding:16px}
+    .con-carrusel .que-es h2{margin-bottom:0}
+    .con-carrusel .que-es p{margin-block:0 6px;font-size:.92rem;line-height:1.45}
+    .con-carrusel .que-es .tarjeta h3{font-size:1.1rem;margin-bottom:4px}
+    .con-carrusel .hero-img,.con-carrusel .fila>img{max-height:calc(100vh - 160px);width:auto;object-fit:contain}
+    .con-carrusel .faq details{padding:12px 16px;margin-bottom:8px}
+  }
+  @media (max-height:639px){
+    .con-carrusel{--pw:140px}
+    .con-carrusel .panel{padding:20px;line-height:1.4}
+    .con-carrusel .hero h1{font-size:2.2rem}
+    .con-carrusel .tagline{font-size:1.05rem}
+    .con-carrusel .hero .nota,.con-carrusel .confianza{font-size:.82rem}
+    .con-carrusel .btn{margin-top:16px}
+  }
   /* Movimiento: solo transform, opacity y outline; nada para quien pide movimiento reducido */
   @media (prefers-reduced-motion:no-preference){
     html{scroll-behavior:smooth}
@@ -339,7 +362,7 @@ document.querySelector("[data-compartir]").addEventListener("click", e => { cons
 // Mascota 3D: solo PC grande (≥1400 px, pointer fine), sin movimiento reducido y con WebGL2. three (js/mascota.js) se baja al primer scroll;
 // el resto ve el póster quieto (≥1400) o nada, y no descarga nada.
 (() => {
-  if (!matchMedia("(min-width:1400px) and (pointer:fine) and (prefers-reduced-motion:no-preference)").matches) return;
+  if (!document.documentElement.classList.contains("con-carrusel") && !matchMedia("(min-width:1400px) and (pointer:fine) and (prefers-reduced-motion:no-preference)").matches) return;
   const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return;
   const ext = gl.getExtension("WEBGL_lose_context"); ext && ext.loseContext();
   document.documentElement.classList.add("con-escena");
