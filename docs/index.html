@@ -110,7 +110,8 @@ matchMedia("(max-width:700px) and (min-height:600px) and (pointer:coarse) and (o
   .solo-movil .btn{display:block;margin-top:12px;border:0;font:inherit;font-weight:800;cursor:pointer}
   @media (pointer:coarse) and (max-width:700px){
     .solo-movil{display:block}
-    .hero .btn[data-descarga]{background:transparent;color:var(--rosa2);border:2px solid var(--rosa);margin-top:16px}
+    .hero .btn[data-descarga]{background:transparent;color:var(--rosa2);border:2px solid var(--rosa);margin-top:16px;display:block;text-align:center}
+    .solo-movil .btn{width:100%}
   }
   /* Carrusel (PC grande): la página es un anillo de paneles alrededor de la mascota. Se lee el panel del fondo del anillo, de frente;
      la mascota se para delante, en el hueco central de cada panel (texto a la izquierda, imagen a la derecha). Solo transform y visibility cambian. */
@@ -121,10 +122,12 @@ matchMedia("(max-width:700px) and (min-height:600px) and (pointer:coarse) and (o
   .con-carrusel #t-momentos{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   .con-carrusel .panel{position:absolute;left:calc(50% - var(--panel)/2);width:var(--panel);top:72px;bottom:32px;height:fit-content;max-height:calc(100vh - 104px);margin:auto 0;overflow:auto;
     max-width:none;padding:40px;background:var(--fondo2);border:1px solid var(--borde);border-radius:18px;display:grid;grid-template-columns:1fr var(--hueco) 1fr;align-items:center;gap:16px 0;backface-visibility:hidden}
+  .con-carrusel .panel{min-height:min(calc(var(--pw) * 1.6 + 80px),calc(100vh - 104px))}  /* nunca más bajo que el minion: siempre queda dentro de su panel */
   .con-carrusel .panel>*{grid-column:1}
   .con-carrusel .hero>picture,.con-carrusel .fila>img{grid-column:3;grid-row:1}
-  .con-carrusel .fila.ancha{grid-template-columns:1fr var(--hueco) 1.6fr}
-  .con-carrusel .fila{margin:0}
+  .con-carrusel .fila>div:only-child{grid-column:1}  /* sin imagen (Runas): el texto se queda a la izquierda del minion */
+  .con-carrusel .fila.ancha{grid-template-columns:1fr var(--hueco) 1fr}  /* columnas iguales: el hueco del minion queda al centro */
+  .con-carrusel .fila{margin:auto 0}  /* auto: centrado vertical como los demás paneles */
   .con-carrusel .que-es .grid{display:contents}
   .con-carrusel .que-es .tarjeta{grid-column:1}
   .con-carrusel .que-es .tarjeta:nth-child(n+3){grid-column:3}

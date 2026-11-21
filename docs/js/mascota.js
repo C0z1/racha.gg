@@ -214,7 +214,7 @@ function aplicar(o, p, esClon) {
   o.position.x = x; o.position.y = -y; o.scale.setScalar(Math.max(u, 1e-4)); o.rotation.set(0, ry, rad(p.tilt));
   const b = o.getObjectByName("baston"); b.rotation.z = rad(p.baston); b.position.y = 42 + p.bastonY; b.position.z = 10 + p.bastonZ;
   const cr = o.getObjectByName("cristal"); cr.rotation.y = rad(p.cristalRot);
-  const orbe = o.getObjectByName("orbe"); orbe.scale.setScalar(Math.max(p.orbe, 1e-4) * 46);  // sprite: 46 unidades de diámetro = el orbe de 16 de radio con su halo orbe.position.x = p.orbeX; orbe.material.opacity = .35 * p.orbeO;
+  const orbe = o.getObjectByName("orbe"); orbe.scale.setScalar(Math.max(CARRUSEL ? Math.min(p.orbe, 1.15) : p.orbe, 1e-4) * (CARRUSEL ? 34 : 46));  // carrusel: el resplandor cabe en el hueco y no cae sobre el texto  // sprite: 46 unidades de diámetro = el orbe de 16 de radio con su halo orbe.position.x = p.orbeX; orbe.material.opacity = .35 * p.orbeO;
   for (let i = 0; i < 3; i++) { const ch = o.getObjectByName("chico" + i), t = p.giro + i * 2.094;
     ch.position.set(14 * Math.cos(t), 30 + 4 * Math.sin(t * 1.5), 14 * Math.sin(t)); ch.material.opacity = .8 * p.chicos; }
   o.getObjectByName("placa").rotation.z = rad(p.placa);
@@ -242,7 +242,7 @@ function emitir(n, x, y, f) {  // f(i) -> [vx, vy, color, duración s, gravedad]
 }
 const azar = (a, b) => a + Math.random() * (b - a);
 const FX = {
-  chispas: (x, y, u) => emitir(26, x, y, i => { const a = azar(0, 6.283), v = azar(40, 140) * u / 2; return [Math.cos(a) * v, Math.sin(a) * v, i % 3 ? C.brillo : C.cristal, azar(.5, .9)]; }),
+  chispas: (x, y, u) => emitir(26, x, y, i => { const a = azar(0, 6.283), v = azar(25, 80) * u / 2; return [Math.cos(a) * v, Math.sin(a) * v, i % 3 ? C.brillo : C.cristal, azar(.5, .9)]; }),
   polvo: (x, y, u) => emitir(22, x, y, i => [azar(-90, 90) * u / 2, azar(10, 60) * u / 2, i % 2 ? C.rosa2 : C.cristal, azar(.4, .7), -60]),
   confeti: (x, y, u) => emitir(90, x, y, i => [azar(-160, 160) * u / 2, azar(120, 300) * u / 2, [C.brillo, C.rosa2, C.cristal][i % 3], azar(1, 1.6), -260 * u / 2]),
 };
