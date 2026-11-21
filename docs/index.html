@@ -159,7 +159,7 @@ matchMedia("(max-width:700px) and (min-height:600px) and (pointer:coarse) and (o
     .con-carrusel .que-es h2{margin-bottom:0}
     .con-carrusel .que-es p{margin-block:0 6px;font-size:.92rem;line-height:1.45}
     .con-carrusel .que-es .tarjeta h3{font-size:1.1rem;margin-bottom:4px}
-    .con-carrusel .hero-img,.con-carrusel .fila>img{max-height:calc(100vh - 160px);width:auto;object-fit:contain}
+    .con-carrusel .hero-img,.con-carrusel .fila>img{max-height:calc(100vh - 160px);width:100%;height:auto;object-fit:contain}  /* ancho fijo: el alto sale de width/height del HTML antes de cargar (sin CLS) */
     .con-carrusel .faq details{padding:12px 16px;margin-bottom:8px}
   }
   @media (max-height:639px){
