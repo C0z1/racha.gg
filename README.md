@@ -1,157 +1,157 @@
 <p align="center">
-  <img src="docs/img/readme/hero.png" alt="Racha (racha.gg). Deja de adivinar por qué pierdes. Tu coach de League of Legends, hecho con tus propias partidas.">
+  <img src="docs/img/readme/hero.png" alt="Racha (racha.gg). Stop guessing why you lose. Your League of Legends coach, built from your own games.">
 </p>
 
 <p align="center">
-  <a href="https://github.com/C0z1/racha.gg/releases/latest"><img src="https://img.shields.io/badge/Descargar_para_Windows-gratis-F28DB0?style=for-the-badge&logo=windows&logoColor=white&labelColor=44203A" alt="Descargar para Windows, gratis"></a>
+  <a href="https://github.com/C0z1/racha.gg/releases/latest"><img src="https://img.shields.io/badge/Download_for_Windows-free-F28DB0?style=for-the-badge&logo=windows&logoColor=white&labelColor=44203A" alt="Download for Windows, free"></a>
 </p>
 
 <p align="center">
-  Las guías te dicen cómo juega un Challenger.<br>
-  <b>Racha te dice qué te hace perder <i>a ti</i></b>, y te lo recuerda justo cuando importa.
+  Guides tell you how a Challenger plays.<br>
+  <b>Racha tells you what makes <i>you</i> lose</b>, and reminds you right when it matters.
 </p>
 
 <p align="center">
-  <a href="https://racha-gg.vercel.app">Página del proyecto</a> ·
-  <a href="CHANGELOG.md">Novedades</a> ·
-  <a href="https://c0z1.github.io/racha.gg/privacidad.html">Privacidad</a> ·
-  <a href="https://c0z1.github.io/racha.gg/terminos.html">Términos</a>
+  <a href="https://racha-gg.vercel.app">Project site</a> ·
+  <a href="CHANGELOG.md">What's new</a> ·
+  <a href="https://c0z1.github.io/racha.gg/privacidad.html">Privacy</a> ·
+  <a href="https://c0z1.github.io/racha.gg/terminos.html">Terms</a>
 </p>
 
 <p align="center">
-  <img src="docs/img/readme/pasos.png" alt="1. Descarga. 2. Abre LoL. 3. Juega.">
+  <img src="docs/img/readme/pasos.png" alt="1. Download. 2. Open LoL. 3. Play.">
 </p>
 
-## En champ select
+## In champ select
 
 <p align="center">
-  <img src="docs/img/readme/champ-select.webp" alt="Selección de campeón: tu récord contra el rival con ese campeón, tu win rate, tus muertes antes del 6, tu plan de 3 reglas y los counters">
+  <img src="docs/img/readme/champ-select.webp" alt="Champ select: your record against the opponent with that champion, your win rate, your deaths before level 6, your 3-rule plan and the counters">
 </p>
 
-Tu récord contra ese rival, tu win rate con el campeón, el estimado contra él y **3 reglas para esa partida**, sacadas de tus números. Si aún no sabes contra quién vas, Racha espera a que tu rival de línea elija.
+Your record against that opponent, your win rate with the champion, the estimate against them and **3 rules for that game**, taken from your own numbers. If you don't know who you're facing yet, Racha waits for your lane opponent to pick.
 
-Al fijar tu campeón, Racha **pone sus runas sola**, una vez: el estilo que usaste la última vez o el de mejor win rate. En la tarjeta ves 2 o 3 estilos con su win rate y sus partidas («Conquistador · Valor · 51 % · 145 partidas») para cambiar con un clic. Solo usa la página de Racha o un espacio libre, nunca la tuya, y si ya cambiaste tus runas no toca nada. Se apaga en Ajustes.
+When you lock in your champion, Racha **sets its runes for you**, once: the style you used last time or the one with the best win rate. The card shows 2 or 3 styles with their win rate and games played ("Conqueror · Valor · 51% · 145 games") so you can switch with one click. It only uses the Racha page or a free slot, never yours, and if you already changed your runes it doesn't touch anything. You can turn it off in Settings.
 
-## En partida: juegas contra tu sombra
+## In game: you play against your shadow
 
 <p align="center">
-  <img src="docs/img/readme/sombra.webp" alt="La franja Sombra: tu tope de muertes, tu CS contra tu sombra y tus marcas; al lado, la vista Stats con tu oro, CS, peleas, visión y nivel contra tu sombra">
+  <img src="docs/img/readme/sombra.webp" alt="The Shadow strip: your death cap, your CS against your shadow and your markers; next to it, the Stats view with your gold, CS, fights, vision and level against your shadow">
 </p>
 
-Tu sombra es la mediana de tus victorias con ese campeón, minuto a minuto. La franja tiene tres zonas que nunca cambian de lugar: tu tope de muertes, tu CS (desde el 14, tus peleas) contra tu sombra y tus 4 marcas. Dos marcas salen del plan de tu rol y dos vigilan tus errores más repetidos. Habla 3 veces por partida como mucho y nunca en una pelea; tu plan te dice cuánto ganas cuando lo cumples («≥1 dragón al 14: ganas 69%»).
+Your shadow is the median of your wins with that champion, minute by minute. The strip has three zones that never move: your death cap, your CS (from minute 14, your fights) against your shadow, and your 4 markers. Two markers come from your role's plan and two watch your most repeated mistakes. It speaks at most 3 times per game and never during a fight; your plan tells you how much you win when you follow it ("1 dragon by 14: you win 69%").
 
-Con **Ctrl+Shift+Z** la franja se vuelve clicable. En **Stats** ves tu oro, CS, peleas y visión por minuto y tu nivel, cada uno con su flecha contra tu sombra; en **Build**, tu core con lo comprado apagado y lo que sigue marcado. Solo datos tuyos: nada de timers enemigos ni información oculta.
+Press **Ctrl+Shift+Z** to make the strip clickable. In **Stats** you see your gold, CS, fights and vision per minute and your level, each with an arrow against your shadow; in **Build**, your core items with what you already bought dimmed and the next one highlighted. Only your own data: no enemy timers, no hidden information.
 
-## Al terminar: tu partida
+## After the game: your match
 
-«Tu partida» te dice qué hiciste bien y qué no, con el minuto de cada muerte y de cada error, **por qué importa** con tus propias partidas del rol («con 1 dragón o más al 14 ganas 69 %; sin él, 27 %») y **un foco para la próxima**. Sale al instante, sin esperar a Riot.
+"Your match" tells you what you did well and what you didn't, with the minute of every death and every mistake, **why it matters** using your own games in that role ("with 1+ dragon by 14 you win 69%; without it, 27%") and **one focus for next time**. It's ready instantly, no waiting for Riot.
 
-## Lo que repites
+## What you keep repeating
 
 <p align="center">
-  <img src="docs/img/readme/errores.webp" alt="Para trabajar: los errores que se repiten en tus últimas 20 partidas, con el minuto exacto de cada uno">
+  <img src="docs/img/readme/errores.webp" alt="To work on: the mistakes you repeat across your last 20 games, with the exact minute of each one">
 </p>
 
-Los errores que repites, **con el minuto exacto** para buscarlos en el replay, y qué probar la próxima vez. Nada de ver la partida entera. Cuando evitas un error 8 de cada 10 veces, queda corregido y entra el siguiente.
+The mistakes you repeat, **with the exact minute** so you can find them in the replay, and what to try next time. No need to rewatch the whole game. Once you avoid a mistake 8 times out of 10, it's marked as fixed and the next one comes in.
 
-## Tier list del parche
+## Patch tier list
 
 <p align="center">
-  <img src="docs/img/readme/tier.webp" alt="Tier list: los campeones S, A y B de mid en el parche 16.22, con flechas si suben o bajan, y a la derecha tu pool con tu win rate">
+  <img src="docs/img/readme/tier.webp" alt="Tier list: the S, A and B mid champions in patch 16.22, with arrows if they go up or down, and your pool with your win rate on the right">
 </p>
 
-Por rol, los campeones S, A y B del último parche, con partidas Master+ de LAN, KR y EUW. Flechas si suben o bajan, **tus campeones marcados con tu win rate**, y siempre dice de qué parche y cuántas partidas son.
+By role, the S, A and B champions of the latest patch, from Master+ games in LAN, KR and EUW. Arrows if they're rising or falling, **your champions marked with your win rate**, and it always says which patch and how many games it's based on.
 
-## Tus campeones
+## Your champions
 
 <p align="center">
-  <img src="docs/img/readme/campeones.webp" alt="Campeones: win rate y últimas 5 de cada campeón, mejores y peores rivales, su regla y sus counters">
+  <img src="docs/img/readme/campeones.webp" alt="Champions: win rate and last 5 games for each champion, best and worst matchups, its rule and its counters">
 </p>
 
-Con quién ganas de verdad, contra quién sufres y **qué cuidar con cada campeón**.
+Who you really win with, who you struggle against, and **what to watch with each champion**.
 
-## Al abrir LoL
+## When you open LoL
 
 <p align="center">
-  <img src="docs/img/readme/inicio.webp" alt="Inicio: tu regla de hoy, tu racha, tu sesión, tu pick de hoy y tu win rate contra tu meta">
+  <img src="docs/img/readme/inicio.webp" alt="Home: your rule for today, your streak, your session, your pick for today and your win rate against your goal">
 </p>
 
-Tu regla de hoy, tu racha, tu sesión y **el campeón que más te conviene hoy**.
+Your rule for today, your streak, your session and **the champion that suits you best today**.
 
-## Por qué Racha
+## Why Racha
 
 | | |
 |---|---|
-| **Hecho con tus partidas** | Nada de «farmea más». Racha descubre, por ejemplo, que *con 2 muertes o menos del minuto 14 al 25 ganas el 65 %, y con 3 o más, el 44 %*. |
-| **Aparece sola** | Se abre cuando abres LoL y cambia de pantalla según la fase: champ select, partida y final. Cero clics. |
-| **Juego limpio** | Lee lo que el cliente ofrece a las apps. Lo único que escribe es la página de runas, al fijar campeón y solo en la página de Racha o en un espacio libre (se apaga en Ajustes). Sin timers enemigos, no juega por ti y no toca el juego. Detalle en [CUMPLIMIENTO](docs/CUMPLIMIENTO.md). |
-| **Tus datos son tuyos** | Tus partidas viven en tu computadora. La cuenta en la nube es opcional y la borras con un botón. |
+| **Built from your games** | No more "just farm more". Racha finds, for example, that *with 2 deaths or fewer between minutes 14 and 25 you win 65%, and with 3 or more, 44%*. |
+| **Shows up on its own** | It opens when you open LoL and switches screens with each phase: champ select, game and post-game. Zero clicks. |
+| **Plays fair** | It reads what the client offers to apps. The only thing it writes is the rune page, when you lock in, and only on the Racha page or a free slot (you can turn it off in Settings). No enemy timers, it doesn't play for you and it doesn't touch the game. Details in [CUMPLIMIENTO](docs/CUMPLIMIENTO.md) (Spanish). |
+| **Your data is yours** | Your games live on your computer. The cloud account is optional and you delete it with one button. |
 
-## Qué más trae
+## What else it does
 
-- **Tu semana**: tu récord frente a la semana anterior, tu mejor campeón y tu peor rival.
-- **Builds de Master+** para todos los campeones, y tu build contra la de los onetricks del top.
-- **Se actualiza sola**, nunca a mitad de partida, y comprueba que el instalador sea el original.
-- **Cuenta en la nube y tabla del grupo**, opcionales: tus ajustes en otra PC y tu win rate junto al de tus amigos.
+- **Your week**: your record against the previous week, your best champion and your worst matchup.
+- **Master+ builds** for every champion, and your build compared with the top one-tricks.
+- **Updates itself**, never mid-game, and checks that the installer is the original.
+- **Cloud account and group leaderboard**, both optional: your settings on another PC and your win rate next to your friends'.
 
-## Preguntas frecuentes
+## FAQ
 
 <details>
-<summary><b>¿Me pueden banear por usarla?</b></summary>
+<summary><b>Can I get banned for using it?</b></summary>
 <br>
-Racha solo <b>lee</b> la información que el propio cliente de LoL ofrece a las apps, la misma que ya ves en tu pantalla. Lo único que escribe es tu página de runas. No pickea, no banea, no acepta partidas y no modifica el juego.
+Racha only <b>reads</b> the information the LoL client itself offers to apps, the same you already see on your screen. The only thing it writes is your rune page. It doesn't pick, ban, accept matches or modify the game.
 </details>
 
 <details>
-<summary><b>¿Cuánto cuesta?</b></summary>
+<summary><b>How much does it cost?</b></summary>
 <br>
-Es gratis y de código abierto.
+It's free and open source.
 </details>
 
 <details>
-<summary><b>¿Funciona en mi servidor?</b></summary>
+<summary><b>Does it work on my server?</b></summary>
 <br>
-Sí: LAN, LAS, NA, EUW, KR y el resto de servidores de Riot.
+Yes: LAN, LAS, NA, EUW, KR and every other Riot server.
 </details>
 
 <details>
-<summary><b>Windows dice «Windows protegió su PC». ¿Es seguro?</b></summary>
+<summary><b>Windows says "Windows protected your PC". Is it safe?</b></summary>
 <br>
-Pasa con las apps nuevas que todavía no tienen firma digital. Dale a <b>Más información → Ejecutar de todas formas</b>. El código está aquí mismo, a la vista de todos.
+That happens with new apps that don't have a digital signature yet. Click <b>More info → Run anyway</b>. The code is right here, in the open.
 </details>
 
 <details>
-<summary><b>¿Qué datos guarda?</b></summary>
+<summary><b>What data does it store?</b></summary>
 <br>
-Tus partidas y tus ajustes viven en tu computadora. Si activas la cuenta en la nube, guarda tu Riot ID, tus ajustes y un resumen de tus partidas (no la partida completa); los borras con un botón. Nada de MMR ni ELO. Los detalles están en la <a href="https://c0z1.github.io/racha.gg/privacidad.html">política de privacidad</a>.
+Your games and settings live on your computer. If you turn on the cloud account, it stores your Riot ID, your settings and a summary of your games (not the full game); you delete them with one button. No MMR or ELO. Details in the <a href="https://c0z1.github.io/racha.gg/privacidad.html">privacy policy</a>.
 </details>
 
 <br>
 
 <p align="center">
-  <a href="https://github.com/C0z1/racha.gg/releases/latest"><img src="https://img.shields.io/badge/Descargar_Racha-F28DB0?style=for-the-badge&logo=windows&logoColor=white&labelColor=44203A" alt="Descargar Racha"></a>
+  <a href="https://github.com/C0z1/racha.gg/releases/latest"><img src="https://img.shields.io/badge/Download_Racha-F28DB0?style=for-the-badge&logo=windows&logoColor=white&labelColor=44203A" alt="Download Racha"></a>
 </p>
 
 ---
 
-## Cómo está hecho
+## How it's built
 
-Racha está hecha en Python. Corre un servidor local y muestra la ventana con Edge en modo app; la franja en partida se dibuja con Pillow. Lee de tres fuentes: la Riot API (con tu key o tu código de acceso), la API local del cliente (LCU) y la Live Client Data API. Solo escribe en el cliente la página de runas, al fijar campeón (en la página de Racha o un espacio libre). Los datos de matchup salen de partidas Master+ agregadas, sin nombres de jugadores.
+Racha is written in Python. It runs a local server and shows the window with Edge in app mode; the in-game strip is drawn with Pillow. It reads from three sources: the Riot API (with your key or your access code), the client's local API (LCU) and the Live Client Data API. The only thing it writes to the client is the rune page, when you lock in (on the Racha page or a free slot). Matchup data comes from aggregated Master+ games, with no player names.
 
-| Carpeta | Qué hay |
+| Folder | What's inside |
 |---|---|
-| [`scripts/`](scripts) | La app. `companion_web.py` la arranca; `web/` son las pantallas. |
-| [`pruebas/`](pruebas) | Las pruebas automáticas; corren en cada cambio en Windows y Ubuntu. |
-| [`backend/`](backend) | El servidor pequeño en Cloudflare: guarda la key de Riot y las cuentas. |
-| [`instalador/`](instalador) | Cómo se arma el `.exe` y el instalador de Windows. |
-| [`herramientas/`](herramientas) | Utilidades de desarrollo que no van en la app. |
-| [`docs/`](docs) | La página web, la [guía de uso](docs/USO.md), privacidad y términos. |
+| [`scripts/`](scripts) | The app. `companion_web.py` starts it; `web/` holds the screens. |
+| [`pruebas/`](pruebas) | Automated tests; they run on every change on Windows and Ubuntu. |
+| [`backend/`](backend) | The small Cloudflare server: it stores the Riot key and the accounts. |
+| [`instalador/`](instalador) | How the `.exe` and the Windows installer are built. |
+| [`herramientas/`](herramientas) | Development tools that don't ship with the app. |
+| [`docs/`](docs) | The website, the [user guide](docs/USO.md) (Spanish), privacy and terms. |
 
 ```bash
-python scripts/companion_web.py --demo      # la app con datos de ejemplo, sin cliente
-python -m unittest discover pruebas         # pruebas: sin red, sin key, sin partidas
+python scripts/companion_web.py --demo      # the app with sample data, no client needed
+python -m unittest discover pruebas         # tests: no network, no key, no games
 ```
 
-Por dentro, la app y el instalador se siguen llamando HTC (su nombre viejo): cambiarlo rompería la actualización de quien ya la tiene instalada. Los PRs son bienvenidos. Licencia [MIT](LICENSE).
+Internally, the app and installer are still called HTC (its old name): renaming it would break updates for people who already have it installed. PRs are welcome. [MIT](LICENSE) license.
 
 <sub>Racha isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</sub>
