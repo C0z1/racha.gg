@@ -109,7 +109,8 @@ const GUION = [
 
 // --- Carrusel (html.con-carrusel): la página es un anillo de paneles y la mascota se queda al centro, en el hueco del panel del frente.
 // Cada panel ocupa 100vh de scroll: en el 70 % quieto hace su acción; en el 30 % de giro se voltea hacia el panel que entra por la derecha.
-const CARRUSEL = document.documentElement.classList.contains("con-carrusel");
+const MOVIL = document.documentElement.classList.contains("con-carrusel-movil");  // celular: la mascota vive en el balcón de arriba
+const CARRUSEL = MOVIL || document.documentElement.classList.contains("con-carrusel");
 let UC = 190 / 82, X0C = 0, PIESC = 0;  // carrusel: px por unidad, centro del dibujo y pies, medidos del póster SVG (el CSS manda el tamaño)
 const disparaC = (p, u) => { dispara(p, u); p.orbeX *= -.5; };  // dispara hacia la imagen (derecha), nunca sobre el texto
 const GUION_C = [
@@ -126,13 +127,21 @@ const GUION_C = [
 ];
 const base = o => Object.assign({m: 1, dy: 0, tilt: 0, baston: 0, bastonY: 0, bastonZ: 0, brillo: 0, orbe: 1, orbeX: 0, orbeO: 1, chicos: 0, giro: 0, placa: 0,
   anillo: {o: 0, s: 1}, clon: 0, cristalRot: 0}, o);
+let TOPES = [], BALCON = 0;  // celular: dónde empieza cada panel y el borde de abajo del balcón (se miden en medir())
+function tramoMovil(y) {  // panel cuya parte de arriba ya pasó bajo el balcón y cuánto de él se ha leído
+  const linea = y + BALCON + 40; let i = 0; while (i < TOPES.length - 1 && TOPES[i + 1] <= linea) i++;
+  return [i, i === TOPES.length - 1 ? .5 : clamp((linea - TOPES[i]) / (TOPES[i + 1] - TOPES[i]))];
+}
 function poseC(y) {
   const car = document.querySelector(".carrusel"), n = GUION_C.length, r = Math.max(0, (y - car.offsetTop) / innerHeight);
-  const i = Math.min(Math.floor(r), n - 1), f = i === n - 1 ? Math.min(r - i, .7) : r - i, g = GUION_C[i], sig = GUION_C[Math.min(i + 1, n - 1)];
+  let [i, f] = MOVIL ? tramoMovil(y) : [Math.min(Math.floor(r), n - 1), 0];
+  if (!MOVIL) f = i === n - 1 ? Math.min(r - i, .7) : r - i;
+  const g = GUION_C[i], sig = GUION_C[Math.min(i + 1, n - 1)];
   const t = suave((f - .7) / .3);
   const p = base({lado: "C", desde: "C", hasta: "C", k: 0, rotY: g.rotY + (sig.rotY - g.rotY) * t + 50 * env(t), s: g.s + (sig.s - g.s) * t});
   g.act(p, clamp(f / .7), sig);
-  p.m = 1 - suave(env(t) * 1.6);  // en el giro se hunde en su cristal: el texto que pasa por el centro nunca queda detrás de él
+  if (!MOVIL) p.m = 1 - suave(env(t) * 1.6);  // en el giro se hunde en su cristal: el texto que pasa por el centro nunca queda detrás de él
+  else p.dy *= .4;  // en el balcón de 112 px los saltos van más cortos
   p.panel = i; p.f = f;
   if (reaccion) { const k = clamp((performance.now() - reaccion.t0) / 900);  // reacción al mouse, sumada a la pose
     p.dy += 16 * env(k); p.rotY += 20 * reaccion.dir * env(k); p.brillo = Math.max(p.brillo, env(k)); if (k >= 1) reaccion = null; }
@@ -164,7 +173,8 @@ function pose(y, H, a = anclas(H)) {
 
 // --- Escena ---------------------------------------------------------------------------------------------------------------
 const escena = document.querySelector(".escena"), lienzo = document.createElement("canvas");
-const render = new THREE.WebGLRenderer({canvas: lienzo, alpha: true, antialias: true});
+const render = new THREE.WebGLRenderer({canvas: lienzo, alpha: true, antialias: !MOVIL});
+lienzo.addEventListener("webglcontextlost", () => document.documentElement.classList.remove("escena-lista"));  // si el sistema quita el WebGL (iOS), vuelve el póster
 const mundo = new THREE.Scene(), camara = new THREE.OrthographicCamera(0, 1, 0, -1, .1, 4000);
 camara.position.z = 2000;
 mundo.add(new THREE.HemisphereLight(C.rosa2, C.fondo, 2.2));
@@ -177,8 +187,11 @@ const vidrio = yo.getObjectByName("cristal").children[0].material;
 
 let W = 0, H = 0;
 function medir() {
-  W = document.documentElement.clientWidth; H = innerHeight;
-  render.setPixelRatio(Math.min(devicePixelRatio, 2)); render.setSize(W, H, false);
+  W = CARRUSEL ? escena.clientWidth : document.documentElement.clientWidth; H = CARRUSEL ? escena.clientHeight : innerHeight;
+  render.setPixelRatio(Math.min(devicePixelRatio, MOVIL ? 1.5 : 2)); render.setSize(W, H, false);
+  if (MOVIL) { BALCON = document.querySelector(".barra").offsetHeight + escena.offsetHeight;
+    TOPES = [".hero", '[aria-labelledby="t-pasos"]', ".que-es", ".fila", ".fila:nth-of-type(2)", ".fila:nth-of-type(3)", ".fila:nth-of-type(4)", ".fila:nth-of-type(5)", ".faq", ".descarga"]
+      .map(s => { let e = document.querySelector(s), t = 0; for (; e; e = e.offsetParent) t += e.offsetTop; return t; }); }
   Object.assign(camara, {right: W, bottom: -H}); camara.updateProjectionMatrix();
   if (CARRUSEL) {  // el póster sigue maquetado aunque esté apagado: de él salen tamaño y lugar en cualquier escalón de CSS
     const r = escena.querySelector("svg").getBoundingClientRect(), e = escena.getBoundingClientRect();
@@ -215,12 +228,13 @@ const pvida = new Float32Array(NP), pdura = new Float32Array(NP), pgrav = new Fl
 const geoP = new THREE.BufferGeometry();
 geoP.setAttribute("position", new THREE.BufferAttribute(pp, 3).setUsage(THREE.DynamicDrawUsage));
 geoP.setAttribute("color", new THREE.BufferAttribute(pc, 3).setUsage(THREE.DynamicDrawUsage));
-const puntos = new THREE.Points(geoP, new THREE.PointsMaterial({size: 9, sizeAttenuation: false, map: RESPLANDOR, vertexColors: true, ...SUMA}));
+const puntos = new THREE.Points(geoP, new THREE.PointsMaterial({size: MOVIL ? 5 : 9, sizeAttenuation: false, map: RESPLANDOR, vertexColors: true, ...SUMA}));
 puntos.frustumCulled = false; mundo.add(puntos);
 let pcur = 0, vivas = 0, reaccion = null, enfriado = 0;
 const disparadas = new Set();
 function emitir(n, x, y, f) {  // f(i) -> [vx, vy, color, duración s, gravedad]
   const c = new THREE.Color();
+  if (MOVIL) n = Math.ceil(n * .4);  // celular: menos partículas
   vivas = Math.max(vivas, n);  // que el bucle no se duerma justo después de emitir
   for (let i = 0; i < n; i++) { const j = pcur; pcur = (pcur + 1) % NP; const [vx, vy, col, d, g] = f(i); c.set(col);
     pp.set([x, y, 10], j * 3); pv.set([vx, vy, 0], j * 3); pb.set([c.r, c.g, c.b], j * 3); pvida[j] = pdura[j] = d; pgrav[j] = g || 0; }
@@ -276,6 +290,10 @@ function cuadro(t) {
   if (!quieto || vivas || reaccion) pedir(); else previo = 0;  // sin scroll, partículas ni reacción, el bucle se duerme
 }
 addEventListener("scroll", pedir, {passive: true});
+// Celular: un toque en el balcón hace la misma reacción
+if (MOVIL) escena.addEventListener("pointerdown", () => { if (reaccion || performance.now() < enfriado) return;
+  reaccion = {t0: performance.now(), dir: Math.random() < .5 ? -1 : 1}; enfriado = reaccion.t0 + 3000;
+  const v = cristalEn(new THREE.Vector3()); FX.chispas(v.x, v.y, UC); pedir(); }, {passive: true});
 // Carrusel: si el mouse pasa sobre la cabeza con el panel quieto, salta y voltea hacia él (una vez cada 3 s)
 if (CARRUSEL) addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse" || reaccion || performance.now() < enfriado) return;
