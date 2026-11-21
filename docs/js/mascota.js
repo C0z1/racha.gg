@@ -130,7 +130,8 @@ const base = o => Object.assign({m: 1, dy: 0, tilt: 0, baston: 0, bastonY: 0, ba
 let TOPES = [], BALCON = 0;  // celular: dónde empieza cada panel y el borde de abajo del balcón (se miden en medir())
 function tramoMovil(y) {  // panel cuya parte de arriba ya pasó bajo el balcón y cuánto de él se ha leído
   const linea = y + BALCON + 40; let i = 0; while (i < TOPES.length - 1 && TOPES[i + 1] <= linea) i++;
-  return [i, i === TOPES.length - 1 ? .5 : clamp((linea - TOPES[i]) / (TOPES[i + 1] - TOPES[i]))];
+  const fin = i === TOPES.length - 1 ? document.documentElement.scrollHeight - innerHeight + BALCON + 40 : TOPES[i + 1];  // el último llega hasta el final del scroll
+  return [i, clamp((linea - TOPES[i]) / Math.max(1, fin - TOPES[i]))];
 }
 function poseC(y) {
   const car = document.querySelector(".carrusel"), n = GUION_C.length, r = Math.max(0, (y - car.offsetTop) / innerHeight);
