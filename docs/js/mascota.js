@@ -113,16 +113,16 @@ const CARRUSEL = document.documentElement.classList.contains("con-carrusel");
 let UC = 190 / 82, X0C = 0, PIESC = 0;  // carrusel: px por unidad, centro del dibujo y pies, medidos del póster SVG (el CSS manda el tamaño)
 const disparaC = (p, u) => { dispara(p, u); p.orbeX *= -.5; };  // dispara hacia la imagen (derecha), nunca sobre el texto
 const GUION_C = [
-  {rotY: -25, s: .75, act: saluda},      // hero (= póster)
-  {rotY: -60, s: .75, act: camina},      // en tres pasos
-  {rotY: 0, s: .75, act: orbeCrece},     // qué es
-  {rotY: 30, s: .75, act: apunta},       // champ select: apunta a la captura
-  {rotY: -25, s: .75, act: golpe},       // runas
-  {rotY: 90, s: .75, act: corre},        // sombra: corre con su clon
-  {rotY: -35, s: .75, act: giraCristal}, // al terminar
-  {rotY: 40, s: .75, act: disparaC},     // tier list
+  {rotY: -25, s: .75, act: saluda, fx: "chispas"},      // hero (= póster)
+  {rotY: -60, s: .75, act: camina, fx: "polvo"},      // en tres pasos
+  {rotY: 0, s: .75, act: orbeCrece, fx: "chispas"},     // qué es
+  {rotY: 30, s: .75, act: apunta, fx: "chispas"},       // champ select: apunta a la captura
+  {rotY: -25, s: .75, act: golpe, fx: "polvo"},       // runas
+  {rotY: 90, s: .75, act: corre, fx: "polvo"},        // sombra: corre con su clon
+  {rotY: -35, s: .75, act: giraCristal, fx: "chispas"}, // al terminar
+  {rotY: 40, s: .75, act: disparaC, fx: "chispas"},     // tier list
   {rotY: 0, s: .75, act: guardia},       // FAQ
-  {rotY: 0, s: .82, act: celebra},       // descarga
+  {rotY: 0, s: .82, act: celebra, fx: "confeti"},       // descarga
 ];
 const base = o => Object.assign({m: 1, dy: 0, tilt: 0, baston: 0, bastonY: 0, bastonZ: 0, brillo: 0, orbe: 1, orbeX: 0, orbeO: 1, chicos: 0, giro: 0, placa: 0,
   anillo: {o: 0, s: 1}, clon: 0, cristalRot: 0}, o);
@@ -132,6 +132,10 @@ function poseC(y) {
   const t = suave((f - .7) / .3);
   const p = base({lado: "C", desde: "C", hasta: "C", k: 0, rotY: g.rotY + (sig.rotY - g.rotY) * t + 50 * env(t), s: g.s + (sig.s - g.s) * t});
   g.act(p, clamp(f / .7), sig);
+  p.m = 1 - suave(env(t) * 1.6);  // en el giro se hunde en su cristal: el texto que pasa por el centro nunca queda detrás de él
+  p.panel = i; p.f = f;
+  if (reaccion) { const k = clamp((performance.now() - reaccion.t0) / 900);  // reacción al mouse, sumada a la pose
+    p.dy += 16 * env(k); p.rotY += 20 * reaccion.dir * env(k); p.brillo = Math.max(p.brillo, env(k)); if (k >= 1) reaccion = null; }
   return p;
 }
 
@@ -191,7 +195,7 @@ function aplicar(o, p, esClon) {
   const x0 = CARRUSEL ? X0C : centro(p.desde), x1 = CARRUSEL ? x0 : centro(p.hasta);
   const u = (CARRUSEL ? UC * p.s / POSTER.s : escala(p.lado, p.s)) * p.m, ry = rad(p.rotY);
   let x = x0 + (x1 - x0) * p.k + CUERPO * u, y = (CARRUSEL ? PIESC : .78 * H) - p.dy;  // carrusel: pies donde los del póster
-  if (p.m < 1) { x += (1 - p.m) * escala(p.lado, p.s) * -34 * Math.cos(ry); y -= (1 - p.m) * escala(p.lado, p.s) * 100; }  // se hunde hacia el cristal
+  if (p.m < 1) { const u0 = CARRUSEL ? UC * p.s / POSTER.s : escala(p.lado, p.s); x += (1 - p.m) * u0 * -34 * Math.cos(ry); y -= (1 - p.m) * u0 * 100; }  // se hunde hacia el cristal
   if (esClon) { x += (p.lado === "I" ? -22 : 22) * u; o.position.z = -60 * u; }
   o.position.x = x; o.position.y = -y; o.scale.setScalar(Math.max(u, 1e-4)); o.rotation.set(0, ry, rad(p.tilt));
   const b = o.getObjectByName("baston"); b.rotation.z = rad(p.baston); b.position.y = 42 + p.bastonY; b.position.z = 10 + p.bastonZ;
@@ -205,12 +209,54 @@ function aplicar(o, p, esClon) {
 }
 
 const vista = matchMedia("(min-width:1400px) and (pointer:fine)"), activa = () => CARRUSEL || vista.matches;
+// --- Partículas (carrusel): un solo Points que suma luz; una ráfaga al empezar la acción de cada panel; unidades = px de pantalla
+const NP = 300, pp = new Float32Array(NP * 3).fill(-9999), pc = new Float32Array(NP * 3), pv = new Float32Array(NP * 3), pb = new Float32Array(NP * 3);
+const pvida = new Float32Array(NP), pdura = new Float32Array(NP), pgrav = new Float32Array(NP);
+const geoP = new THREE.BufferGeometry();
+geoP.setAttribute("position", new THREE.BufferAttribute(pp, 3).setUsage(THREE.DynamicDrawUsage));
+geoP.setAttribute("color", new THREE.BufferAttribute(pc, 3).setUsage(THREE.DynamicDrawUsage));
+const puntos = new THREE.Points(geoP, new THREE.PointsMaterial({size: 9, sizeAttenuation: false, map: RESPLANDOR, vertexColors: true, ...SUMA}));
+puntos.frustumCulled = false; mundo.add(puntos);
+let pcur = 0, vivas = 0, reaccion = null, enfriado = 0;
+const disparadas = new Set();
+function emitir(n, x, y, f) {  // f(i) -> [vx, vy, color, duración s, gravedad]
+  const c = new THREE.Color();
+  vivas = Math.max(vivas, n);  // que el bucle no se duerma justo después de emitir
+  for (let i = 0; i < n; i++) { const j = pcur; pcur = (pcur + 1) % NP; const [vx, vy, col, d, g] = f(i); c.set(col);
+    pp.set([x, y, 10], j * 3); pv.set([vx, vy, 0], j * 3); pb.set([c.r, c.g, c.b], j * 3); pvida[j] = pdura[j] = d; pgrav[j] = g || 0; }
+}
+const azar = (a, b) => a + Math.random() * (b - a);
+const FX = {
+  chispas: (x, y, u) => emitir(26, x, y, i => { const a = azar(0, 6.283), v = azar(40, 140) * u / 2; return [Math.cos(a) * v, Math.sin(a) * v, i % 3 ? C.brillo : C.cristal, azar(.5, .9)]; }),
+  polvo: (x, y, u) => emitir(22, x, y, i => [azar(-90, 90) * u / 2, azar(10, 60) * u / 2, i % 2 ? C.rosa2 : C.cristal, azar(.4, .7), -60]),
+  confeti: (x, y, u) => emitir(90, x, y, i => [azar(-160, 160) * u / 2, azar(120, 300) * u / 2, [C.brillo, C.rosa2, C.cristal][i % 3], azar(1, 1.6), -260 * u / 2]),
+};
+function moverParticulas(dt) {
+  vivas = 0;
+  for (let j = 0; j < NP; j++) { const b = j * 3;
+    if (pvida[j] <= 0) { if (pc[b] || pc[b + 1] || pc[b + 2]) pc.fill(0, b, b + 3); continue; }
+    vivas++; pvida[j] -= dt; const k = Math.max(0, pvida[j] / pdura[j]);
+    pv[b + 1] += pgrav[j] * dt; pp[b] += pv[b] * dt; pp[b + 1] += pv[b + 1] * dt;
+    for (let e = 0; e < 3; e++) pc[b + e] = pb[b + e] * k * 1.4;
+  }
+  geoP.attributes.position.needsUpdate = geoP.attributes.color.needsUpdate = true;
+}
+const cristalEn = v => yo.getObjectByName("cristal").getWorldPosition(v);
+function fxPanel(p) {  // una ráfaga al empezar la acción del panel; se rearma al alejarse 2 paneles
+  disparadas.forEach(i => { if (Math.abs(i - p.panel) >= 2) disparadas.delete(i); });
+  const g = GUION_C[p.panel]; if (!g.fx || disparadas.has(p.panel) || p.f < .05 || p.f > .7) return;
+  disparadas.add(p.panel); const u = UC * p.s / POSTER.s;
+  if (g.fx === "chispas") { const v = cristalEn(new THREE.Vector3()); FX.chispas(v.x, v.y, u); }
+  else FX[g.fx](X0C + CUERPO * u, -PIESC, u);
+}
+
 function dibujar(y) {
   if (!activa()) return;
   const p = CARRUSEL ? poseC(y) : pose(y, H);
   aplicar(yo, p, false);
   clon.visible = p.clon > 0; if (clon.visible) { aplicar(clon, p, true); sombra.opacity = p.clon; }
   vidrio.emissiveIntensity = .35 + .9 * p.brillo;
+  if (CARRUSEL) { yo.updateMatrixWorld(true); fxPanel(p); }
   render.render(mundo, camara);
 }
 
@@ -224,10 +270,21 @@ const pedir = () => { if (!raf && !document.hidden) raf = requestAnimationFrame(
 function cuadro(t) {
   raf = 0; const dt = previo ? Math.min(t - previo, 100) : 16; previo = t;
   objetivo = scrollY; actual += (objetivo - actual) * (1 - Math.exp(-dt / 60));  // cola de ~200 ms tras el scroll
-  if (Math.abs(objetivo - actual) < .5) { actual = objetivo; previo = 0; } else pedir();
+  const quieto = Math.abs(objetivo - actual) < .5; if (quieto) actual = objetivo;
+  if (CARRUSEL) moverParticulas(dt / 1000);
   dibujar(actual);
+  if (!quieto || vivas || reaccion) pedir(); else previo = 0;  // sin scroll, partículas ni reacción, el bucle se duerme
 }
 addEventListener("scroll", pedir, {passive: true});
+// Carrusel: si el mouse pasa sobre la cabeza con el panel quieto, salta y voltea hacia él (una vez cada 3 s)
+if (CARRUSEL) addEventListener("pointermove", e => {
+  if (e.pointerType !== "mouse" || reaccion || performance.now() < enfriado) return;
+  const pz = poseC(actual); if (pz.f > .7) return;
+  const u = UC * pz.s / POSTER.s, rc = lienzo.getBoundingClientRect(), hx = rc.left + X0C + CUERPO * u, hy = rc.top + PIESC - 70 * u;
+  if (Math.hypot(e.clientX - hx, e.clientY - hy) > 40 * u) return;
+  reaccion = {t0: performance.now(), dir: e.clientX < hx ? -1 : 1}; enfriado = reaccion.t0 + 3000;
+  const v = cristalEn(new THREE.Vector3()); FX.chispas(v.x, v.y, u * .6); pedir();
+}, {passive: true});
 addEventListener("resize", () => { medir(); pedir(); dibujar(actual); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) { cancelAnimationFrame(raf); raf = 0; previo = 0; } else pedir(); });
 dibujar(actual);

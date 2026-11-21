@@ -129,7 +129,8 @@ matchMedia("(min-width:1280px) and (min-height:580px) and (pointer:fine) and (pr
   .con-carrusel .descarga{display:flex;justify-content:center;align-items:flex-start;min-height:70vh}  /* el botón arriba; la mascota celebra debajo */
   .con-carrusel .escena{display:block;position:absolute;inset:0;z-index:500;pointer-events:none}
   .con-carrusel .escena svg{position:absolute;left:calc(50% - var(--pw)/2);bottom:calc(50vh - var(--pw)*.79);width:var(--pw);height:auto;overflow:visible}
-  .con-carrusel.escena-lista .escena svg{opacity:0}  /* primer cuadro 3D: el póster se apaga (también entre 1280 y 1399) */
+  .con-carrusel.escena-lista .escena svg{opacity:0}
+  .con-carrusel:not(.escena-lista) .escena svg{opacity:calc(1 - var(--giro, 0))}  /* sin 3D, el póster se apaga al girar: nunca sobre el texto que pasa */  /* primer cuadro 3D: el póster se apaga (también entre 1280 y 1399) */
   /* Laptops: escalones por ancho y alto para que cada panel quepa sin scroll interno */
   @media (max-width:1399px){.con-carrusel{--hueco:200px}}
   @media (max-height:759px){
@@ -413,7 +414,7 @@ document.querySelector("[data-compartir]").addEventListener("click", e => { cons
     P.forEach((p, i) => { const t = Math.max(-160, Math.min(160, (fa - i) * PASO));
       p.style.transform = t ? `translateZ(${R}px) rotateY(${t}deg) translateZ(${-R}px)` : "none";
       p.style.zIndex = 200 - Math.round(Math.abs(t)); p.style.visibility = Math.abs(fa - i) <= 1 ? "visible" : "hidden"; p.style.pointerEvents = i === a ? "auto" : "none"; });
-    html.style.setProperty("--fase", fa); };
+    html.style.setProperty("--fase", fa); html.style.setProperty("--giro", Math.sin(Math.PI * (fa % 1)).toFixed(3)); };
   addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(pintar); }, {passive: true});
   addEventListener("resize", pintar); pintar();
   // Teclado y anclas: el panel que recibe el foco (o el destino del enlace) pasa al frente. Tab encadena panel → contenido → panel siguiente.
