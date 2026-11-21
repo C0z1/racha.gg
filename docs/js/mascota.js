@@ -54,7 +54,7 @@ function modelo() {
   for (const k of [1, -1]) {
     const o = malla(ojo, ojoMat, 0, 0, 23.2); o.scale.x = k; raiz.add(o);
     const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-10 * k, 59, 23.4), new THREE.Vector3(-5 * k, 57, 23.4)]), brillo);
-    raiz.add(l);
+    l.name = "brilloOjo"; raiz.add(l);
   }
   const placa = malla(new THREE.CylinderGeometry(14, 13, 3.5, 6), lambert(C.piedraMedia), 0, 26, 22, "placa");  // lisa, con el borde biselado
   placa.geometry.rotateX(Math.PI / 2); raiz.add(placa);
@@ -107,26 +107,107 @@ const GUION = [
   {el: q(".descarga"), lado: "D", rotY: 0, s: 1.1, act: celebra},      // 12 descarga
 ];
 
+// --- Animaciones del laboratorio (design-os/projects/mascota-3d/animaciones/acciones.js): misma firma act(p, u) -----------------
+const tramoU = (u, a, b) => clamp((u - a) / (b - a));                               // 0→1 dentro de [a, b]
+const suave3 = x => (x = clamp(x), x < .5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2);  // ease-in-out cúbico: arranque y frenado más marcados
+const sobrepasa = (x, s = 1.70158) => (x = clamp(x) - 1, 1 + (s + 1) * x ** 3 + s * x ** 2);  // back-out: pasa de 1 y vuelve
+const rebote = (x, f = 2, z = 5) => (x = clamp(x), Math.exp(-z * x) * Math.sin(f * Math.PI * x));  // oscilación amortiguada, 0 en x=0 y ~0 en x=1
+const ciclo = u => (1 - Math.cos(2 * Math.PI * u)) / 2;                             // 0→1→0 sin costura, para bucles
+
+// 1. respira · en bucle · 3,2 s. Idle cuando no hay scroll: flota, respira (stretch leve), el bastón y el resplandor van con retraso.
+const respira = (p, u) => {
+  const a = 2 * Math.PI * u;
+  p.dy = 4 * ciclo(u);                          // flote de 4 px
+  p.sy = 1 + .025 * Math.sin(a);                // inhala/exhala
+  p.tilt = -1.5 * Math.sin(a);                  // vaivén: se ladea al bajar (un cuarto de ciclo detrás del flote)
+  p.baston = 3 * Math.sin(a) ** 3;              // follow-through: el bastón se queda atrás y alcanza tarde
+  p.orbe = 1 + .15 * ciclo(u - .1);
+  p.brillo = .25 * ciclo(u - .1);
+};
+
+// 2. parpadea · 2 s. Mira de reojo, parpadeo doble y los ojos se reencienden con un destello. Para la pausa de lectura (FAQ, "qué es").
+const parpadea = (p, u) => {
+  const mira = suave(tramoU(u, .05, .25)) - suave(tramoU(u, .7, .92));
+  p.rotY += 14 * mira + 4 * rebote(tramoU(u, .25, .6), 2, 6) - 3 * rebote(tramoU(u, .92, 1), 1, 4);  // se pasa un poco y se asienta
+  p.tilt = 3 * mira;
+  const cierra = (a, b) => env(tramoU(u, a, b));
+  p.ojos = 1 - Math.max(cierra(.34, .42), cierra(.5, .58)) + .9 * env(tramoU(u, .58, .8));
+  p.brillo = .5 * env(tramoU(u, .58, .85));
+  p.dy = 2 * env(tramoU(u, .55, .75));
+};
+
+// 3. molinete · 2,4 s. Saludo con giro completo del bastón: echa el bastón atrás (anticipación), lo alza y da una vuelta, lo frena con rebote. Hero o despedida.
+const molinete = (p, u) => {
+  const g = tramoU(u, .14, .72);
+  p.baston = u < .14 ? -22 * suave(u / .14) : u < .72 ? -22 + 382 * suave3(g) : 360 + 14 * rebote(tramoU(u, .72, 1), 2.5, 4);
+  p.bastonY = 30 * suave(tramoU(u, .08, .3)) * (1 - suave(tramoU(u, .7, .95)));  // lo alza para que el cristal no pase por el suelo
+  p.bastonZ = 14 * env(tramoU(u, .1, .9));
+  p.dy = 6 * env(tramoU(u, .1, .3)) - 2 * env(tramoU(u, .72, .85));               // salta al soltarlo, se agacha al frenarlo
+  p.tilt = -5 * env(tramoU(u, 0, .18)) + 6 * Math.sin(2 * Math.PI * g) * env(g);  // el cuerpo sigue al bastón
+  p.chicos = env(tramoU(u, .2, .8)); p.giro = 6 * Math.PI * u;
+  p.brillo = env(tramoU(u, .15, .85));
+};
+
+// 4. lee · 3,2 s. Se echa atrás, se inclina hacia adelante con el cristal como lámpara y "lee" de lado a lado. Junto a una captura (champ select, tier list).
+const lee = (p, u) => {
+  const k = suave(tramoU(u, .1, .3)) - suave3(tramoU(u, .8, 1));
+  p.inclina = -4 * env(tramoU(u, 0, .15)) + 14 * k + 3 * rebote(tramoU(u, .3, .6), 1.5, 5);
+  p.rotY += 22 * k;                                         // gira hacia la captura (en la página: hacia el lado de la imagen)
+  p.baston = -18 * k; p.bastonZ = 16 * k; p.bastonY = 6 * k; // acerca la lámpara
+  p.orbe = 1 + .7 * k + .08 * Math.sin(10 * Math.PI * u) * k;
+  p.brillo = .7 * k;
+  p.tilt = 3 * Math.sin(5 * Math.PI * tramoU(u, .3, .8)) * k;  // barre la línea con la cabeza
+  p.ojos = 1 + .3 * k;
+};
+
+// 5. sorpresa · 1,6 s. Reacción al mouse: se agacha, salta estirado, aterriza aplastado y rebota. Sustituye la "reaccion" de poseC().
+const sorpresa = (p, u) => {
+  const j = tramoU(u, .2, .55), L = tramoU(u, .55, 1);
+  p.sy = u < .2 ? 1 - .16 * suave(u / .2) : u < .55 ? 1 + .14 * Math.cos(Math.PI * j) : 1 - .14 * Math.exp(-5 * L) * Math.cos(3 * Math.PI * L);
+  p.dy = u < .2 ? 0 : 40 * 4 * j * (1 - j);
+  p.rotY += 18 * env(tramoU(u, .15, .85));
+  p.tilt = -4 * env(tramoU(u, .2, .55)) + 3 * rebote(L, 2, 5);
+  p.baston = 32 * env(tramoU(u, .26, .7)) - 8 * rebote(tramoU(u, .55, 1), 2, 4);  // el bastón sube tarde y baja tarde
+  p.ojos = 1 + env(tramoU(u, .15, .6));
+  p.brillo = env(tramoU(u, .15, .75));
+};
+
+// 6. invoca · 3 s. Baja el bastón, alza el cristal que gira dos vueltas y suelta los 3 orbes chicos en espiral. Al terminar / descarga.
+const invoca = (p, u) => {
+  const sube = sobrepasa(tramoU(u, .14, .42), 2.2) * (1 - suave3(tramoU(u, .8, 1)));
+  p.bastonY = -7 * env(tramoU(u, 0, .16)) + 20 * sube;
+  p.dy = -2 * env(tramoU(u, 0, .16)) + 5 * sube;
+  p.baston = 8 * sube;
+  p.cristalRot = -720 * suave3(tramoU(u, .14, .82));
+  p.brillo = Math.min(1, 1.3 * env(tramoU(u, .14, 1)));
+  p.orbe = 1 + .6 * sube;
+  const s = tramoU(u, .45, .95);
+  p.chicos = env(tramoU(u, .35, .98));
+  p.chicosR = 10 + 40 * suave(s);
+  p.chicosY = -34 * suave(s);                   // bajan del tope del cristal a su cintura mientras se abren
+  p.giro = 8 * Math.PI * suave(tramoU(u, .35, 1));
+  p.ojos = 1 + .6 * env(tramoU(u, .3, .8));
+};
+
 // --- Carrusel (html.con-carrusel): la página es un anillo de paneles y la mascota se queda al centro, en el hueco del panel del frente.
 // Cada panel ocupa 100vh de scroll: en el 70 % quieto hace su acción; en el 30 % de giro se voltea hacia el panel que entra por la derecha.
 const MOVIL = document.documentElement.classList.contains("con-carrusel-movil");  // celular: la mascota vive en el balcón de arriba
 const CARRUSEL = MOVIL || document.documentElement.classList.contains("con-carrusel");
 let UC = 190 / 82, X0C = 0, PIESC = 0;  // carrusel: px por unidad, centro del dibujo y pies, medidos del póster SVG (el CSS manda el tamaño)
-const disparaC = (p, u) => { dispara(p, u); p.orbeX *= -.5; };  // dispara hacia la imagen (derecha), nunca sobre el texto
 const GUION_C = [
-  {rotY: -25, s: .75, act: saluda, fx: "chispas"},      // hero (= póster)
+  {rotY: -25, s: .75, act: molinete, fx: "chispas"},      // hero: saludo con giro del bastón (= póster)
   {rotY: -60, s: .75, act: camina, fx: "polvo"},      // en tres pasos
-  {rotY: 0, s: .75, act: orbeCrece, fx: "chispas"},     // qué es
-  {rotY: 30, s: .75, act: apunta, fx: "chispas"},       // champ select: apunta a la captura
+  {rotY: 0, s: .75, act: parpadea, fx: "chispas"},     // qué es: pausa de lectura
+  {rotY: 30, s: .75, act: lee, fx: "chispas"},       // champ select: apunta a la captura
   {rotY: -25, s: .75, act: golpe, fx: "polvo"},       // runas
   {rotY: 90, s: .75, act: corre, fx: "polvo"},        // sombra: corre con su clon
-  {rotY: -35, s: .75, act: giraCristal, fx: "chispas"}, // al terminar
-  {rotY: 40, s: .75, act: disparaC, fx: "chispas"},     // tier list
-  {rotY: 0, s: .75, act: guardia},       // FAQ
+  {rotY: -35, s: .75, act: invoca, fx: "chispas"}, // al terminar
+  {rotY: 40, s: .75, act: lee, fx: "chispas"},     // tier list
+  {rotY: 0, s: .75, act: parpadea},       // FAQ
   {rotY: 0, s: .82, act: celebra, fx: "confeti"},       // descarga
 ];
 const base = o => Object.assign({m: 1, dy: 0, tilt: 0, baston: 0, bastonY: 0, bastonZ: 0, brillo: 0, orbe: 1, orbeX: 0, orbeO: 1, chicos: 0, giro: 0, placa: 0,
-  anillo: {o: 0, s: 1}, clon: 0, cristalRot: 0}, o);
+  anillo: {o: 0, s: 1}, clon: 0, cristalRot: 0, inclina: 0, sy: 1, ojos: 1, chicosR: 14, chicosY: 0}, o);
 let TOPES = [], BALCON = 0;  // celular: dónde empieza cada panel y el borde de abajo del balcón (se miden en medir())
 function tramoMovil(y) {  // panel cuya parte de arriba ya pasó bajo el balcón y cuánto de él se ha leído
   const linea = y + BALCON + 40; let i = 0; while (i < TOPES.length - 1 && TOPES[i + 1] <= linea) i++;
@@ -141,11 +222,11 @@ function poseC(y) {
   const t = suave((f - .7) / .3);
   const p = base({lado: "C", desde: "C", hasta: "C", k: 0, rotY: g.rotY + (sig.rotY - g.rotY) * t + 50 * env(t), s: g.s + (sig.s - g.s) * t});
   g.act(p, clamp(f / .7), sig);
+  if (reaccion) { const k = clamp((performance.now() - reaccion.t0) / 1600), r0 = p.rotY;  // reacción al mouse o al toque: «sorpresa», hacia el lado del cursor
+    sorpresa(p, k); p.rotY = r0 + (p.rotY - r0) * reaccion.dir; if (k >= 1) reaccion = null; }
   if (!MOVIL) p.m = 1 - suave(env(t) * 1.6);  // en el giro se hunde en su cristal: el texto que pasa por el centro nunca queda detrás de él
   else p.dy *= .4;  // en el balcón de 112 px los saltos van más cortos
   p.panel = i; p.f = f;
-  if (reaccion) { const k = clamp((performance.now() - reaccion.t0) / 900);  // reacción al mouse, sumada a la pose
-    p.dy += 16 * env(k); p.rotY += 20 * reaccion.dir * env(k); p.brillo = Math.max(p.brillo, env(k)); if (k >= 1) reaccion = null; }
   return p;
 }
 
@@ -166,7 +247,7 @@ function pose(y, H, a = anclas(H)) {
   const k = g.lado === sig.lado ? suave((u - .7) / .3) : 0;  // si cambia de lado, lo hace la acción (escala a 0), nunca cruzando el texto
   const p = {lado: k < .5 ? g.lado : sig.lado, desde: g.lado, hasta: sig.lado, k, rotY: g.rotY + (sig.rotY - g.rotY) * k, s: g.s + (sig.s - g.s) * k,
     m: 1, dy: 0, tilt: 0, baston: 0, bastonY: 0, bastonZ: 0, brillo: 0, orbe: 1, orbeX: 0, orbeO: 1, chicos: 0, giro: 0, placa: 0,
-    anillo: {o: 0, s: 1}, clon: 0, cristalRot: 0};
+    anillo: {o: 0, s: 1}, clon: 0, cristalRot: 0, inclina: 0, sy: 1, ojos: 1, chicosR: 14, chicosY: 0};
   if (g.act) g.act(p, g.act === hundirse ? u : clamp(u / .7), sig);
   if (g.act === hundirse) p.desde = p.hasta = p.lado, p.k = 0;
   return p;
@@ -211,12 +292,12 @@ function aplicar(o, p, esClon) {
   let x = x0 + (x1 - x0) * p.k + CUERPO * u, y = (CARRUSEL ? PIESC : .78 * H) - p.dy;  // carrusel: pies donde los del póster
   if (p.m < 1) { const u0 = CARRUSEL ? UC * p.s / POSTER.s : escala(p.lado, p.s); x += (1 - p.m) * u0 * -34 * Math.cos(ry); y -= (1 - p.m) * u0 * 100; }  // se hunde hacia el cristal
   if (esClon) { x += (p.lado === "I" ? -22 : 22) * u; o.position.z = -60 * u; }
-  o.position.x = x; o.position.y = -y; o.scale.setScalar(Math.max(u, 1e-4)); o.rotation.set(0, ry, rad(p.tilt));
+  o.position.x = x; o.position.y = -y; const k0 = Math.max(u, 1e-4), sy = p.sy || 1; o.scale.set(k0 / Math.sqrt(sy), k0 * sy, k0 / Math.sqrt(sy)); o.rotation.set(rad(p.inclina || 0), ry, rad(p.tilt), "YXZ");
   const b = o.getObjectByName("baston"); b.rotation.z = rad(p.baston); b.position.y = 42 + p.bastonY; b.position.z = 10 + p.bastonZ;
   const cr = o.getObjectByName("cristal"); cr.rotation.y = rad(p.cristalRot);
   const orbe = o.getObjectByName("orbe"); orbe.scale.setScalar(Math.max(CARRUSEL ? Math.min(p.orbe, 1.15) : p.orbe, 1e-4) * (CARRUSEL ? 34 : 46));  // carrusel: el resplandor cabe en el hueco y no cae sobre el texto  // sprite: 46 unidades de diámetro = el orbe de 16 de radio con su halo orbe.position.x = p.orbeX; orbe.material.opacity = .35 * p.orbeO;
   for (let i = 0; i < 3; i++) { const ch = o.getObjectByName("chico" + i), t = p.giro + i * 2.094;
-    ch.position.set(14 * Math.cos(t), 30 + 4 * Math.sin(t * 1.5), 14 * Math.sin(t)); ch.material.opacity = .8 * p.chicos; }
+    ch.position.set(p.chicosR * Math.cos(t), 30 + p.chicosY + 4 * Math.sin(t * 1.5), p.chicosR * Math.sin(t)); ch.material.opacity = .8 * p.chicos; }
   o.getObjectByName("placa").rotation.z = rad(p.placa);
   const an = o.getObjectByName("anillo"); an.material.opacity = esClon ? 0 : .7 * p.anillo.o; an.scale.setScalar(p.anillo.s);
   if (p.anillo.cristal) { an.position.set(-34, 100 + p.bastonY, 0); an.rotation.set(0, -ry, 0); } else { an.position.set(0, 1, 0); an.rotation.set(-Math.PI / 2 + .3, 0, 0); }
@@ -270,6 +351,10 @@ function dibujar(y) {
   const p = CARRUSEL ? poseC(y) : pose(y, H);
   aplicar(yo, p, false);
   clon.visible = p.clon > 0; if (clon.visible) { aplicar(clon, p, true); sombra.opacity = p.clon; }
+  if (CARRUSEL && reposo) { const q = base({}); respira(q, (performance.now() / 3200) % 1);  // respira encima de la acción mientras el bucle de reposo está vivo
+    p.dy += q.dy * (MOVIL ? .4 : 1); p.sy *= q.sy; p.tilt += q.tilt; p.baston += q.baston; p.orbe *= q.orbe; p.brillo = Math.max(p.brillo, q.brillo); aplicar(yo, p, false); }
+  const ojo = yo.getObjectByName("brilloOjo").material, o1 = p.ojos ?? 1;
+  o1 <= 1 ? ojo.color.set(C.ojos).lerp(new THREE.Color(C.brillo), o1) : ojo.color.set(C.brillo).lerp(new THREE.Color(C.cristal), o1 - 1);
   vidrio.emissiveIntensity = .35 + .9 * p.brillo;
   if (CARRUSEL) { yo.updateMatrixWorld(true); fxPanel(p); }
   render.render(mundo, camara);
@@ -280,17 +365,21 @@ escena.append(lienzo);
 { const p = CARRUSEL ? poseC(0) : pose(0, H, anclas(H));  // la pose de arriba es la del póster
   console.assert((CARRUSEL || p.lado === POSTER.lado) && p.rotY === POSTER.rotY && p.s === POSTER.s && p.dy === 0 && p.baston === 0, "pose(0) != póster", p); }
 
-let objetivo = scrollY, actual = scrollY, raf = 0, previo = 0;
+let objetivo = scrollY, actual = scrollY, raf = 0, previo = 0, reposo = false, hastaReposo = 0, ultimoReposo = 0;
+const despertar = () => { hastaReposo = performance.now() + 20000; };  // respira hasta 20 s después del último scroll, mouse o toque
 const pedir = () => { if (!raf && !document.hidden) raf = requestAnimationFrame(cuadro); };
 function cuadro(t) {
   raf = 0; const dt = previo ? Math.min(t - previo, 100) : 16; previo = t;
   objetivo = scrollY; actual += (objetivo - actual) * (1 - Math.exp(-dt / 60));  // cola de ~200 ms tras el scroll
   const quieto = Math.abs(objetivo - actual) < .5; if (quieto) actual = objetivo;
-  if (CARRUSEL) moverParticulas(dt / 1000);
-  dibujar(actual);
-  if (!quieto || vivas || reaccion) pedir(); else previo = 0;  // sin scroll, partículas ni reacción, el bucle se duerme
+  const activo = !quieto || vivas || reaccion;
+  reposo = CARRUSEL && t < hastaReposo;
+  if (activo || !reposo || t - ultimoReposo >= 33) {  // en reposo, 30 cuadros por segundo
+    ultimoReposo = t; if (CARRUSEL) moverParticulas(dt / 1000); dibujar(actual); }
+  if (activo) pedir(); else if (reposo) setTimeout(pedir, 33); else previo = 0;  // en reposo despierta 30 veces por segundo; sin nada, se duerme
 }
-addEventListener("scroll", pedir, {passive: true});
+addEventListener("scroll", () => { despertar(); pedir(); }, {passive: true});
+if (CARRUSEL) { addEventListener("pointermove", () => { despertar(); pedir(); }, {passive: true}); addEventListener("pointerdown", () => { despertar(); pedir(); }, {passive: true}); }
 // Celular: un toque en el balcón hace la misma reacción
 if (MOVIL) escena.addEventListener("pointerdown", () => { if (reaccion || performance.now() < enfriado) return;
   reaccion = {t0: performance.now(), dir: Math.random() < .5 ? -1 : 1}; enfriado = reaccion.t0 + 3000;
@@ -307,4 +396,5 @@ if (CARRUSEL) addEventListener("pointermove", e => {
 addEventListener("resize", () => { medir(); pedir(); dibujar(actual); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) { cancelAnimationFrame(raf); raf = 0; previo = 0; } else pedir(); });
 dibujar(actual);
+if (CARRUSEL) { despertar(); pedir(); }  // al llegar, respira un rato aunque no haya scroll
 document.documentElement.classList.add("escena-lista");  // primer cuadro 3D: el póster se apaga
