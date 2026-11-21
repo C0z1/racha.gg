@@ -194,6 +194,7 @@ const invoca = (p, u) => {
 // Cada panel ocupa 100vh de scroll: en el 70 % quieto hace su acción; en el 30 % de giro se voltea hacia el panel que entra por la derecha.
 const MOVIL = document.documentElement.classList.contains("con-carrusel-movil");  // celular: la mascota vive en el balcón de arriba
 const CARRUSEL = MOVIL || document.documentElement.classList.contains("con-carrusel");
+const LIGERO = MOVIL && ((navigator.deviceMemory || 8) < 4 || (navigator.hardwareConcurrency || 8) <= 4);  // celular de gama baja: sin partículas y a 1×
 let UC = 190 / 82, X0C = 0, PIESC = 0;  // carrusel: px por unidad, centro del dibujo y pies, medidos del póster SVG (el CSS manda el tamaño)
 const GUION_C = [
   {rotY: -25, s: .75, act: molinete, fx: "chispas"},      // hero: saludo con giro del bastón (= póster)
@@ -271,7 +272,7 @@ const vidrio = yo.getObjectByName("cristal").children[0].material;
 let W = 0, H = 0;
 function medir() {
   W = CARRUSEL ? escena.clientWidth : document.documentElement.clientWidth; H = CARRUSEL ? escena.clientHeight : innerHeight;
-  render.setPixelRatio(Math.min(devicePixelRatio, MOVIL ? 1.5 : 2)); render.setSize(W, H, false);
+  render.setPixelRatio(Math.min(devicePixelRatio, LIGERO ? 1 : MOVIL ? 1.5 : 2)); render.setSize(W, H, false);
   if (MOVIL) { BALCON = document.querySelector(".barra").offsetHeight + escena.offsetHeight;
     TOPES = [".hero", '[aria-labelledby="t-pasos"]', ".que-es", ".fila", ".fila:nth-of-type(2)", ".fila:nth-of-type(3)", ".fila:nth-of-type(4)", ".fila:nth-of-type(5)", ".faq", ".descarga"]
       .map(s => { let e = document.querySelector(s), t = 0; for (; e; e = e.offsetParent) t += e.offsetTop; return t; }); }
@@ -305,6 +306,27 @@ function aplicar(o, p, esClon) {
 }
 
 const vista = matchMedia("(min-width:1400px) and (pointer:fine)"), activa = () => CARRUSEL || vista.matches;
+// --- Sonido opcional (apagado por defecto): tonos sintetizados con Web Audio, sin archivos. El audio se crea al primer clic en el botón.
+let audio = null, sonido = false;
+function tono(f, t0, dur, tipo = "sine", vol = .07) {
+  const o = audio.createOscillator(), g = audio.createGain(); o.type = tipo; o.frequency.value = f;
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  o.connect(g).connect(audio.destination); o.start(t0); o.stop(t0 + dur + .05);
+}
+const SON = {
+  chispas: t => [1319, 1760].forEach((f, i) => tono(f, t + i * .07, .28)),                       // campanita
+  polvo: t => tono(160, t, .14, "triangle", .06),                                                  // paso
+  confeti: t => [523, 659, 784, 1047].forEach((f, i) => tono(f, t + i * .08, .32, "triangle")),   // arpegio de celebración
+  pop: t => { tono(620, t, .07, "square", .03); tono(930, t + .05, .12); },                        // sorpresa
+};
+function sonar(n) { if (sonido && audio && SON[n]) SON[n](audio.currentTime + .01); }
+if (CARRUSEL) {
+  const b = document.createElement("button"); b.type = "button"; b.className = "sonido"; b.setAttribute("aria-pressed", "false"); b.textContent = "Sonido: no";
+  b.addEventListener("click", () => { audio = audio || new AudioContext(); if (audio.state === "suspended") audio.resume();
+    sonido = !sonido; b.setAttribute("aria-pressed", String(sonido)); b.textContent = sonido ? "Sonido: sí" : "Sonido: no"; sonar("chispas"); });
+  if (MOVIL) escena.append(b); else { const barra = document.querySelector(".barra"); barra.insertBefore(b, barra.lastElementChild); }  // PC: en la barra, nunca sobre el texto
+}
+
 // --- Partículas (carrusel): un solo Points que suma luz; una ráfaga al empezar la acción de cada panel; unidades = px de pantalla
 const NP = 300, pp = new Float32Array(NP * 3).fill(-9999), pc = new Float32Array(NP * 3), pv = new Float32Array(NP * 3), pb = new Float32Array(NP * 3);
 const pvida = new Float32Array(NP), pdura = new Float32Array(NP), pgrav = new Float32Array(NP);
@@ -317,7 +339,7 @@ let pcur = 0, vivas = 0, reaccion = null, enfriado = 0;
 const disparadas = new Set();
 function emitir(n, x, y, f) {  // f(i) -> [vx, vy, color, duración s, gravedad]
   const c = new THREE.Color();
-  if (MOVIL) n = Math.ceil(n * .4);  // celular: menos partículas
+  if (LIGERO) return; if (MOVIL) n = Math.ceil(n * .4);  // celular: menos partículas; gama baja: ninguna
   vivas = Math.max(vivas, n);  // que el bucle no se duerma justo después de emitir
   for (let i = 0; i < n; i++) { const j = pcur; pcur = (pcur + 1) % NP; const [vx, vy, col, d, g] = f(i); c.set(col);
     pp.set([x, y, 10], j * 3); pv.set([vx, vy, 0], j * 3); pb.set([c.r, c.g, c.b], j * 3); pvida[j] = pdura[j] = d; pgrav[j] = g || 0; }
@@ -342,7 +364,7 @@ const cristalEn = v => yo.getObjectByName("cristal").getWorldPosition(v);
 function fxPanel(p) {  // una ráfaga al empezar la acción del panel; se rearma al alejarse 2 paneles
   disparadas.forEach(i => { if (Math.abs(i - p.panel) >= 2) disparadas.delete(i); });
   const g = GUION_C[p.panel]; if (!g.fx || disparadas.has(p.panel) || p.f < .05 || p.f > .7) return;
-  disparadas.add(p.panel); const u = UC * p.s / POSTER.s;
+  disparadas.add(p.panel); const u = UC * p.s / POSTER.s; sonar(g.fx);
   if (g.fx === "chispas") { const v = cristalEn(new THREE.Vector3()); FX.chispas(v.x, v.y, u); }
   else FX[g.fx](X0C + CUERPO * u, -PIESC, u);
 }
@@ -351,7 +373,7 @@ function dibujar(y) {
   if (!activa()) return;
   const p = CARRUSEL ? poseC(y) : pose(y, H);
   aplicar(yo, p, false);
-  clon.visible = p.clon > 0; if (clon.visible) { aplicar(clon, p, true); sombra.opacity = p.clon; }
+  clon.visible = p.clon > 0 && !MOVIL; if (clon.visible) { aplicar(clon, p, true); sombra.opacity = p.clon; }
   if (CARRUSEL && reposo) { const q = base({}); respira(q, (performance.now() / 3200) % 1);  // respira encima de la acción mientras el bucle de reposo está vivo
     p.dy += q.dy * (MOVIL ? .4 : 1); p.sy *= q.sy; p.tilt += q.tilt; p.baston += q.baston; p.orbe *= q.orbe; p.brillo = Math.max(p.brillo, q.brillo); aplicar(yo, p, false); }
   const ojo = yo.getObjectByName("brilloOjo").material, o1 = p.ojos ?? 1;
@@ -364,7 +386,7 @@ function dibujar(y) {
 medir();
 escena.append(lienzo);
 { const p = CARRUSEL ? poseC(0) : pose(0, H, anclas(H));  // la pose de arriba es la del póster
-  console.assert((CARRUSEL || p.lado === POSTER.lado) && p.rotY === POSTER.rotY && p.s === POSTER.s && p.dy === 0 && p.baston === 0, "pose(0) != póster", p); }
+  if (!MOVIL) console.assert((CARRUSEL || p.lado === POSTER.lado) && p.rotY === POSTER.rotY && p.s === POSTER.s && p.dy === 0 && p.baston === 0, "pose(0) != póster", p); }
 
 let objetivo = scrollY, actual = scrollY, raf = 0, previo = 0, reposo = false, hastaReposo = 0, ultimoReposo = 0;
 const despertar = () => { hastaReposo = performance.now() + 20000; };  // respira hasta 20 s después del último scroll, mouse o toque
@@ -383,7 +405,7 @@ addEventListener("scroll", () => { despertar(); pedir(); }, {passive: true});
 if (CARRUSEL) { addEventListener("pointermove", () => { despertar(); pedir(); }, {passive: true}); addEventListener("pointerdown", () => { despertar(); pedir(); }, {passive: true}); }
 // Celular: un toque en el balcón hace la misma reacción
 if (MOVIL) escena.addEventListener("pointerdown", () => { if (reaccion || performance.now() < enfriado) return;
-  reaccion = {t0: performance.now(), dir: Math.random() < .5 ? -1 : 1}; enfriado = reaccion.t0 + 3000;
+  reaccion = {t0: performance.now(), dir: Math.random() < .5 ? -1 : 1}; enfriado = reaccion.t0 + 3000; sonar("pop");
   const v = cristalEn(new THREE.Vector3()); FX.chispas(v.x, v.y, UC); pedir(); }, {passive: true});
 // Carrusel: si el mouse pasa sobre la cabeza con el panel quieto, salta y voltea hacia él (una vez cada 3 s)
 if (CARRUSEL) addEventListener("pointermove", e => {
@@ -391,11 +413,11 @@ if (CARRUSEL) addEventListener("pointermove", e => {
   const pz = poseC(actual); if (pz.f > .7) return;
   const u = UC * pz.s / POSTER.s, rc = lienzo.getBoundingClientRect(), hx = rc.left + X0C + CUERPO * u, hy = rc.top + PIESC - 70 * u;
   if (Math.hypot(e.clientX - hx, e.clientY - hy) > 40 * u) return;
-  reaccion = {t0: performance.now(), dir: e.clientX < hx ? -1 : 1}; enfriado = reaccion.t0 + 3000;
+  reaccion = {t0: performance.now(), dir: e.clientX < hx ? -1 : 1}; enfriado = reaccion.t0 + 3000; sonar("pop");
   const v = cristalEn(new THREE.Vector3()); FX.chispas(v.x, v.y, u * .6); pedir();
 }, {passive: true});
 // Reacciona a lo que haces: celebra si pasas por el botón de descarga; mira y se inclina hacia la captura que señalas
-const reaccionar = (act, dur, dir, fx) => { if (reaccion || performance.now() < enfriado) return;
+const reaccionar = (act, dur, dir, fx) => { if (reaccion || performance.now() < enfriado) return; sonar(act === celebra ? "confeti" : "chispas");
   reaccion = {t0: performance.now(), dir, act, dur}; enfriado = reaccion.t0 + dur + 1500; despertar(); if (fx) fx(); pedir(); };
 if (CARRUSEL) {
   document.querySelectorAll(".descarga .btn").forEach(b => ["pointerenter", "focus"].forEach(ev => b.addEventListener(ev, () =>

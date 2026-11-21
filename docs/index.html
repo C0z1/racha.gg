@@ -150,6 +150,11 @@ matchMedia("(max-width:700px) and (min-height:600px) and (pointer:coarse) and (o
   .indice button{width:24px;height:24px;padding:0;border:0;background:none;color:var(--rosa);cursor:pointer;border-radius:50%}
   .indice button::before{content:"";display:block;margin:auto;width:8px;height:8px;border-radius:50%;background:var(--suave);transition:scale var(--t-fast) var(--ease-out),background var(--t-fast) var(--ease-out)}
   .indice [aria-current=location]::before{background:var(--rosa);scale:1.5}
+  /* Sonido opcional (lo crea js/mascota.js): apagado por defecto */
+  .sonido{background:var(--fondo);border:1px solid var(--borde);color:var(--suave);font:inherit;font-size:.82rem;padding:4px 12px;border-radius:999px;cursor:pointer}
+  .sonido[aria-pressed=true]{color:var(--rosa);border-color:var(--rosa)}
+  .con-carrusel .sonido{margin-left:auto;margin-right:12px}  /* PC: en la barra, junto a Descargar */
+  .con-carrusel-movil .sonido{position:absolute;left:8px;top:8px;z-index:6}  /* celular: en la esquina del balcón */
   .con-carrusel .panel:focus-visible{outline:2px solid var(--rosa);outline-offset:-4px}
   .con-carrusel .descarga{text-align:left}  /* el cierre como los demás paneles: texto a la izquierda, la mascota celebra en el hueco */
   .con-carrusel .descarga .nota{margin-inline:0}
