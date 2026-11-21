@@ -24,7 +24,8 @@
 <meta name="twitter:description" content="Deja de adivinar por qué pierdes. Gratis para Windows.">
 <meta name="twitter:image" content="https://racha-gg.vercel.app/img/og.jpg">
 <script>/* Carrusel: solo PC grande sin movimiento reducido; antes del primer pintado, así nada salta */
-matchMedia("(min-width:1280px) and (min-height:580px) and (pointer:fine) and (prefers-reduced-motion:no-preference)").matches && document.documentElement.classList.add("con-carrusel");</script>
+matchMedia("(min-width:1280px) and (min-height:580px) and (pointer:fine) and (prefers-reduced-motion:no-preference)").matches && document.documentElement.classList.add("con-carrusel");
+matchMedia("(max-width:700px) and (min-height:600px) and (pointer:coarse) and (orientation:portrait) and (prefers-reduced-motion:no-preference)").matches && document.documentElement.classList.add("con-carrusel-movil");</script>
 <link rel="preload" href="fonts/mulish.woff2" as="font" type="font/woff2" crossorigin>
 <style>
   @font-face{font-family:Mulish;src:url(fonts/mulish.woff2) format("woff2");font-weight:200 1000;font-display:swap}
@@ -97,6 +98,11 @@ matchMedia("(min-width:1280px) and (min-height:580px) and (pointer:fine) and (pr
     .escena canvas{position:absolute;inset:0;width:100%;height:100%}
     .escena-lista .escena svg{opacity:0}
   }
+  /* Celular (vertical, táctil): la mascota en un balcón fijo bajo la barra, con fondo propio (nunca sobre texto); las secciones entran girando como un tambor */
+  .con-carrusel-movil{scroll-padding-top:184px}
+  .con-carrusel-movil .carrusel{overflow-x:clip}
+  .con-carrusel-movil .escena{display:block;position:sticky;top:62px;height:112px;z-index:5;background:var(--fondo);border-bottom:1px solid var(--borde)}
+  .con-carrusel-movil .escena svg{position:absolute;left:calc(50% - 36px);bottom:6px;width:72px;height:auto;overflow:visible}
   /* Celular: Racha es para PC; el principal es mandarse el enlace y el .exe queda como secundario */
   .solo-movil{margin:24px 0 0;color:var(--suave)}
   .solo-movil .btn{display:block;margin-top:12px;border:0;font:inherit;font-weight:800;cursor:pointer}
@@ -397,6 +403,19 @@ document.querySelector("[data-compartir]").addEventListener("click", e => { cons
     t.querySelectorAll(".cuenta").forEach(c => { c.style.width = c.getBoundingClientRect().width + "px"; c.textContent = "0"; });  // ancho fijo: la frase no salta
     io.observe(t); });
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(preparar);  // medir con Mulish ya cargada
+})();
+</script>
+<script>
+// Carrusel en celular: cada sección entra girando desde la derecha mientras sube (tambor en flujo; el scroll sigue siendo el normal)
+(() => {
+  const html = document.documentElement; if (!html.classList.contains("con-carrusel-movil")) return;
+  const P = [document.querySelector(".hero"), document.querySelector('[aria-labelledby="t-pasos"]'), document.querySelector(".que-es"),
+    ...document.querySelectorAll(".fila"), document.querySelector(".faq"), document.querySelector(".descarga")];
+  let raf = 0;
+  const pintar = () => { raf = 0; P.forEach(p => { const q = Math.min(1, Math.max(0, (innerHeight - p.getBoundingClientRect().top) / (.45 * innerHeight)));
+    p.style.transform = q >= 1 ? "" : `perspective(900px) translateZ(-420px) rotateY(${((1 - q) * 40).toFixed(2)}deg) translateZ(420px)`; }); };
+  addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(pintar); }, {passive: true});
+  addEventListener("resize", pintar); pintar();
 })();
 </script>
 <script>
