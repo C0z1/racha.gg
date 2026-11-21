@@ -133,6 +133,12 @@ matchMedia("(max-width:700px) and (min-height:600px) and (pointer:coarse) and (o
   .con-carrusel .faq{display:block;columns:2;column-gap:var(--hueco)}
   .con-carrusel .faq h2{column-span:all}
   .con-carrusel .faq details{break-inside:avoid}
+  /* Índice del anillo (PC): un punto por panel en el borde derecho; el actual en rosa; clic o Enter lleva a ese panel */
+  .indice{display:none}
+  .con-carrusel .indice{display:flex;flex-direction:column;position:absolute;right:16px;top:50%;translate:0 -50%;z-index:600}
+  .indice button{width:24px;height:24px;padding:0;border:0;background:none;color:var(--rosa);cursor:pointer;border-radius:50%}
+  .indice button::before{content:"";display:block;margin:auto;width:8px;height:8px;border-radius:50%;background:var(--suave);transition:scale var(--t-fast) var(--ease-out),background var(--t-fast) var(--ease-out)}
+  .indice [aria-current=location]::before{background:var(--rosa);scale:1.5}
   .con-carrusel .panel:focus-visible{outline:2px solid var(--rosa);outline-offset:-4px}
   .con-carrusel .descarga{display:flex;justify-content:center;align-items:flex-start;min-height:70vh}  /* el botón arriba; la mascota celebra debajo */
   .con-carrusel .escena{display:block;position:absolute;inset:0;z-index:500;pointer-events:none}
@@ -437,8 +443,14 @@ document.querySelector("[data-compartir]").addEventListener("click", e => { cons
   const car = document.querySelector(".carrusel"), R = 1500, PASO = 50;
   const suave = x => (x = Math.min(1, Math.max(0, x)), x * x * (3 - 2 * x));
   const faseDe = y => { const r = Math.max(0, (y - car.offsetTop) / innerHeight), i = Math.floor(r); return Math.min(P.length - 1, i + suave((r - i - .7) / .3)); };
-  let raf = 0;
+  let raf = 0, ult = -1;
+  const ind = document.createElement("nav"); ind.className = "indice"; ind.setAttribute("aria-label", "Secciones");
+  P.forEach((p, k) => { const b = ind.appendChild(document.createElement("button")), n = (p.querySelector("h1,h2,h3") || {textContent: "Descargar"}).textContent.trim();
+    b.type = "button"; b.title = n; b.setAttribute("aria-label", n);
+    b.onclick = e => { irA(k); if (!e.detail && k) P[k].focus({preventScroll: true}); }; });  // con teclado, el foco va al panel
+  car.querySelector(".escenario").prepend(ind);
   const pintar = () => { raf = 0; const fa = faseDe(scrollY), a = Math.round(fa);
+    if (a !== ult) { ult = a; ind.querySelectorAll("button").forEach((b, i) => i === a ? b.setAttribute("aria-current", "location") : b.removeAttribute("aria-current")); }
     P.forEach((p, i) => { const t = Math.max(-160, Math.min(160, (fa - i) * PASO));
       p.style.transform = t ? `translateZ(${R}px) rotateY(${t}deg) translateZ(${-R}px)` : "none";
       p.style.zIndex = 200 - Math.round(Math.abs(t)); p.style.visibility = Math.abs(fa - i) <= 1 ? "visible" : "hidden"; p.style.pointerEvents = i === a ? "auto" : "none"; });
