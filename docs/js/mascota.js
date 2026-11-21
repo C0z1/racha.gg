@@ -90,6 +90,7 @@ const corre = (p, u) => { camina(p, (u * 8 / 3) % 1); p.clon = .6 * suave(u / .1
 const giraCristal = (p, u) => { p.cristalRot = -360 * u; };
 const dispara = (p, u) => { p.orbeX = -220 * suave(u / .6); p.orbe = u < .8 ? 1 : suave((u - .8) / .2); p.orbeO = u < .6 ? 1 : u < .8 ? 1 - suave((u - .6) / .2) : 1; };
 const guardia = (p, u) => { p.baston = -48 * env(u); p.bastonZ = 14 * env(u); };
+const senala = (p, u) => { const k = suave(u / .4); p.baston = 35 * k; p.chicos = k; p.giro = u * 4 * Math.PI; p.brillo = .5 * k; };  // apunta y se queda apuntando
 const celebra = (p, u) => { p.dy = 24 * env(u / .5); const k = clamp((u - .3) / .6); p.anillo = {o: env(k), s: .6 + 1.4 * k, cristal: true}; p.brillo = env(u); };
 const GUION = [
   {el: null, ...POSTER},                                                 // 0 hero arriba = póster
@@ -204,7 +205,7 @@ const GUION_C = [
   {rotY: -35, s: .75, act: invoca, fx: "chispas"}, // al terminar
   {rotY: 40, s: .75, act: lee, fx: "chispas"},     // tier list
   {rotY: 0, s: .75, act: parpadea},       // FAQ
-  {rotY: 0, s: .82, act: celebra, fx: "confeti"},       // descarga
+  {rotY: -45, s: .82, act: senala, fx: "chispas"},       // descarga: voltea al botón y lo apunta (celebra si pasas por el botón)
 ];
 const base = o => Object.assign({m: 1, dy: 0, tilt: 0, baston: 0, bastonY: 0, bastonZ: 0, brillo: 0, orbe: 1, orbeX: 0, orbeO: 1, chicos: 0, giro: 0, placa: 0,
   anillo: {o: 0, s: 1}, clon: 0, cristalRot: 0, inclina: 0, sy: 1, ojos: 1, chicosR: 14, chicosY: 0}, o);
@@ -222,8 +223,8 @@ function poseC(y) {
   const t = suave((f - .7) / .3);
   const p = base({lado: "C", desde: "C", hasta: "C", k: 0, rotY: g.rotY + (sig.rotY - g.rotY) * t + 50 * env(t), s: g.s + (sig.s - g.s) * t});
   g.act(p, clamp(f / .7), sig);
-  if (reaccion) { const k = clamp((performance.now() - reaccion.t0) / 1600), r0 = p.rotY;  // reacción al mouse o al toque: «sorpresa», hacia el lado del cursor
-    sorpresa(p, k); p.rotY = r0 + (p.rotY - r0) * reaccion.dir; if (k >= 1) reaccion = null; }
+  if (reaccion) { const k = clamp((performance.now() - reaccion.t0) / (reaccion.dur || 1600)), r0 = p.rotY;  // reacción (sorpresa, celebra o lee), hacia el lado del estímulo
+    (reaccion.act || sorpresa)(p, k); p.rotY = r0 + (p.rotY - r0) * reaccion.dir; if (k >= 1) reaccion = null; }
   if (!MOVIL) p.m = 1 - suave(env(t) * 1.6);  // en el giro se hunde en su cristal: el texto que pasa por el centro nunca queda detrás de él
   else p.dy *= .4;  // en el balcón de 112 px los saltos van más cortos
   p.panel = i; p.f = f;
@@ -393,6 +394,15 @@ if (CARRUSEL) addEventListener("pointermove", e => {
   reaccion = {t0: performance.now(), dir: e.clientX < hx ? -1 : 1}; enfriado = reaccion.t0 + 3000;
   const v = cristalEn(new THREE.Vector3()); FX.chispas(v.x, v.y, u * .6); pedir();
 }, {passive: true});
+// Reacciona a lo que haces: celebra si pasas por el botón de descarga; mira y se inclina hacia la captura que señalas
+const reaccionar = (act, dur, dir, fx) => { if (reaccion || performance.now() < enfriado) return;
+  reaccion = {t0: performance.now(), dir, act, dur}; enfriado = reaccion.t0 + dur + 1500; despertar(); if (fx) fx(); pedir(); };
+if (CARRUSEL) {
+  document.querySelectorAll(".descarga .btn").forEach(b => ["pointerenter", "focus"].forEach(ev => b.addEventListener(ev, () =>
+    reaccionar(celebra, 1500, 1, () => FX.confeti(X0C + CUERPO * UC, -PIESC + 60 * UC, UC)))));
+  if (!MOVIL) document.querySelectorAll(".panel img").forEach(im => im.addEventListener("pointerenter", e => { if (e.pointerType !== "mouse") return;
+    const r = im.getBoundingClientRect(); reaccionar(lee, 2400, r.left + r.width / 2 > innerWidth / 2 ? 1 : -1); }));
+}
 addEventListener("resize", () => { medir(); pedir(); dibujar(actual); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) { cancelAnimationFrame(raf); raf = 0; previo = 0; } else pedir(); });
 dibujar(actual);
