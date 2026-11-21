@@ -73,7 +73,7 @@ function modelo() {
   orbe.name = "orbe"; cristal.add(orbe);
   const chico = new THREE.IcosahedronGeometry(3);
   for (let i = 0; i < 3; i++) cristal.add(malla(chico, aditivo(C.brillo, 0), 0, 0, 0, "chico" + i));
-  const anillo = malla(new THREE.RingGeometry(18, 22, 9), aditivo(C.brillo, 0), 0, 0, 0, "anillo"); raiz.add(anillo);
+  const anillo = malla(new THREE.RingGeometry(18, 22, 32), aditivo(C.brillo, 0), 0, 0, 0, "anillo"); raiz.add(anillo);
   return raiz;
 }
 
